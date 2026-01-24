@@ -1,12 +1,13 @@
 module github.com/dl-alexandre/gdrive
 
-go 1.25.6
+go 1.22
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/cobra v1.10.2
 	github.com/zalando/go-keyring v0.2.6
+	golang.org/x/crypto v0.32.0
 	golang.org/x/oauth2 v0.25.0
 	google.golang.org/api v0.216.0
 )
@@ -33,7 +34,6 @@ require (
 	go.opentelemetry.io/otel v1.31.0 // indirect
 	go.opentelemetry.io/otel/metric v1.31.0 // indirect
 	go.opentelemetry.io/otel/trace v1.31.0 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

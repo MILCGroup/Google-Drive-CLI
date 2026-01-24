@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/dl-alexandre/gdrive/internal/auth"
 	"github.com/dl-alexandre/gdrive/internal/config"
 	"github.com/dl-alexandre/gdrive/internal/files"
-	"github.com/dl-alexandre/gdrive/internal/output"
 	"github.com/dl-alexandre/gdrive/internal/types"
 )
 
@@ -77,15 +77,19 @@ func TestIntegration_ConfigOutput_OutputFormats(t *testing.T) {
 	}
 
 	// Test JSON output
-	jsonOutput := output.NewFormatter(types.OutputFormatJSON, false, false)
-	err = jsonOutput.WriteFiles([]*types.DriveFile{file})
+	jsonOutput := config.NewOutputFormatter(config.OutputOptions{
+		Format: types.OutputFormatJSON,
+	})
+	err = jsonOutput.WriteSuccess("files.list", []*types.DriveFile{file})
 	if err != nil {
 		t.Fatalf("Failed to output in JSON format: %v", err)
 	}
 
 	// Test table output
-	tableOutput := output.NewFormatter(types.OutputFormatTable, false, false)
-	err = tableOutput.WriteFiles([]*types.DriveFile{file})
+	tableOutput := config.NewOutputFormatter(config.OutputOptions{
+		Format: types.OutputFormatTable,
+	})
+	err = tableOutput.WriteSuccess("files.list", []*types.DriveFile{file})
 	if err != nil {
 		t.Fatalf("Failed to output in table format: %v", err)
 	}
@@ -127,19 +131,20 @@ func TestIntegration_ConfigOutput_FieldMasking(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	// Test minimal fields
-	minimalOutput := output.NewFormatter(types.OutputFormatTable, false, false)
-	minimalOutput.SetFieldMask("id,name")
-	err = minimalOutput.WriteFiles([]*types.DriveFile{file})
-	if err != nil {
-		t.Fatalf("Failed to output with minimal fields: %v", err)
+	minimalMask := config.GetFieldMask(config.FieldMaskMinimal, false)
+	if minimalMask == "" {
+		t.Fatal("Expected minimal field mask to be set")
+	}
+	if strings.Contains(minimalMask, "exportLinks") {
+		t.Fatal("Expected minimal field mask to exclude exportLinks")
 	}
 
-	// Test with export links
-	exportOutput := output.NewFormatter(types.OutputFormatTable, true, false)
-	err = exportOutput.WriteFiles([]*types.DriveFile{file})
-	if err != nil {
-		t.Fatalf("Failed to output with export links: %v", err)
+	exportMask := config.GetFieldMask(config.FieldMaskStandard, true)
+	if exportMask == "" {
+		t.Fatal("Expected export field mask to be set")
+	}
+	if !strings.Contains(exportMask, "exportLinks") {
+		t.Fatal("Expected export field mask to include exportLinks")
 	}
 
 	// Clean up
@@ -180,16 +185,21 @@ func TestIntegration_ConfigOutput_QuietVerboseModes(t *testing.T) {
 	}
 
 	// Test quiet mode (no output)
-	quietOutput := output.NewFormatter(types.OutputFormatTable, false, true)
-	err = quietOutput.WriteFiles([]*types.DriveFile{file})
+	quietOutput := config.NewOutputFormatter(config.OutputOptions{
+		Format: types.OutputFormatTable,
+		Quiet:  true,
+	})
+	err = quietOutput.WriteSuccess("files.list", []*types.DriveFile{file})
 	if err != nil {
 		t.Fatalf("Failed to output in quiet mode: %v", err)
 	}
 
 	// Test verbose mode (with extra info)
-	verboseOutput := output.NewFormatter(types.OutputFormatTable, false, false)
-	verboseOutput.SetVerbose(true)
-	err = verboseOutput.WriteFiles([]*types.DriveFile{file})
+	verboseOutput := config.NewOutputFormatter(config.OutputOptions{
+		Format:  types.OutputFormatTable,
+		Verbose: true,
+	})
+	err = verboseOutput.WriteSuccess("files.list", []*types.DriveFile{file})
 	if err != nil {
 		t.Fatalf("Failed to output in verbose mode: %v", err)
 	}
