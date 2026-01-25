@@ -48,7 +48,7 @@ Before using these features, ensure you have:
 
 1. **Authenticated** with the CLI:
    ```bash
-   gdrive auth login --preset workspace-basic
+   gdrv auth login --preset workspace-basic
    ```
 
 2. **Required scopes** for your use case:
@@ -64,7 +64,7 @@ Before using these features, ensure you have:
 All commands support `--json` for machine-readable output:
 
 ```bash
-gdrive sheets values get <spreadsheet-id> "Sheet1!A1:C10" --json
+gdrv sheets values get <spreadsheet-id> "Sheet1!A1:C10" --json
 ```
 
 ### File Input
@@ -73,10 +73,10 @@ Many commands accept input from files or stdin:
 
 ```bash
 # From file
-gdrive sheets values update <id> "A1" --values-file data.json
+gdrv sheets values update <id> "A1" --values-file data.json
 
 # From stdin
-echo '[[1,2,3]]' | gdrive sheets values append <id> "A:B" --values-file -
+echo '[[1,2,3]]' | gdrv sheets values append <id> "A:B" --values-file -
 ```
 
 ### Error Handling
@@ -84,7 +84,7 @@ echo '[[1,2,3]]' | gdrive sheets values append <id> "A:B" --values-file -
 The CLI provides structured error output:
 
 ```bash
-gdrive sheets values get <id> "A1" --json
+gdrv sheets values get <id> "A1" --json
 # On error, returns JSON with error details
 ```
 
@@ -99,4 +99,4 @@ See the [`examples/`](../examples/) directory for sample JSON files:
 
 - Check the main [README](../README.md) for installation and basic usage
 - Review the specific workflow guides linked above
-- Use `gdrive <command> --help` for command-specific help
+- Use `gdrv <command> --help` for command-specific help

@@ -1,6 +1,6 @@
 # Binary
-/gdrive
-cmd/gdrive/gdrive
+/gdrv
+cmd/gdrv/gdrv
 
 # Environment
 .env

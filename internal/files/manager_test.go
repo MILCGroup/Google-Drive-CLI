@@ -3,8 +3,8 @@ package files
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 )
 

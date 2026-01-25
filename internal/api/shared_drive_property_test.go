@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/dl-alexandre/gdrive/internal/logging"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/logging"
+	"github.com/dl-alexandre/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 )

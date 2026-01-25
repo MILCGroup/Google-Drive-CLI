@@ -1,9 +1,9 @@
 package errors
 
 import (
-	"github.com/dl-alexandre/gdrive/internal/logging"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/logging"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"google.golang.org/api/googleapi"
 )
 
@@ -105,7 +105,7 @@ func ClassifyGoogleAPIError(service string, err error, reqCtx *types.RequestCont
 
 	switch code {
 	case utils.ErrCodeAuthExpired:
-		builder.WithContext("suggestedAction", "run 'gdrive auth login' to re-authenticate")
+		builder.WithContext("suggestedAction", "run 'gdrv auth login' to re-authenticate")
 	case utils.ErrCodeFileNotFound:
 		if reqCtx.DriveID != "" {
 			builder.WithContext("searchDomain", "sharedDrive").

@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/files"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/files"
+	"github.com/dl-alexandre/gdrv/internal/types"
 )
 
 // TestIntegration_CLIIntegration_CommandExecution tests CLI commands with various flag combinations
@@ -28,18 +28,18 @@ func TestIntegration_CLIIntegration_CommandExecution(t *testing.T) {
 	}
 
 	// Test help command
-	cmd := exec.Command("./gdrive", "--help")
+	cmd := exec.Command("./gdrv", "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Help command failed: %v\nOutput: %s", err, output)
 	}
 
-	if !strings.Contains(string(output), "gdrive") {
+	if !strings.Contains(string(output), "gdrv") {
 		t.Error("Help output doesn't contain expected content")
 	}
 
 	// Test version/info command if available
-	cmd = exec.Command("./gdrive", "about")
+	cmd = exec.Command("./gdrv", "about")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		t.Logf("About command failed (might not be implemented): %v", err)
@@ -60,7 +60,7 @@ func TestIntegration_CLIIntegration_AuthCommands(t *testing.T) {
 	}
 
 	// Test auth status
-	cmd := exec.Command("./gdrive", "auth", "status", "--profile", profile)
+	cmd := exec.Command("./gdrv", "auth", "status", "--profile", profile)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Auth status failed: %v\nOutput: %s", err, output)
@@ -100,7 +100,7 @@ func TestIntegration_CLIIntegration_FileCommands(t *testing.T) {
 	}
 
 	// Test files list command
-	cmd := exec.Command("./gdrive", "files", "list", "--profile", profile, "--query", "name='"+fileName+"'")
+	cmd := exec.Command("./gdrv", "files", "list", "--profile", profile, "--query", "name='"+fileName+"'")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Files list failed: %v\nOutput: %s", err, output)
@@ -111,7 +111,7 @@ func TestIntegration_CLIIntegration_FileCommands(t *testing.T) {
 	}
 
 	// Test files get command
-	cmd = exec.Command("./gdrive", "files", "get", testFile.ID, "--profile", profile)
+	cmd = exec.Command("./gdrv", "files", "get", testFile.ID, "--profile", profile)
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Files get failed: %v\nOutput: %s", err, output)
@@ -136,7 +136,7 @@ func TestIntegration_CLIIntegration_OutputFormats(t *testing.T) {
 	}
 
 	// Test JSON output
-	cmd := exec.Command("./gdrive", "files", "list", "--profile", profile, "--json", "--page-size", "1")
+	cmd := exec.Command("./gdrv", "files", "list", "--profile", profile, "--json", "--page-size", "1")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("JSON output failed: %v\nOutput: %s", err, output)
@@ -147,7 +147,7 @@ func TestIntegration_CLIIntegration_OutputFormats(t *testing.T) {
 	}
 
 	// Test table output
-	cmd = exec.Command("./gdrive", "files", "list", "--profile", profile, "--table", "--page-size", "1")
+	cmd = exec.Command("./gdrv", "files", "list", "--profile", profile, "--table", "--page-size", "1")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Table output failed: %v\nOutput: %s", err, output)
@@ -187,7 +187,7 @@ func TestIntegration_CLIIntegration_SafetyControls(t *testing.T) {
 	}
 
 	// Test dry-run delete
-	cmd := exec.Command("./gdrive", "files", "delete", testFile.ID, "--profile", profile, "--dry-run")
+	cmd := exec.Command("./gdrv", "files", "delete", testFile.ID, "--profile", profile, "--dry-run")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Dry-run delete failed: %v\nOutput: %s", err, output)
@@ -202,7 +202,7 @@ func TestIntegration_CLIIntegration_SafetyControls(t *testing.T) {
 	}
 
 	// Real delete
-	cmd = exec.Command("./gdrive", "files", "delete", testFile.ID, "--profile", profile, "--yes")
+	cmd = exec.Command("./gdrv", "files", "delete", testFile.ID, "--profile", profile, "--yes")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Real delete failed: %v\nOutput: %s", err, output)
@@ -223,7 +223,7 @@ func TestIntegration_CLIIntegration_ConfigurationLoading(t *testing.T) {
 	}
 
 	// Test with verbose flag
-	cmd := exec.Command("./gdrive", "files", "list", "--profile", profile, "--verbose", "--page-size", "1")
+	cmd := exec.Command("./gdrv", "files", "list", "--profile", profile, "--verbose", "--page-size", "1")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Verbose command failed: %v\nOutput: %s", err, output)

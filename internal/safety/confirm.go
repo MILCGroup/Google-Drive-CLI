@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 )
 
 // Confirm prompts the user for confirmation with a yes/no question.

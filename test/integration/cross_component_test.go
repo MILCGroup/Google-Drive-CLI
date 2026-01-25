@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/files"
-	"github.com/dl-alexandre/gdrive/internal/folders"
-	"github.com/dl-alexandre/gdrive/internal/permissions"
-	"github.com/dl-alexandre/gdrive/internal/resolver"
-	"github.com/dl-alexandre/gdrive/internal/revisions"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/files"
+	"github.com/dl-alexandre/gdrv/internal/folders"
+	"github.com/dl-alexandre/gdrv/internal/permissions"
+	"github.com/dl-alexandre/gdrv/internal/resolver"
+	"github.com/dl-alexandre/gdrv/internal/revisions"
+	"github.com/dl-alexandre/gdrv/internal/types"
 )
 
 // TestIntegration_CrossComponent_PathResolverWithSharedDrives tests path resolver with Shared Drives
@@ -285,11 +285,11 @@ func TestIntegration_CrossComponent_ConfigurationPropagation(t *testing.T) {
 	}
 
 	// Set environment variables for configuration
-	os.Setenv("GDRIVE_MAX_RETRIES", "5")
-	os.Setenv("GDRIVE_REQUEST_TIMEOUT", "60")
+	os.Setenv("GDRV_MAX_RETRIES", "5")
+	os.Setenv("GDRV_REQUEST_TIMEOUT", "60")
 	defer func() {
-		os.Unsetenv("GDRIVE_MAX_RETRIES")
-		os.Unsetenv("GDRIVE_REQUEST_TIMEOUT")
+		os.Unsetenv("GDRV_MAX_RETRIES")
+		os.Unsetenv("GDRV_REQUEST_TIMEOUT")
 	}()
 
 	ctx := context.Background()

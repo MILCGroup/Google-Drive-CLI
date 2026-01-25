@@ -193,8 +193,8 @@ The CLI supports multiple authentication methods and scope presets. OAuth client
 4. Set credentials via environment variables or command flags:
 
 ```bash
-export GDRIVE_CLIENT_ID="your-client-id"
-export GDRIVE_CLIENT_SECRET="your-client-secret"
+export GDRV_CLIENT_ID="your-client-id"
+export GDRV_CLIENT_SECRET="your-client-secret"
 
 gdrv auth login --client-id "your-client-id" --client-secret "your-client-secret"
 ```
@@ -732,12 +732,12 @@ gdrv config set output_format json
 gdrv config set cache_ttl 300
 
 # OAuth credentials
-export GDRIVE_CLIENT_ID="your-client-id"
-export GDRIVE_CLIENT_SECRET="your-client-secret"
+export GDRV_CLIENT_ID="your-client-id"
+export GDRV_CLIENT_SECRET="your-client-secret"
 
 # Environment variables
-export GDRIVE_PROFILE=work
-export GDRIVE_CONFIG_DIR=/path/to/config
+export GDRV_PROFILE=work
+export GDRV_CONFIG_DIR=/path/to/config
 ```
 
 ## Troubleshooting
@@ -746,8 +746,8 @@ export GDRIVE_CONFIG_DIR=/path/to/config
 
 **"OAuth client ID and secret required"**
 ```bash
-export GDRIVE_CLIENT_ID="your-client-id"
-export GDRIVE_CLIENT_SECRET="your-client-secret"
+export GDRV_CLIENT_ID="your-client-id"
+export GDRV_CLIENT_SECRET="your-client-secret"
 gdrv auth login
 ```
 

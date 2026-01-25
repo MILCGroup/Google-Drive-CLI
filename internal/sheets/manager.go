@@ -3,8 +3,8 @@ package sheets
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/types"
 	"google.golang.org/api/sheets/v4"
 )
 

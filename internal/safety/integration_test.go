@@ -3,7 +3,7 @@ package safety_test
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrive/internal/safety"
+	"github.com/dl-alexandre/gdrv/internal/safety"
 )
 
 // TestIntegrationDryRunWorkflow tests a complete dry-run workflow

@@ -16,7 +16,7 @@ This guide covers working with Google Slides using the Google Drive CLI.
 Retrieve the full presentation structure including slides, layouts, and content:
 
 ```bash
-gdrive slides get <presentation-id> --json
+gdrv slides get <presentation-id> --json
 ```
 
 This returns detailed metadata about the presentation, including:
@@ -72,10 +72,10 @@ Extract text content from all slides:
 
 ```bash
 # Plain text output
-gdrive slides read <presentation-id>
+gdrv slides read <presentation-id>
 
 # Structured JSON output
-gdrive slides read <presentation-id> --json
+gdrv slides read <presentation-id> --json
 ```
 
 **Example JSON Output:**
@@ -105,16 +105,16 @@ Find presentations in your Drive:
 
 ```bash
 # List all presentations
-gdrive slides list --json
+gdrv slides list --json
 
 # Filter by parent folder
-gdrive slides list --parent <folder-id> --json
+gdrv slides list --parent <folder-id> --json
 
 # Search with query
-gdrive slides list --query "name contains 'Report'" --json
+gdrv slides list --query "name contains 'Report'" --json
 
 # Paginate through results
-gdrive slides list --paginate --json
+gdrv slides list --paginate --json
 ```
 
 ## Creating Presentations
@@ -125,10 +125,10 @@ Create a blank presentation:
 
 ```bash
 # Create in root
-gdrive slides create "My Presentation" --json
+gdrv slides create "My Presentation" --json
 
 # Create in specific folder
-gdrive slides create "Q1 Report" --parent <folder-id> --json
+gdrv slides create "Q1 Report" --parent <folder-id> --json
 ```
 
 The command returns the presentation ID which you can use for subsequent operations.
@@ -139,7 +139,7 @@ Create a presentation and immediately add slides:
 
 ```bash
 #!/bin/bash
-PRES_ID=$(gdrive slides create "New Presentation" --json | jq -r '.id')
+PRES_ID=$(gdrv slides create "New Presentation" --json | jq -r '.id')
 
 # Add a title slide
 cat > initial-slide.json <<EOF
@@ -161,7 +161,7 @@ cat > initial-slide.json <<EOF
 ]
 EOF
 
-gdrive slides update "$PRES_ID" --requests-file initial-slide.json --json
+gdrv slides update "$PRES_ID" --requests-file initial-slide.json --json
 ```
 
 ## Template Replacement (Placeholder Substitution)
@@ -174,12 +174,12 @@ Replace placeholders using a simple key-value map:
 
 ```bash
 # Inline JSON
-gdrive slides replace <presentation-id> \
+gdrv slides replace <presentation-id> \
   --data '{"{{NAME}}":"Alice","{{DATE}}":"2026-01-24","{{TOTAL}}":"$100K"}' \
   --json
 
 # From file
-gdrive slides replace <presentation-id> \
+gdrv slides replace <presentation-id> \
   --file replacements.json \
   --json
 ```
@@ -253,7 +253,7 @@ for MONTH in Jan Feb Mar Apr May Jun; do
   REPORT_NAME="${MONTH} 2026 Report"
   
   # Copy template
-  NEW_ID=$(gdrive files copy "$TEMPLATE_ID" "$REPORT_NAME" --json | jq -r '.id')
+  NEW_ID=$(gdrv files copy "$TEMPLATE_ID" "$REPORT_NAME" --json | jq -r '.id')
   
   # Prepare replacements
   cat > replacements.json <<EOF
@@ -267,7 +267,7 @@ for MONTH in Jan Feb Mar Apr May Jun; do
 EOF
   
   # Replace placeholders
-  gdrive slides replace "$NEW_ID" --file replacements.json --json
+  gdrv slides replace "$NEW_ID" --file replacements.json --json
   
   echo "Generated: $REPORT_NAME"
 done
@@ -286,7 +286,7 @@ while IFS=, read -r NAME EMAIL REVENUE; do
   PRES_NAME="Report for $NAME"
   
   # Copy template
-  NEW_ID=$(gdrive files copy "$TEMPLATE_ID" "$PRES_NAME" --json | jq -r '.id')
+  NEW_ID=$(gdrv files copy "$TEMPLATE_ID" "$PRES_NAME" --json | jq -r '.id')
   
   # Replace customer-specific data
   cat > replacements.json <<EOF
@@ -297,10 +297,10 @@ while IFS=, read -r NAME EMAIL REVENUE; do
 }
 EOF
   
-  gdrive slides replace "$NEW_ID" --file replacements.json --json
+  gdrv slides replace "$NEW_ID" --file replacements.json --json
   
   # Share with customer (optional)
-  # gdrive permissions create "$NEW_ID" --role reader --type user --email "$EMAIL"
+  # gdrv permissions create "$NEW_ID" --role reader --type user --email "$EMAIL"
   
 done < customers.csv
 ```
@@ -342,7 +342,7 @@ For more complex updates beyond text replacement:
 
 Execute batch update:
 ```bash
-gdrive slides update <presentation-id> --requests-file batch-update.json --json
+gdrv slides update <presentation-id> --requests-file batch-update.json --json
 ```
 
 ### Common Batch Operations
@@ -436,7 +436,7 @@ IN_PROGRESS=$(get_in_progress_tasks)
 BLOCKED=$(get_blocked_tasks)
 
 # Create report
-REPORT_ID=$(gdrive files copy "$TEMPLATE_ID" "Week $WEEK Status Report" --json | jq -r '.id')
+REPORT_ID=$(gdrv files copy "$TEMPLATE_ID" "Week $WEEK Status Report" --json | jq -r '.id')
 
 cat > replacements.json <<EOF
 {
@@ -448,7 +448,7 @@ cat > replacements.json <<EOF
 }
 EOF
 
-gdrive slides replace "$REPORT_ID" --file replacements.json --json
+gdrv slides replace "$REPORT_ID" --file replacements.json --json
 ```
 
 ### Presentation Analysis
@@ -460,14 +460,14 @@ Analyze presentation content:
 PRES_ID="presentation-id"
 
 # Extract all text
-TEXT=$(gdrive slides read "$PRES_ID" --json | jq -r '.textBySlide[].text' | tr '\n' ' ')
+TEXT=$(gdrv slides read "$PRES_ID" --json | jq -r '.textBySlide[].text' | tr '\n' ' ')
 
 # Word count
 WORD_COUNT=$(echo "$TEXT" | wc -w)
 echo "Total words: $WORD_COUNT"
 
 # Slide count
-SLIDE_COUNT=$(gdrive slides get "$PRES_ID" --json | jq '.slides | length')
+SLIDE_COUNT=$(gdrv slides get "$PRES_ID" --json | jq '.slides | length')
 echo "Total slides: $SLIDE_COUNT"
 
 # Average words per slide
@@ -482,17 +482,17 @@ Process multiple templates:
 ```bash
 #!/bin/bash
 # List all template presentations
-TEMPLATES=$(gdrive slides list --query "name contains 'Template'" --json | jq -r '.[].id')
+TEMPLATES=$(gdrv slides list --query "name contains 'Template'" --json | jq -r '.[].id')
 
 # Process each template
 for TEMPLATE_ID in $TEMPLATES; do
   echo "Processing template: $TEMPLATE_ID"
   
   # Generate report from template
-  REPORT_ID=$(gdrive files copy "$TEMPLATE_ID" "Generated Report" --json | jq -r '.id')
+  REPORT_ID=$(gdrv files copy "$TEMPLATE_ID" "Generated Report" --json | jq -r '.id')
   
   # Apply replacements
-  gdrive slides replace "$REPORT_ID" --file replacements.json --json
+  gdrv slides replace "$REPORT_ID" --file replacements.json --json
   
   echo "Generated report: $REPORT_ID"
 done
@@ -505,8 +505,8 @@ While Slides API doesn't directly update charts, you can use this pattern:
 ```bash
 #!/bin/bash
 # 1. Generate data in Sheets
-SHEET_ID=$(gdrive sheets create "Chart Data" --json | jq -r '.id')
-gdrive sheets values update "$SHEET_ID" "A1:B5" \
+SHEET_ID=$(gdrv sheets create "Chart Data" --json | jq -r '.id')
+gdrv sheets values update "$SHEET_ID" "A1:B5" \
   --values '[[\"Month\",\"Sales\"],[\"Jan\",100],[\"Feb\",150],[\"Mar\",200]]' \
   --value-input-option USER_ENTERED
 
@@ -514,7 +514,7 @@ gdrive sheets values update "$SHEET_ID" "A1:B5" \
 # (Manual step: Create slide with chart linked to the sheet)
 
 # 3. Update sheet data to refresh chart
-gdrive sheets values update "$SHEET_ID" "B2" \
+gdrv sheets values update "$SHEET_ID" "B2" \
   --values '[[120]]' \
   --value-input-option USER_ENTERED
 ```

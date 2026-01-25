@@ -13,13 +13,13 @@ jobs:
     name: Build and Release
     runs-on: macos-latest
     env:
-      APP_NAME: gdrive
+      APP_NAME: gdrv
       REPO_NAME: dl-alexandre/Google-Drive-CLI
       REPO_URL: https://github.com/dl-alexandre/Google-Drive-CLI
-      PKG_NAME: gdrive-bin
+      PKG_NAME: gdrv-bin
       PKG_DESC: Google Drive CLI with full read/write support
-      FORMULA_NAME: gdrive
-      FORMULA_CLASS: Gdrive
+      FORMULA_NAME: gdrv
+      FORMULA_CLASS: Gdrv
 
     steps:
       - name: Checkout code

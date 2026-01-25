@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/config"
-	"github.com/dl-alexandre/gdrive/internal/files"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/config"
+	"github.com/dl-alexandre/gdrv/internal/files"
+	"github.com/dl-alexandre/gdrv/internal/types"
 )
 
 // TestIntegration_ConfigOutput_ConfigurationLoading tests configuration loading and validation
@@ -33,8 +33,8 @@ func TestIntegration_ConfigOutput_ConfigurationLoading(t *testing.T) {
 	}
 
 	// Test environment variable override
-	os.Setenv("GDRIVE_DEFAULT_PROFILE", "test-profile")
-	defer os.Unsetenv("GDRIVE_DEFAULT_PROFILE")
+	os.Setenv("GDRV_DEFAULT_PROFILE", "test-profile")
+	defer os.Unsetenv("GDRV_DEFAULT_PROFILE")
 
 	cfg2, err := config.Load()
 	if err != nil {

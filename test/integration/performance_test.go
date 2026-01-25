@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/files"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/files"
+	"github.com/dl-alexandre/gdrv/internal/types"
 )
 
 // TestIntegration_Performance_ResponseTimes tests response times for various operations

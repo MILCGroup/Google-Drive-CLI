@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
 )
@@ -245,7 +245,7 @@ func (m *Manager) Restore(ctx context.Context, reqCtx *types.RequestContext, fil
 	}
 
 	// Create temporary file for download
-	tmpFile, err := os.CreateTemp("", "gdrive-restore-*")
+	tmpFile, err := os.CreateTemp("", "gdrv-restore-*")
 	if err != nil {
 		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInternalError,
 			fmt.Sprintf("Failed to create temporary file: %s", err)).Build())

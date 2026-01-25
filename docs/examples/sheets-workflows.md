@@ -18,16 +18,16 @@ Read values from a specific range using A1 notation:
 
 ```bash
 # Read a single cell
-gdrive sheets values get <spreadsheet-id> "Sheet1!A1" --json
+gdrv sheets values get <spreadsheet-id> "Sheet1!A1" --json
 
 # Read a range
-gdrive sheets values get <spreadsheet-id> "Sheet1!A1:C10" --json
+gdrv sheets values get <spreadsheet-id> "Sheet1!A1:C10" --json
 
 # Read entire column
-gdrive sheets values get <spreadsheet-id> "Sheet1!A:A" --json
+gdrv sheets values get <spreadsheet-id> "Sheet1!A:A" --json
 
 # Read entire row
-gdrive sheets values get <spreadsheet-id> "Sheet1!1:1" --json
+gdrv sheets values get <spreadsheet-id> "Sheet1!1:1" --json
 ```
 
 **Example Output:**
@@ -48,7 +48,7 @@ gdrive sheets values get <spreadsheet-id> "Sheet1!1:1" --json
 Retrieve information about the spreadsheet structure:
 
 ```bash
-gdrive sheets get <spreadsheet-id> --json
+gdrv sheets get <spreadsheet-id> --json
 ```
 
 This returns details about sheets, locale, timezone, and other metadata.
@@ -59,16 +59,16 @@ Find spreadsheets in your Drive:
 
 ```bash
 # List all spreadsheets
-gdrive sheets list --json
+gdrv sheets list --json
 
 # Filter by parent folder
-gdrive sheets list --parent <folder-id> --json
+gdrv sheets list --parent <folder-id> --json
 
 # Search with query
-gdrive sheets list --query "name contains 'Report'" --json
+gdrv sheets list --query "name contains 'Report'" --json
 
 # Paginate through results
-gdrive sheets list --paginate --json
+gdrv sheets list --paginate --json
 ```
 
 ## Writing/Updating Values
@@ -79,12 +79,12 @@ Replace values in a range:
 
 ```bash
 # Update with inline JSON
-gdrive sheets values update <spreadsheet-id> "Sheet1!A1" \
+gdrv sheets values update <spreadsheet-id> "Sheet1!A1" \
   --values '[[\"Name\",\"Age\"],[\"Alice\",30]]' \
   --value-input-option USER_ENTERED
 
 # Update from file
-gdrive sheets values update <spreadsheet-id> "Sheet1!A1" \
+gdrv sheets values update <spreadsheet-id> "Sheet1!A1" \
   --values-file data.json \
   --value-input-option USER_ENTERED
 ```
@@ -108,12 +108,12 @@ Add new rows or columns to existing data:
 
 ```bash
 # Append rows
-gdrive sheets values append <spreadsheet-id> "Sheet1!A:B" \
+gdrv sheets values append <spreadsheet-id> "Sheet1!A:B" \
   --values '[[\"Widget C\",39.99]]' \
   --value-input-option USER_ENTERED
 
 # Append from file
-gdrive sheets values append <spreadsheet-id> "Sheet1!A:B" \
+gdrv sheets values append <spreadsheet-id> "Sheet1!A:B" \
   --values-file new-rows.json
 ```
 
@@ -124,7 +124,7 @@ gdrive sheets values append <spreadsheet-id> "Sheet1!A:B" \
 Remove values from a range without deleting cells:
 
 ```bash
-gdrive sheets values clear <spreadsheet-id> "Sheet1!A2:C10" --json
+gdrv sheets values clear <spreadsheet-id> "Sheet1!A2:C10" --json
 ```
 
 ## Creating Spreadsheets
@@ -133,10 +133,10 @@ gdrive sheets values clear <spreadsheet-id> "Sheet1!A2:C10" --json
 
 ```bash
 # Create in root
-gdrive sheets create "My Spreadsheet" --json
+gdrv sheets create "My Spreadsheet" --json
 
 # Create in specific folder
-gdrive sheets create "Q1 Report" --parent <folder-id> --json
+gdrv sheets create "Q1 Report" --parent <folder-id> --json
 ```
 
 The command returns the spreadsheet ID which you can use for subsequent operations.
@@ -226,10 +226,10 @@ Create a JSON file with batch update requests:
 
 ```bash
 # From file
-gdrive sheets batch-update <spreadsheet-id> --requests-file batch-update.json --json
+gdrv sheets batch-update <spreadsheet-id> --requests-file batch-update.json --json
 
 # From stdin
-cat batch-update.json | gdrive sheets batch-update <spreadsheet-id> --requests-file - --json
+cat batch-update.json | gdrv sheets batch-update <spreadsheet-id> --requests-file - --json
 ```
 
 ### Common Batch Operations
@@ -315,7 +315,7 @@ SPREADSHEET_ID="your-spreadsheet-id"
 RANGE="Sheet1!A1:Z1000"
 
 # Get data as JSON
-gdrive sheets values get "$SPREADSHEET_ID" "$RANGE" --json | \
+gdrv sheets values get "$SPREADSHEET_ID" "$RANGE" --json | \
   jq -r '.values[] | @csv' > export.csv
 ```
 
@@ -329,7 +329,7 @@ SPREADSHEET_ID="your-spreadsheet-id"
 
 # Convert CSV to JSON array
 cat data.csv | jq -R -s -c 'split("\n") | map(split(","))' | \
-  gdrive sheets values append "$SPREADSHEET_ID" "Sheet1!A:B" --values-file -
+  gdrv sheets values append "$SPREADSHEET_ID" "Sheet1!A:B" --values-file -
 ```
 
 ### Daily Report Generation
@@ -350,7 +350,7 @@ cat > daily-data.json <<EOF
 EOF
 
 # Append to spreadsheet
-gdrive sheets values append "$SPREADSHEET_ID" "Sheet1!A:C" \
+gdrv sheets values append "$SPREADSHEET_ID" "Sheet1!A:C" \
   --values-file daily-data.json \
   --value-input-option USER_ENTERED
 ```
@@ -362,18 +362,18 @@ Create spreadsheets from templates:
 ```bash
 #!/bin/bash
 # 1. Create template spreadsheet
-TEMPLATE_ID=$(gdrive sheets create "Template" --json | jq -r '.id')
+TEMPLATE_ID=$(gdrv sheets create "Template" --json | jq -r '.id')
 
 # 2. Set up template structure
-gdrive sheets values update "$TEMPLATE_ID" "Sheet1!A1" \
+gdrv sheets values update "$TEMPLATE_ID" "Sheet1!A1" \
   --values '[[\"Name\",\"Email\",\"Department\"]]' \
   --value-input-option USER_ENTERED
 
 # 3. Copy template for new use case
-NEW_ID=$(gdrive files copy "$TEMPLATE_ID" "New Report" --json | jq -r '.id')
+NEW_ID=$(gdrv files copy "$TEMPLATE_ID" "New Report" --json | jq -r '.id')
 
 # 4. Populate with data
-gdrive sheets values update "$NEW_ID" "Sheet1!A2" \
+gdrv sheets values update "$NEW_ID" "Sheet1!A2" \
   --values-file data.json \
   --value-input-option USER_ENTERED
 ```
@@ -428,7 +428,7 @@ Handle errors gracefully in scripts:
 #!/bin/bash
 SPREADSHEET_ID="your-spreadsheet-id"
 
-if ! OUTPUT=$(gdrive sheets values get "$SPREADSHEET_ID" "A1" --json 2>&1); then
+if ! OUTPUT=$(gdrv sheets values get "$SPREADSHEET_ID" "A1" --json 2>&1); then
   ERROR=$(echo "$OUTPUT" | jq -r '.error.message // "Unknown error"')
   echo "Error: $ERROR" >&2
   exit 1

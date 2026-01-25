@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 )
 
 // Property 8: Path Resolution Caching

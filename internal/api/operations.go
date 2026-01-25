@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 )
 
 // OperationStatus represents the status of a long-running operation

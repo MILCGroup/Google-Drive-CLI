@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/types"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -267,13 +267,13 @@ func TestConfigSaveAndLoad(t *testing.T) {
 func TestLoadFromEnv(t *testing.T) {
 	// Save original environment
 	originalEnv := map[string]string{
-		"GDRIVE_DEFAULT_PROFILE":      os.Getenv("GDRIVE_DEFAULT_PROFILE"),
-		"GDRIVE_OUTPUT_FORMAT":        os.Getenv("GDRIVE_OUTPUT_FORMAT"),
-		"GDRIVE_DEFAULT_FIELDS":       os.Getenv("GDRIVE_DEFAULT_FIELDS"),
-		"GDRIVE_CACHE_TTL":            os.Getenv("GDRIVE_CACHE_TTL"),
-		"GDRIVE_INCLUDE_EXPORT_LINKS": os.Getenv("GDRIVE_INCLUDE_EXPORT_LINKS"),
-		"GDRIVE_MAX_RETRIES":          os.Getenv("GDRIVE_MAX_RETRIES"),
-		"GDRIVE_LOG_LEVEL":            os.Getenv("GDRIVE_LOG_LEVEL"),
+		"GDRV_DEFAULT_PROFILE":      os.Getenv("GDRV_DEFAULT_PROFILE"),
+		"GDRV_OUTPUT_FORMAT":        os.Getenv("GDRV_OUTPUT_FORMAT"),
+		"GDRV_DEFAULT_FIELDS":       os.Getenv("GDRV_DEFAULT_FIELDS"),
+		"GDRV_CACHE_TTL":            os.Getenv("GDRV_CACHE_TTL"),
+		"GDRV_INCLUDE_EXPORT_LINKS": os.Getenv("GDRV_INCLUDE_EXPORT_LINKS"),
+		"GDRV_MAX_RETRIES":          os.Getenv("GDRV_MAX_RETRIES"),
+		"GDRV_LOG_LEVEL":            os.Getenv("GDRV_LOG_LEVEL"),
 	}
 
 	// Restore environment after test
@@ -288,13 +288,13 @@ func TestLoadFromEnv(t *testing.T) {
 	}()
 
 	// Set test environment variables
-	os.Setenv("GDRIVE_DEFAULT_PROFILE", "env-profile")
-	os.Setenv("GDRIVE_OUTPUT_FORMAT", "table")
-	os.Setenv("GDRIVE_DEFAULT_FIELDS", "full")
-	os.Setenv("GDRIVE_CACHE_TTL", "900")
-	os.Setenv("GDRIVE_INCLUDE_EXPORT_LINKS", "true")
-	os.Setenv("GDRIVE_MAX_RETRIES", "7")
-	os.Setenv("GDRIVE_LOG_LEVEL", "debug")
+	os.Setenv("GDRV_DEFAULT_PROFILE", "env-profile")
+	os.Setenv("GDRV_OUTPUT_FORMAT", "table")
+	os.Setenv("GDRV_DEFAULT_FIELDS", "full")
+	os.Setenv("GDRV_CACHE_TTL", "900")
+	os.Setenv("GDRV_INCLUDE_EXPORT_LINKS", "true")
+	os.Setenv("GDRV_MAX_RETRIES", "7")
+	os.Setenv("GDRV_LOG_LEVEL", "debug")
 
 	// Load config (which should apply env vars)
 	cfg := DefaultConfig()

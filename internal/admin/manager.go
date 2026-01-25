@@ -3,8 +3,8 @@ package admin
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/types"
 	adminapi "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
 )

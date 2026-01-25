@@ -56,7 +56,7 @@ Admin SDK operations require **service account authentication with domain-wide d
 
 ```bash
 # Authenticate with service account
-gdrive auth service-account ./path/to/service-account-key.json \
+gdrv auth service-account ./path/to/service-account-key.json \
   --impersonate-user admin@yourdomain.com \
   --scopes https://www.googleapis.com/auth/admin.directory.user,https://www.googleapis.com/auth/admin.directory.group
 ```
@@ -70,10 +70,10 @@ gdrive auth service-account ./path/to/service-account-key.json \
 
 ```bash
 # Check auth status
-gdrive auth status
+gdrv auth status
 
 # Test with a simple operation
-gdrive admin users list --domain yourdomain.com --limit 1 --json
+gdrv admin users list --domain yourdomain.com --limit 1 --json
 ```
 
 ## User Provisioning
@@ -84,20 +84,20 @@ List users in your domain:
 
 ```bash
 # List all users in domain
-gdrive admin users list --domain yourdomain.com --json
+gdrv admin users list --domain yourdomain.com --json
 
 # List with query filter
-gdrive admin users list --domain yourdomain.com \
+gdrv admin users list --domain yourdomain.com \
   --query "isSuspended=true" \
   --json
 
 # List with pagination
-gdrive admin users list --domain yourdomain.com \
+gdrv admin users list --domain yourdomain.com \
   --paginate \
   --json
 
 # Limit results per page
-gdrive admin users list --domain yourdomain.com \
+gdrv admin users list --domain yourdomain.com \
   --limit 50 \
   --json
 ```
@@ -114,10 +114,10 @@ Retrieve details for a specific user:
 
 ```bash
 # By email
-gdrive admin users get user@yourdomain.com --json
+gdrv admin users get user@yourdomain.com --json
 
 # By user ID
-gdrive admin users get 12345678901234567890 --json
+gdrv admin users get 12345678901234567890 --json
 ```
 
 ### Create User
@@ -125,7 +125,7 @@ gdrive admin users get 12345678901234567890 --json
 Create a new user account:
 
 ```bash
-gdrive admin users create newuser@yourdomain.com \
+gdrv admin users create newuser@yourdomain.com \
   --given-name "John" \
   --family-name "Doe" \
   --password "TempPass123!" \
@@ -143,18 +143,18 @@ Update user properties:
 
 ```bash
 # Update name
-gdrive admin users update user@yourdomain.com \
+gdrv admin users update user@yourdomain.com \
   --given-name "Jane" \
   --family-name "Smith" \
   --json
 
 # Suspend user
-gdrive admin users update user@yourdomain.com \
+gdrv admin users update user@yourdomain.com \
   --suspended true \
   --json
 
 # Move to organizational unit
-gdrive admin users update user@yourdomain.com \
+gdrv admin users update user@yourdomain.com \
   --org-unit-path "/Departments/Engineering" \
   --json
 ```
@@ -163,10 +163,10 @@ gdrive admin users update user@yourdomain.com \
 
 ```bash
 # Suspend user
-gdrive admin users suspend user@yourdomain.com --json
+gdrv admin users suspend user@yourdomain.com --json
 
 # Unsuspend user
-gdrive admin users unsuspend user@yourdomain.com --json
+gdrv admin users unsuspend user@yourdomain.com --json
 ```
 
 ### Delete User
@@ -174,7 +174,7 @@ gdrive admin users unsuspend user@yourdomain.com --json
 **Warning:** This permanently deletes the user account.
 
 ```bash
-gdrive admin users delete user@yourdomain.com --json
+gdrv admin users delete user@yourdomain.com --json
 ```
 
 ## Group Management
@@ -185,15 +185,15 @@ List groups in your domain:
 
 ```bash
 # List all groups
-gdrive admin groups list --domain yourdomain.com --json
+gdrv admin groups list --domain yourdomain.com --json
 
 # List with query
-gdrive admin groups list --domain yourdomain.com \
+gdrv admin groups list --domain yourdomain.com \
   --query "name:Engineering*" \
   --json
 
 # Paginate results
-gdrive admin groups list --domain yourdomain.com \
+gdrv admin groups list --domain yourdomain.com \
   --paginate \
   --json
 ```
@@ -201,7 +201,7 @@ gdrive admin groups list --domain yourdomain.com \
 ### Get Group Details
 
 ```bash
-gdrive admin groups get group@yourdomain.com --json
+gdrv admin groups get group@yourdomain.com --json
 ```
 
 ### Create Group
@@ -209,7 +209,7 @@ gdrive admin groups get group@yourdomain.com --json
 Create a new Google Workspace group:
 
 ```bash
-gdrive admin groups create engineering@yourdomain.com \
+gdrv admin groups create engineering@yourdomain.com \
   "Engineering Team" \
   --description "All engineering team members" \
   --json
@@ -219,12 +219,12 @@ gdrive admin groups create engineering@yourdomain.com \
 
 ```bash
 # Update group name
-gdrive admin groups update group@yourdomain.com \
+gdrv admin groups update group@yourdomain.com \
   --name "New Group Name" \
   --json
 
 # Update description
-gdrive admin groups update group@yourdomain.com \
+gdrv admin groups update group@yourdomain.com \
   --description "Updated description" \
   --json
 ```
@@ -234,7 +234,7 @@ gdrive admin groups update group@yourdomain.com \
 **Warning:** This permanently deletes the group.
 
 ```bash
-gdrive admin groups delete group@yourdomain.com --json
+gdrv admin groups delete group@yourdomain.com --json
 ```
 
 ## Group Membership Management
@@ -245,15 +245,15 @@ List all members of a group:
 
 ```bash
 # List all members
-gdrive admin members list group@yourdomain.com --json
+gdrv admin members list group@yourdomain.com --json
 
 # Filter by role
-gdrive admin members list group@yourdomain.com \
+gdrv admin members list group@yourdomain.com \
   --roles OWNER \
   --json
 
 # Paginate results
-gdrive admin members list group@yourdomain.com \
+gdrv admin members list group@yourdomain.com \
   --paginate \
   --json
 ```
@@ -267,17 +267,17 @@ gdrive admin members list group@yourdomain.com \
 
 ```bash
 # Add as regular member
-gdrive admin members add group@yourdomain.com user@yourdomain.com \
+gdrv admin members add group@yourdomain.com user@yourdomain.com \
   --role MEMBER \
   --json
 
 # Add as manager
-gdrive admin members add group@yourdomain.com user@yourdomain.com \
+gdrv admin members add group@yourdomain.com user@yourdomain.com \
   --role MANAGER \
   --json
 
 # Add as owner
-gdrive admin members add group@yourdomain.com user@yourdomain.com \
+gdrv admin members add group@yourdomain.com user@yourdomain.com \
   --role OWNER \
   --json
 ```
@@ -285,7 +285,7 @@ gdrive admin members add group@yourdomain.com user@yourdomain.com \
 ### Remove Member from Group
 
 ```bash
-gdrive admin members remove group@yourdomain.com user@yourdomain.com --json
+gdrv admin members remove group@yourdomain.com user@yourdomain.com --json
 ```
 
 ## Bulk Operations
@@ -305,7 +305,7 @@ while IFS=, read -r EMAIL GIVEN FAMILY; do
   PASSWORD=$(openssl rand -base64 12 | tr -d "=+/" | cut -c1-12)
   
   echo "Creating user: $EMAIL"
-  gdrive admin users create "$EMAIL" \
+  gdrv admin users create "$EMAIL" \
     --given-name "$GIVEN" \
     --family-name "$FAMILY" \
     --password "$PASSWORD" \
@@ -336,7 +336,7 @@ GROUP="engineering@yourdomain.com"
 # Read emails from file (one per line)
 while read -r EMAIL; do
   echo "Adding $EMAIL to $GROUP"
-  gdrive admin members add "$GROUP" "$EMAIL" --role MEMBER --json
+  gdrv admin members add "$GROUP" "$EMAIL" --role MEMBER --json
 done < members.txt
 ```
 
@@ -356,7 +356,7 @@ Suspend multiple users:
 # Read user emails from file
 while read -r EMAIL; do
   echo "Suspending $EMAIL"
-  gdrive admin users suspend "$EMAIL" --json
+  gdrv admin users suspend "$EMAIL" --json
 done < users_to_suspend.txt
 ```
 
@@ -373,7 +373,7 @@ while IFS=, read -r EMAIL GIVEN FAMILY ORG_UNIT; do
   echo "Updating $EMAIL"
   
   # Build update command
-  CMD="gdrive admin users update $EMAIL"
+  CMD="gdrv admin users update $EMAIL"
   
   [[ -n "$GIVEN" ]] && CMD="$CMD --given-name \"$GIVEN\""
   [[ -n "$FAMILY" ]] && CMD="$CMD --family-name \"$FAMILY\""
@@ -398,24 +398,24 @@ DEPARTMENT="Engineering"
 
 # 1. Create user account
 PASSWORD=$(openssl rand -base64 12 | tr -d "=+/" | cut -c1-12)
-gdrive admin users create "$NEW_USER" \
+gdrv admin users create "$NEW_USER" \
   --given-name "$FIRST_NAME" \
   --family-name "$LAST_NAME" \
   --password "$PASSWORD" \
   --json
 
 # 2. Add to department group
-gdrive admin members add "${DEPARTMENT,,}@yourdomain.com" "$NEW_USER" \
+gdrv admin members add "${DEPARTMENT,,}@yourdomain.com" "$NEW_USER" \
   --role MEMBER \
   --json
 
 # 3. Add to all-employees group
-gdrive admin members add "all-employees@yourdomain.com" "$NEW_USER" \
+gdrv admin members add "all-employees@yourdomain.com" "$NEW_USER" \
   --role MEMBER \
   --json
 
 # 4. Move to department OU
-gdrive admin users update "$NEW_USER" \
+gdrv admin users update "$NEW_USER" \
   --org-unit-path "/Departments/$DEPARTMENT" \
   --json
 
@@ -433,19 +433,19 @@ Generate compliance reports:
 ```bash
 #!/bin/bash
 # Generate suspended users report
-gdrive admin users list --domain yourdomain.com \
+gdrv admin users list --domain yourdomain.com \
   --query "isSuspended=true" \
   --paginate \
   --json > suspended_users.json
 
 # Generate admin users report
-gdrive admin users list --domain yourdomain.com \
+gdrv admin users list --domain yourdomain.com \
   --query "isAdmin=true" \
   --paginate \
   --json > admin_users.json
 
 # Generate users by OU
-gdrive admin users list --domain yourdomain.com \
+gdrv admin users list --domain yourdomain.com \
   --query "orgUnitPath=/Departments/Engineering" \
   --paginate \
   --json > engineering_users.json
@@ -460,7 +460,7 @@ Sync group membership from external system:
 GROUP="engineering@yourdomain.com"
 
 # Get current members
-CURRENT_MEMBERS=$(gdrive admin members list "$GROUP" --paginate --json | \
+CURRENT_MEMBERS=$(gdrv admin members list "$GROUP" --paginate --json | \
   jq -r '.[].email' | sort)
 
 # Get desired members from external source
@@ -475,13 +475,13 @@ TO_REMOVE=$(comm -23 <(echo "$CURRENT_MEMBERS") <(echo "$DESIRED_MEMBERS"))
 # Add new members
 for EMAIL in $TO_ADD; do
   echo "Adding $EMAIL"
-  gdrive admin members add "$GROUP" "$EMAIL" --role MEMBER --json
+  gdrv admin members add "$GROUP" "$EMAIL" --role MEMBER --json
 done
 
 # Remove old members
 for EMAIL in $TO_REMOVE; do
   echo "Removing $EMAIL"
-  gdrive admin members remove "$GROUP" "$EMAIL" --json
+  gdrv admin members remove "$GROUP" "$EMAIL" --json
 done
 ```
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/types"
 )
 
 func TestOutputFormatterJSON(t *testing.T) {

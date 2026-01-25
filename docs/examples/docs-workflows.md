@@ -16,7 +16,7 @@ This guide covers working with Google Docs using the Google Drive CLI.
 Retrieve the full document structure including formatting, styles, and content:
 
 ```bash
-gdrive docs get <document-id> --json
+gdrv docs get <document-id> --json
 ```
 
 This returns detailed metadata about the document, including:
@@ -57,16 +57,16 @@ Find documents in your Drive:
 
 ```bash
 # List all documents
-gdrive docs list --json
+gdrv docs list --json
 
 # Filter by parent folder
-gdrive docs list --parent <folder-id> --json
+gdrv docs list --parent <folder-id> --json
 
 # Search with query
-gdrive docs list --query "name contains 'Report'" --json
+gdrv docs list --query "name contains 'Report'" --json
 
 # Paginate through results
-gdrive docs list --paginate --json
+gdrv docs list --paginate --json
 ```
 
 ## Creating Documents
@@ -77,10 +77,10 @@ Create a blank document:
 
 ```bash
 # Create in root
-gdrive docs create "My Document" --json
+gdrv docs create "My Document" --json
 
 # Create in specific folder
-gdrive docs create "Q1 Report" --parent <folder-id> --json
+gdrv docs create "Q1 Report" --parent <folder-id> --json
 ```
 
 The command returns the document ID which you can use for subsequent operations.
@@ -91,7 +91,7 @@ Create a document and immediately add content:
 
 ```bash
 #!/bin/bash
-DOC_ID=$(gdrive docs create "New Document" --json | jq -r '.id')
+DOC_ID=$(gdrv docs create "New Document" --json | jq -r '.id')
 
 # Add initial content
 cat > initial-content.json <<EOF
@@ -107,7 +107,7 @@ cat > initial-content.json <<EOF
 ]
 EOF
 
-gdrive docs update "$DOC_ID" --requests-file initial-content.json --json
+gdrv docs update "$DOC_ID" --requests-file initial-content.json --json
 ```
 
 ## Updating Documents
@@ -146,10 +146,10 @@ Documents are updated using batch update requests. Each request performs a speci
 
 ```bash
 # From file
-gdrive docs update <document-id> --requests-file batch-update.json --json
+gdrv docs update <document-id> --requests-file batch-update.json --json
 
 # From stdin
-cat batch-update.json | gdrive docs update <document-id> --requests-file - --json
+cat batch-update.json | gdrv docs update <document-id> --requests-file - --json
 ```
 
 ### Common Update Operations
@@ -323,10 +323,10 @@ Extract plain text from a document:
 
 ```bash
 # Plain text output
-gdrive docs read <document-id>
+gdrv docs read <document-id>
 
 # Structured JSON output
-gdrive docs read <document-id> --json
+gdrv docs read <document-id> --json
 ```
 
 **Example JSON Output:**
@@ -349,13 +349,13 @@ Use text extraction for AI/LLM processing or analysis:
 DOC_ID="your-document-id"
 
 # Extract text
-TEXT=$(gdrive docs read "$DOC_ID" --json | jq -r '.text')
+TEXT=$(gdrv docs read "$DOC_ID" --json | jq -r '.text')
 
 # Process with external tool
 echo "$TEXT" | llm "Summarize this document"
 
 # Save to file
-gdrive docs read "$DOC_ID" --json | jq -r '.text' > document.txt
+gdrv docs read "$DOC_ID" --json | jq -r '.text' > document.txt
 ```
 
 ### Extract Specific Sections
@@ -364,10 +364,10 @@ If you need to extract specific parts, first get the document structure:
 
 ```bash
 # Get full structure
-gdrive docs get <document-id> --json | jq '.body.content[]'
+gdrv docs get <document-id> --json | jq '.body.content[]'
 
 # Extract only paragraphs
-gdrive docs get <document-id> --json | \
+gdrv docs get <document-id> --json | \
   jq -r '.body.content[] | select(.paragraph != null) | 
          .paragraph.elements[] | select(.textRun != null) | 
          .textRun.content' | \
@@ -387,7 +387,7 @@ CUSTOMER_NAME="Acme Corp"
 DATE=$(date +%Y-%m-%d)
 
 # Create new document from template (copy)
-NEW_DOC_ID=$(gdrive files copy "$TEMPLATE_ID" "Report for $CUSTOMER_NAME" --json | jq -r '.id')
+NEW_DOC_ID=$(gdrv files copy "$TEMPLATE_ID" "Report for $CUSTOMER_NAME" --json | jq -r '.id')
 
 # Replace placeholders (requires custom script or Slides API for better templating)
 # For Docs, you'll need to use find/replace operations
@@ -414,7 +414,7 @@ cat > replacements.json <<EOF
 ]
 EOF
 
-gdrive docs update "$NEW_DOC_ID" --requests-file replacements.json --json
+gdrv docs update "$NEW_DOC_ID" --requests-file replacements.json --json
 ```
 
 ### Automated Report Generation
@@ -468,7 +468,7 @@ cat > report-update.json <<EOF
 ]
 EOF
 
-gdrive docs update "$DOC_ID" --requests-file report-update.json --json
+gdrv docs update "$DOC_ID" --requests-file report-update.json --json
 ```
 
 ### Document Merge
@@ -478,11 +478,11 @@ Combine content from multiple documents:
 ```bash
 #!/bin/bash
 # Extract text from source documents
-DOC1_TEXT=$(gdrive docs read "doc1-id" --json | jq -r '.text')
-DOC2_TEXT=$(gdrive docs read "doc2-id" --json | jq -r '.text')
+DOC1_TEXT=$(gdrv docs read "doc1-id" --json | jq -r '.text')
+DOC2_TEXT=$(gdrv docs read "doc2-id" --json | jq -r '.text')
 
 # Create merged document
-MERGED_ID=$(gdrive docs create "Merged Document" --json | jq -r '.id')
+MERGED_ID=$(gdrv docs create "Merged Document" --json | jq -r '.id')
 
 # Insert content from both documents
 cat > merge-content.json <<EOF
@@ -498,7 +498,7 @@ cat > merge-content.json <<EOF
 ]
 EOF
 
-gdrive docs update "$MERGED_ID" --requests-file merge-content.json --json
+gdrv docs update "$MERGED_ID" --requests-file merge-content.json --json
 ```
 
 ### Bulk Document Processing
@@ -508,14 +508,14 @@ Process multiple documents:
 ```bash
 #!/bin/bash
 # List all documents
-DOC_IDS=$(gdrive docs list --json | jq -r '.[].id')
+DOC_IDS=$(gdrv docs list --json | jq -r '.[].id')
 
 # Process each document
 for DOC_ID in $DOC_IDS; do
   echo "Processing $DOC_ID"
   
   # Extract text
-  TEXT=$(gdrive docs read "$DOC_ID" --json | jq -r '.text')
+  TEXT=$(gdrv docs read "$DOC_ID" --json | jq -r '.text')
   
   # Do something with the text
   WORD_COUNT=$(echo "$TEXT" | wc -w)
@@ -549,7 +549,7 @@ cat > format-headings.json <<EOF
 ]
 EOF
 
-gdrive docs update "$DOC_ID" --requests-file format-headings.json --json
+gdrv docs update "$DOC_ID" --requests-file format-headings.json --json
 ```
 
 ## Tips and Best Practices

@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/zalando/go-keyring"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	serviceName        = "gdrive-cli"
+	serviceName        = "gdrv-cli"
 	tokenRefreshBuffer = 5 * time.Minute
 )
 
@@ -86,7 +86,7 @@ func NewManagerWithOptions(configDir string, opts ManagerOptions) *Manager {
 
 // checkKeyringAvailable tests if system keyring is available
 func checkKeyringAvailable() bool {
-	testKey := "gdrive-cli-test"
+	testKey := "gdrv-cli-test"
 	err := keyring.Set(serviceName, testKey, "test")
 	if err != nil {
 		return false
@@ -220,13 +220,13 @@ func (m *Manager) GetValidCredentials(ctx context.Context, profile string) (*typ
 	creds, err := m.LoadCredentials(profile)
 	if err != nil {
 		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
-			"No credentials found. Run 'gdrive auth login' first.").Build())
+			"No credentials found. Run 'gdrv auth login' first.").Build())
 	}
 
 	if creds.Type == types.AuthTypeServiceAccount || creds.Type == types.AuthTypeImpersonated {
 		if time.Now().After(creds.ExpiryDate) {
 			return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthExpired,
-				"Service account token expired. Run 'gdrive auth service-account' to re-authenticate.").Build())
+				"Service account token expired. Run 'gdrv auth service-account' to re-authenticate.").Build())
 		}
 		return creds, nil
 	}
@@ -235,7 +235,7 @@ func (m *Manager) GetValidCredentials(ctx context.Context, profile string) (*typ
 		newCreds, err := m.RefreshCredentials(ctx, creds)
 		if err != nil {
 			return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthExpired,
-				"Token refresh failed. Run 'gdrive auth login' to re-authenticate.").Build())
+				"Token refresh failed. Run 'gdrv auth login' to re-authenticate.").Build())
 		}
 		if err := m.SaveCredentials(profile, newCreds); err != nil {
 			return nil, fmt.Errorf("failed to save refreshed credentials: %w", err)
@@ -288,7 +288,7 @@ func (m *Manager) ValidateScopes(creds *types.Credentials, required []string) er
 	for _, req := range required {
 		if !scopeSet[req] {
 			return utils.NewAppError(utils.NewCLIError(utils.ErrCodeScopeInsufficient,
-				fmt.Sprintf("Missing required scope: %s. Re-authenticate with 'gdrive auth login --preset workspace-full' or 'gdrive auth login --scopes %s'", req, req)).Build())
+				fmt.Sprintf("Missing required scope: %s. Re-authenticate with 'gdrv auth login --preset workspace-full' or 'gdrv auth login --scopes %s'", req, req)).Build())
 		}
 	}
 	return nil

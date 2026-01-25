@@ -8,7 +8,7 @@ import (
 
 func TestEncryptedFileStorage(t *testing.T) {
 	// Create temporary directory for testing
-	tmpDir, err := os.MkdirTemp("", "gdrive-test-*")
+	tmpDir, err := os.MkdirTemp("", "gdrv-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestEncryptedFileStorage(t *testing.T) {
 
 func TestPlainFileStorage(t *testing.T) {
 	// Create temporary directory for testing
-	tmpDir, err := os.MkdirTemp("", "gdrive-test-*")
+	tmpDir, err := os.MkdirTemp("", "gdrv-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestPlainFileStorage(t *testing.T) {
 }
 
 func TestEncryptionRoundTrip(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "gdrive-test-*")
+	tmpDir, err := os.MkdirTemp("", "gdrv-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestEncryptionRoundTrip(t *testing.T) {
 }
 
 func TestGetOrCreateEncryptionKey(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "gdrive-test-*")
+	tmpDir, err := os.MkdirTemp("", "gdrv-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestGetOrCreateEncryptionKey(t *testing.T) {
 }
 
 func TestManagerListProfiles(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "gdrive-test-*")
+	tmpDir, err := os.MkdirTemp("", "gdrv-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}

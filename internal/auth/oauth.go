@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/types"
 	"golang.org/x/oauth2"
 )
 

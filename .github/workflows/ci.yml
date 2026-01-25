@@ -65,17 +65,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.6'
+          go-version-file: 'go.mod'
           cache: true
 
       - name: Build for all platforms
         run: |
-          GOOS=linux GOARCH=amd64 go build -o bin/gdrive-linux-amd64 ./cmd/gdrive
-          GOOS=linux GOARCH=arm64 go build -o bin/gdrive-linux-arm64 ./cmd/gdrive
-          GOOS=darwin GOARCH=amd64 go build -o bin/gdrive-darwin-amd64 ./cmd/gdrive
-          GOOS=darwin GOARCH=arm64 go build -o bin/gdrive-darwin-arm64 ./cmd/gdrive
-          GOOS=windows GOARCH=amd64 go build -o bin/gdrive-windows-amd64.exe ./cmd/gdrive
-          GOOS=windows GOARCH=arm64 go build -o bin/gdrive-windows-arm64.exe ./cmd/gdrive
+          GOOS=linux GOARCH=amd64 go build -o bin/gdrv-linux-amd64 ./cmd/gdrv
+          GOOS=linux GOARCH=arm64 go build -o bin/gdrv-linux-arm64 ./cmd/gdrv
+          GOOS=darwin GOARCH=amd64 go build -o bin/gdrv-darwin-amd64 ./cmd/gdrv
+          GOOS=darwin GOARCH=arm64 go build -o bin/gdrv-darwin-arm64 ./cmd/gdrv
+          GOOS=windows GOARCH=amd64 go build -o bin/gdrv-windows-amd64.exe ./cmd/gdrv
+          GOOS=windows GOARCH=arm64 go build -o bin/gdrv-windows-arm64.exe ./cmd/gdrv
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -95,7 +95,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.6'
+          go-version-file: 'go.mod'
           cache: true
 
       - name: Run golangci-lint
@@ -115,7 +115,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.6'
+          go-version-file: 'go.mod'
           cache: true
 
       - name: Run govulncheck
