@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/dl-alexandre/gdrive/internal/cli"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/cli"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 )
 
 func main() {

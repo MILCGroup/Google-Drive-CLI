@@ -1,4 +1,4 @@
-module github.com/dl-alexandre/gdrive
+module github.com/dl-alexandre/gdrv
 
 go 1.22
 

@@ -2,7 +2,7 @@
 
 A **fast**, **lightweight**, and **AI-agent friendly** CLI for Google Drive. Manage files with zero friction.
 
-## Why gdrive?
+## Why gdrv?
 
 | Problem | Solution |
 |---------|----------|
@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/dl-alexandre/Google-Drive-CLI/maste
 
 ```bash
 brew tap dl-alexandre/tap
-brew install gdrive
+brew install gdrv
 ```
 
 ### Download Binary
@@ -44,49 +44,49 @@ Download the latest release from the [releases page](https://github.com/dl-alexa
 
 ```bash
 # Make executable and move to PATH
-chmod +x gdrive
-sudo mv gdrive /usr/local/bin/
+chmod +x gdrv
+sudo mv gdrv /usr/local/bin/
 ```
 
 ### Build from Source
 
 ```bash
 git clone https://github.com/dl-alexandre/Google-Drive-CLI.git
-cd gdrive
-go build -o gdrive ./cmd/gdrive
+cd Google-Drive-CLI
+go build -o gdrv ./cmd/gdrv
 ```
 
 ## Quick Start
 
 1. **Set OAuth credentials**:
    ```bash
-   export GDRIVE_CLIENT_ID="your-client-id"
-   export GDRIVE_CLIENT_SECRET="your-client-secret"
+   export GDRV_CLIENT_ID="your-client-id"
+   export GDRV_CLIENT_SECRET="your-client-secret"
    ```
 
 2. **Authenticate**:
    ```bash
-   gdrive auth login --preset workspace-basic
+   gdrv auth login --preset workspace-basic
    ```
 
 3. **List files**:
    ```bash
-   gdrive files list
+   gdrv files list
    ```
 
 4. **Upload a file**:
    ```bash
-   gdrive files upload myfile.txt
+   gdrv files upload myfile.txt
    ```
 
 5. **Download a file**:
    ```bash
-   gdrive files download 1abc123... --output downloaded.txt
+   gdrv files download 1abc123... --output downloaded.txt
    ```
 
 6. **Download a Google Doc as text**:
    ```bash
-   gdrive files download 1abc123... --doc
+   gdrv files download 1abc123... --doc
    ```
 
 ## Agent Quickstart
@@ -99,13 +99,13 @@ Always use `--json` for machine-readable output:
 
 ```bash
 # List files as JSON
-gdrive files list --json
+gdrv files list --json
 
 # Get file metadata
-gdrive files get 1abc123... --json
+gdrv files get 1abc123... --json
 
 # Upload returns the created file object
-gdrive files upload report.pdf --json
+gdrv files upload report.pdf --json
 ```
 
 ### Pagination Control
@@ -114,36 +114,36 @@ Use `--paginate` to automatically fetch all pages:
 
 ```bash
 # Get ALL files (auto-pagination)
-gdrive files list --paginate --json
+gdrv files list --paginate --json
 
 # Get all trashed files
-gdrive files list-trashed --paginate --json
+gdrv files list-trashed --paginate --json
 
 # Get all Shared Drives
-gdrive drives list --paginate --json
+gdrv drives list --paginate --json
 ```
 
 Or control pagination manually:
 
 ```bash
 # Get first page
-gdrive files list --limit 100 --json
+gdrv files list --limit 100 --json
 
 # Use nextPageToken from response for next page
-gdrive files list --limit 100 --page-token "TOKEN_FROM_PREVIOUS" --json
+gdrv files list --limit 100 --page-token "TOKEN_FROM_PREVIOUS" --json
 ```
 
 ### Sorting and Filtering
 
 ```bash
 # Sort by modified time (newest first)
-gdrive files list --order-by "modifiedTime desc" --json
+gdrv files list --order-by "modifiedTime desc" --json
 
 # Search by name
-gdrive files list --query "name contains 'report'" --json
+gdrv files list --query "name contains 'report'" --json
 
 # Combined: recent PDFs
-gdrive files list --query "mimeType = 'application/pdf'" --order-by "modifiedTime desc" --json
+gdrv files list --query "mimeType = 'application/pdf'" --order-by "modifiedTime desc" --json
 ```
 
 ### Non-Interactive Mode
@@ -152,13 +152,13 @@ Destructive commands run without prompts by default. Use `--dry-run` to preview:
 
 ```bash
 # Preview what would be deleted
-gdrive files delete 1abc123... --dry-run
+gdrv files delete 1abc123... --dry-run
 
 # Actually delete (no prompt)
-gdrive files delete 1abc123...
+gdrv files delete 1abc123...
 
 # Permanently delete (bypasses trash)
-gdrive files delete 1abc123... --permanent
+gdrv files delete 1abc123... --permanent
 ```
 
 ### Exit Codes
@@ -196,24 +196,24 @@ The CLI supports multiple authentication methods and scope presets. OAuth client
 export GDRIVE_CLIENT_ID="your-client-id"
 export GDRIVE_CLIENT_SECRET="your-client-secret"
 
-gdrive auth login --client-id "your-client-id" --client-secret "your-client-secret"
+gdrv auth login --client-id "your-client-id" --client-secret "your-client-secret"
 ```
 
 ### OAuth2 Flow (Recommended)
 ```bash
-gdrive auth login
+gdrv auth login
 ```
 Opens a browser for authentication.
 
 ### Device Code Flow (Headless)
 ```bash
-gdrive auth device
+gdrv auth device
 ```
 Displays a code to enter at https://www.google.com/device.
 
 ### Service Account Authentication
 ```bash
-gdrive auth service-account --key-file ./service-account-key.json --preset workspace-basic
+gdrv auth service-account --key-file ./service-account-key.json --preset workspace-basic
 ```
 Loads credentials from a service account JSON key file. Use `--impersonate-user` for Admin SDK scopes.
 
@@ -227,19 +227,19 @@ Loads credentials from a service account JSON key file. Use `--impersonate-user`
 | `workspace-with-admin` | Workspace full + Admin Directory | Full workspace + admin |
 
 ```bash
-gdrive auth login --preset workspace-basic
-gdrive auth login --preset workspace-full
-gdrive auth login --preset admin
-gdrive auth login --preset workspace-with-admin
-gdrive auth device --preset workspace-basic
-gdrive auth service-account --key-file ./key.json --preset workspace-basic
+gdrv auth login --preset workspace-basic
+gdrv auth login --preset workspace-full
+gdrv auth login --preset admin
+gdrv auth login --preset workspace-with-admin
+gdrv auth device --preset workspace-basic
+gdrv auth service-account --key-file ./key.json --preset workspace-basic
 ```
 
 ### Custom Scopes
 
 ```bash
-gdrive auth login --scopes "https://www.googleapis.com/auth/drive.file,https://www.googleapis.com/auth/spreadsheets.readonly"
-gdrive auth service-account --key-file ./key.json --scopes "https://www.googleapis.com/auth/drive.file"
+gdrv auth login --scopes "https://www.googleapis.com/auth/drive.file,https://www.googleapis.com/auth/spreadsheets.readonly"
+gdrv auth service-account --key-file ./key.json --scopes "https://www.googleapis.com/auth/drive.file"
 ```
 
 Available scopes:
@@ -261,41 +261,41 @@ Available scopes:
 ### Multiple Profiles
 ```bash
 # Create and switch profiles
-gdrive auth login --profile work
-gdrive auth login --profile personal
+gdrv auth login --profile work
+gdrv auth login --profile personal
 
 # Use specific profile
-gdrive --profile work files list
+gdrv --profile work files list
 ```
 
 ## Commands
 
 ### File Operations
 ```bash
-gdrive files upload <file>          # Upload file
-gdrive files download <file-id>     # Download file
-gdrive files list                   # List files
-gdrive files delete <file-id>       # Delete file
-gdrive files trash <file-id>        # Move to trash
-gdrive files restore <file-id>      # Restore from trash
-gdrive files revisions <file-id>    # List revisions
+gdrv files upload <file>          # Upload file
+gdrv files download <file-id>     # Download file
+gdrv files list                   # List files
+gdrv files delete <file-id>       # Delete file
+gdrv files trash <file-id>        # Move to trash
+gdrv files restore <file-id>      # Restore from trash
+gdrv files revisions <file-id>    # List revisions
 ```
 
 ### Folder Operations
 ```bash
-gdrive folders create <name>        # Create folder
-gdrive folders list <folder-id>     # List contents
-gdrive folders delete <folder-id>   # Delete folder
-gdrive folders move <id> <parent>   # Move folder
+gdrv folders create <name>        # Create folder
+gdrv folders list <folder-id>     # List contents
+gdrv folders delete <folder-id>   # Delete folder
+gdrv folders move <id> <parent>   # Move folder
 ```
 
 ### Permission Management
 ```bash
-gdrive permissions list <file-id>           # List permissions
-gdrive permissions create <file-id> --type user --email user@example.com --role reader
-gdrive permissions update <file-id> <perm-id> --role writer
-gdrive permissions delete <file-id> <perm-id>
-gdrive permissions public <file-id>         # Create public link
+gdrv permissions list <file-id>           # List permissions
+gdrv permissions create <file-id> --type user --email user@example.com --role reader
+gdrv permissions update <file-id> <perm-id> --role writer
+gdrv permissions delete <file-id> <perm-id>
+gdrv permissions public <file-id>         # Create public link
 ```
 
 ### Google Sheets Operations
@@ -311,32 +311,32 @@ Manage Google Sheets spreadsheets with full read and write capabilities.
 
 ```bash
 # List spreadsheets
-gdrive sheets list                                # List all spreadsheets
-gdrive sheets list --parent <folder-id>          # List spreadsheets in a folder
-gdrive sheets list --query "name contains 'Report'" --json
-gdrive sheets list --paginate --json            # Get all spreadsheets
+gdrv sheets list                                # List all spreadsheets
+gdrv sheets list --parent <folder-id>          # List spreadsheets in a folder
+gdrv sheets list --query "name contains 'Report'" --json
+gdrv sheets list --paginate --json            # Get all spreadsheets
 
 # Create a spreadsheet
-gdrive sheets create "My Spreadsheet"           # Create a new spreadsheet
-gdrive sheets create "Budget 2026" --parent <folder-id> --json
+gdrv sheets create "My Spreadsheet"           # Create a new spreadsheet
+gdrv sheets create "Budget 2026" --parent <folder-id> --json
 
 # Get spreadsheet metadata
-gdrive sheets get <spreadsheet-id>                # Get spreadsheet details
-gdrive sheets get 1abc123... --json
+gdrv sheets get <spreadsheet-id>                # Get spreadsheet details
+gdrv sheets get 1abc123... --json
 
 # Read and write values
-gdrive sheets values get <spreadsheet-id> <range> # Get values from a range
-gdrive sheets values get 1abc123... "Sheet1!A1:B10" --json
-gdrive sheets values update <spreadsheet-id> <range> # Update values in a range
-gdrive sheets values update 1abc123... "Sheet1!A1:B2" --values '[[1,2],[3,4]]'
-gdrive sheets values update 1abc123... "Sheet1!A1:B2" --values-file data.json
-gdrive sheets values append <spreadsheet-id> <range> # Append values to a range
-gdrive sheets values append 1abc123... "Sheet1!A1" --values '[[5,6]]' --value-input-option RAW
-gdrive sheets values clear <spreadsheet-id> <range> # Clear values from a range
+gdrv sheets values get <spreadsheet-id> <range> # Get values from a range
+gdrv sheets values get 1abc123... "Sheet1!A1:B10" --json
+gdrv sheets values update <spreadsheet-id> <range> # Update values in a range
+gdrv sheets values update 1abc123... "Sheet1!A1:B2" --values '[[1,2],[3,4]]'
+gdrv sheets values update 1abc123... "Sheet1!A1:B2" --values-file data.json
+gdrv sheets values append <spreadsheet-id> <range> # Append values to a range
+gdrv sheets values append 1abc123... "Sheet1!A1" --values '[[5,6]]' --value-input-option RAW
+gdrv sheets values clear <spreadsheet-id> <range> # Clear values from a range
 
 # Batch update spreadsheet
-gdrive sheets batch-update <spreadsheet-id>       # Batch update spreadsheet
-gdrive sheets batch-update 1abc123... --requests-file examples/sheets/batch-update.json
+gdrv sheets batch-update <spreadsheet-id>       # Batch update spreadsheet
+gdrv sheets batch-update 1abc123... --requests-file examples/sheets/batch-update.json
 ```
 
 **Command Flags:**
@@ -350,21 +350,21 @@ gdrive sheets batch-update 1abc123... --requests-file examples/sheets/batch-upda
 
 ```bash
 # List all spreadsheets with pagination
-gdrive sheets list --paginate --json
+gdrv sheets list --paginate --json
 
 # Create a spreadsheet in a specific folder
-gdrive sheets create "Q1 Report" --parent 0ABC123... --json
+gdrv sheets create "Q1 Report" --parent 0ABC123... --json
 
 # Read a range of values
-gdrive sheets values get 1abc123... "Sheet1!A1:C10" --json
+gdrv sheets values get 1abc123... "Sheet1!A1:C10" --json
 
 # Update values from a JSON file
-gdrive sheets values update 1abc123... "Sheet1!A1" \
+gdrv sheets values update 1abc123... "Sheet1!A1" \
   --values-file data.json \
   --value-input-option USER_ENTERED
 
 # Batch update with multiple operations
-gdrive sheets batch-update 1abc123... \
+gdrv sheets batch-update 1abc123... \
   --requests-file examples/sheets/batch-update.json
 ```
 
@@ -381,28 +381,28 @@ Manage Google Docs documents with content reading and batch update capabilities.
 
 ```bash
 # List documents
-gdrive docs list                                # List all documents
-gdrive docs list --parent <folder-id>          # List documents in a folder
-gdrive docs list --query "name contains 'Report'" --json
-gdrive docs list --paginate --json            # Get all documents
+gdrv docs list                                # List all documents
+gdrv docs list --parent <folder-id>          # List documents in a folder
+gdrv docs list --query "name contains 'Report'" --json
+gdrv docs list --paginate --json            # Get all documents
 
 # Create a document
-gdrive docs create "My Document"               # Create a new document
-gdrive docs create "Meeting Notes" --parent <folder-id> --json
+gdrv docs create "My Document"               # Create a new document
+gdrv docs create "Meeting Notes" --parent <folder-id> --json
 
 # Get document metadata
-gdrive docs get <document-id>                   # Get document details
-gdrive docs get 1abc123... --json
+gdrv docs get <document-id>                   # Get document details
+gdrv docs get 1abc123... --json
 
 # Read document content
-gdrive docs read <document-id>                  # Extract plain text from document
-gdrive docs read 1abc123...                     # Print plain text
-gdrive docs read 1abc123... --json             # Get structured content
+gdrv docs read <document-id>                  # Extract plain text from document
+gdrv docs read 1abc123...                     # Print plain text
+gdrv docs read 1abc123... --json             # Get structured content
 
 # Batch update document
-gdrive docs update <document-id>                # Batch update document
-gdrive docs update 1abc123... --requests-file updates.json
-gdrive docs update 1abc123... --requests-file examples/docs/batch-update.json
+gdrv docs update <document-id>                # Batch update document
+gdrv docs update 1abc123... --requests-file updates.json
+gdrv docs update 1abc123... --requests-file examples/docs/batch-update.json
 ```
 
 **Command Flags:**
@@ -415,19 +415,19 @@ gdrive docs update 1abc123... --requests-file examples/docs/batch-update.json
 
 ```bash
 # List all documents with pagination
-gdrive docs list --paginate --json
+gdrv docs list --paginate --json
 
 # Create a document in a specific folder
-gdrive docs create "Project Plan" --parent 0ABC123... --json
+gdrv docs create "Project Plan" --parent 0ABC123... --json
 
 # Read document content as plain text
-gdrive docs read 1abc123...
+gdrv docs read 1abc123...
 
 # Read document content as structured JSON
-gdrive docs read 1abc123... --json
+gdrv docs read 1abc123... --json
 
 # Update document with batch requests
-gdrive docs update 1abc123... \
+gdrv docs update 1abc123... \
   --requests-file examples/docs/batch-update.json
 ```
 
@@ -444,33 +444,33 @@ Manage Google Slides presentations with content reading, batch updates, and text
 
 ```bash
 # List presentations
-gdrive slides list                                # List all presentations
-gdrive slides list --parent <folder-id>          # List presentations in a folder
-gdrive slides list --query "name contains 'Deck'" --json
-gdrive slides list --paginate --json            # Get all presentations
+gdrv slides list                                # List all presentations
+gdrv slides list --parent <folder-id>          # List presentations in a folder
+gdrv slides list --query "name contains 'Deck'" --json
+gdrv slides list --paginate --json            # Get all presentations
 
 # Create a presentation
-gdrive slides create "My Presentation"           # Create a new presentation
-gdrive slides create "Q1 Review" --parent <folder-id> --json
+gdrv slides create "My Presentation"           # Create a new presentation
+gdrv slides create "Q1 Review" --parent <folder-id> --json
 
 # Get presentation metadata
-gdrive slides get <presentation-id>               # Get presentation details
-gdrive slides get 1abc123... --json
+gdrv slides get <presentation-id>               # Get presentation details
+gdrv slides get 1abc123... --json
 
 # Read presentation content
-gdrive slides read <presentation-id>              # Extract text from all slides
-gdrive slides read 1abc123...                     # Print text from all slides
-gdrive slides read 1abc123... --json             # Get structured content
+gdrv slides read <presentation-id>              # Extract text from all slides
+gdrv slides read 1abc123...                     # Print text from all slides
+gdrv slides read 1abc123... --json             # Get structured content
 
 # Batch update presentation
-gdrive slides update <presentation-id>            # Batch update presentation
-gdrive slides update 1abc123... --requests-file updates.json
-gdrive slides update 1abc123... --requests-file examples/slides/batch-update.json
+gdrv slides update <presentation-id>            # Batch update presentation
+gdrv slides update 1abc123... --requests-file updates.json
+gdrv slides update 1abc123... --requests-file examples/slides/batch-update.json
 
 # Replace text placeholders (templating)
-gdrive slides replace <presentation-id>           # Replace text placeholders
-gdrive slides replace 1abc123... --data '{"{{NAME}}":"Alice","{{DATE}}":"2026-01-24"}'
-gdrive slides replace 1abc123... --file examples/slides/replacements.json
+gdrv slides replace <presentation-id>           # Replace text placeholders
+gdrv slides replace 1abc123... --data '{"{{NAME}}":"Alice","{{DATE}}":"2026-01-24"}'
+gdrv slides replace 1abc123... --file examples/slides/replacements.json
 ```
 
 **Command Flags:**
@@ -484,34 +484,34 @@ gdrive slides replace 1abc123... --file examples/slides/replacements.json
 
 ```bash
 # List all presentations with pagination
-gdrive slides list --paginate --json
+gdrv slides list --paginate --json
 
 # Create a presentation in a specific folder
-gdrive slides create "Team Meeting" --parent 0ABC123... --json
+gdrv slides create "Team Meeting" --parent 0ABC123... --json
 
 # Read text from all slides
-gdrive slides read 1abc123...
+gdrv slides read 1abc123...
 
 # Read structured presentation content
-gdrive slides read 1abc123... --json
+gdrv slides read 1abc123... --json
 
 # Replace placeholders using inline JSON
-gdrive slides replace 1abc123... \
+gdrv slides replace 1abc123... \
   --data '{"{{NAME}}":"Alice","{{DATE}}":"2026-01-24","{{TITLE}}":"Manager"}'
 
 # Replace placeholders using a JSON file
-gdrive slides replace 1abc123... \
+gdrv slides replace 1abc123... \
   --file examples/slides/replacements.json
 
 # Batch update with multiple operations
-gdrive slides update 1abc123... \
+gdrv slides update 1abc123... \
   --requests-file examples/slides/batch-update.json
 ```
 
 ### Shared Drives
 ```bash
-gdrive drives list                 # List Shared Drives
-gdrive drives get <drive-id>       # Get drive details
+gdrv drives list                 # List Shared Drives
+gdrv drives get <drive-id>       # Get drive details
 ```
 
 ### Admin SDK Operations
@@ -542,7 +542,7 @@ Admin SDK operations **require service account authentication** with domain-wide
 
 ```bash
 # Authenticate with service account and impersonate admin user
-gdrive auth service-account \
+gdrv auth service-account \
   --key-file ./service-account-key.json \
   --impersonate-user admin@example.com \
   --preset admin
@@ -552,32 +552,32 @@ gdrive auth service-account \
 
 ```bash
 # List users
-gdrive admin users list --domain example.com
-gdrive admin users list --domain example.com --json
-gdrive admin users list --domain example.com --paginate --json
-gdrive admin users list --domain example.com --query "name:John" --json
+gdrv admin users list --domain example.com
+gdrv admin users list --domain example.com --json
+gdrv admin users list --domain example.com --paginate --json
+gdrv admin users list --domain example.com --query "name:John" --json
 
 # Get user details
-gdrive admin users get user@example.com
-gdrive admin users get user@example.com --fields "id,name,email" --json
+gdrv admin users get user@example.com
+gdrv admin users get user@example.com --fields "id,name,email" --json
 
 # Create a user
-gdrive admin users create newuser@example.com \
+gdrv admin users create newuser@example.com \
   --given-name "John" \
   --family-name "Doe" \
   --password "TempPass123!"
 
 # Update a user
-gdrive admin users update user@example.com --given-name "Jane" --family-name "Smith"
-gdrive admin users update user@example.com --suspended true
-gdrive admin users update user@example.com --org-unit-path "/Engineering/Developers"
+gdrv admin users update user@example.com --given-name "Jane" --family-name "Smith"
+gdrv admin users update user@example.com --suspended true
+gdrv admin users update user@example.com --org-unit-path "/Engineering/Developers"
 
 # Suspend/unsuspend a user
-gdrive admin users suspend user@example.com
-gdrive admin users unsuspend user@example.com
+gdrv admin users suspend user@example.com
+gdrv admin users unsuspend user@example.com
 
 # Delete a user
-gdrive admin users delete user@example.com
+gdrv admin users delete user@example.com
 ```
 
 **User Command Flags:**
@@ -591,25 +591,25 @@ gdrive admin users delete user@example.com
 
 ```bash
 # List groups
-gdrive admin groups list --domain example.com
-gdrive admin groups list --domain example.com --json
-gdrive admin groups list --domain example.com --paginate --json
-gdrive admin groups list --domain example.com --query "name:Team" --json
+gdrv admin groups list --domain example.com
+gdrv admin groups list --domain example.com --json
+gdrv admin groups list --domain example.com --paginate --json
+gdrv admin groups list --domain example.com --query "name:Team" --json
 
 # Get group details
-gdrive admin groups get group@example.com
-gdrive admin groups get group@example.com --fields "id,name,email" --json
+gdrv admin groups get group@example.com
+gdrv admin groups get group@example.com --fields "id,name,email" --json
 
 # Create a group
-gdrive admin groups create group@example.com "Team Group" \
+gdrv admin groups create group@example.com "Team Group" \
   --description "Team access group"
 
 # Update a group
-gdrive admin groups update group@example.com --name "New Name"
-gdrive admin groups update group@example.com --description "Updated description"
+gdrv admin groups update group@example.com --name "New Name"
+gdrv admin groups update group@example.com --description "Updated description"
 
 # Delete a group
-gdrive admin groups delete group@example.com
+gdrv admin groups delete group@example.com
 ```
 
 **Group Command Flags:**
@@ -623,18 +623,18 @@ gdrive admin groups delete group@example.com
 
 ```bash
 # List group members
-gdrive admin groups members list team@example.com
-gdrive admin groups members list team@example.com --json
-gdrive admin groups members list team@example.com --roles MANAGER --json
-gdrive admin groups members list team@example.com --paginate --json
+gdrv admin groups members list team@example.com
+gdrv admin groups members list team@example.com --json
+gdrv admin groups members list team@example.com --roles MANAGER --json
+gdrv admin groups members list team@example.com --paginate --json
 
 # Add member to group
-gdrive admin groups members add team@example.com user@example.com --role MEMBER
-gdrive admin groups members add team@example.com user@example.com --role MANAGER
-gdrive admin groups members add team@example.com user@example.com --role OWNER
+gdrv admin groups members add team@example.com user@example.com --role MEMBER
+gdrv admin groups members add team@example.com user@example.com --role MANAGER
+gdrv admin groups members add team@example.com user@example.com --role OWNER
 
 # Remove member from group
-gdrive admin groups members remove team@example.com user@example.com
+gdrv admin groups members remove team@example.com user@example.com
 ```
 
 **Group Members Command Flags:**
@@ -646,60 +646,60 @@ gdrive admin groups members remove team@example.com user@example.com
 
 ```bash
 # List all users in a domain
-gdrive admin users list --domain example.com --paginate --json
+gdrv admin users list --domain example.com --paginate --json
 
 # Create a new user
-gdrive admin users create john.doe@example.com \
+gdrv admin users create john.doe@example.com \
   --given-name "John" \
   --family-name "Doe" \
   --password "SecurePass123!" \
   --json
 
 # Suspend a user
-gdrive admin users suspend john.doe@example.com
+gdrv admin users suspend john.doe@example.com
 
 # List all groups
-gdrive admin groups list --domain example.com --paginate --json
+gdrv admin groups list --domain example.com --paginate --json
 
 # Create a group and add members
-gdrive admin groups create team@example.com "Engineering Team" \
+gdrv admin groups create team@example.com "Engineering Team" \
   --description "Engineering team members"
-gdrive admin groups members add team@example.com john.doe@example.com --role MEMBER
+gdrv admin groups members add team@example.com john.doe@example.com --role MEMBER
 ```
 
 ### Configuration
 ```bash
-gdrive config show                 # Show current config
-gdrive config set <key> <value>    # Set config value
-gdrive config reset                # Reset to defaults
+gdrv config show                 # Show current config
+gdrv config set <key> <value>    # Set config value
+gdrv config reset                # Reset to defaults
 ```
 
 ### Other
 ```bash
-gdrive auth login [--preset <preset>] [--wide] [--scopes <scopes>] [--client-id <id>] [--client-secret <secret>] [--profile <name>]
-gdrive auth device [--preset <preset>] [--wide] [--client-id <id>] [--client-secret <secret>] [--profile <name>]
-gdrive auth service-account --key-file <file> [--preset <preset>] [--scopes <scopes>] [--impersonate-user <email>] [--profile <name>]
-gdrive auth status                 # Show auth status
-gdrive auth profiles               # Manage profiles
-gdrive auth logout                 # Clear credentials
-gdrive about                       # Show API capabilities
+gdrv auth login [--preset <preset>] [--wide] [--scopes <scopes>] [--client-id <id>] [--client-secret <secret>] [--profile <name>]
+gdrv auth device [--preset <preset>] [--wide] [--client-id <id>] [--client-secret <secret>] [--profile <name>]
+gdrv auth service-account --key-file <file> [--preset <preset>] [--scopes <scopes>] [--impersonate-user <email>] [--profile <name>]
+gdrv auth status                 # Show auth status
+gdrv auth profiles               # Manage profiles
+gdrv auth logout                 # Clear credentials
+gdrv about                       # Show API capabilities
 ```
 
 ## Output Formats
 
 ### Table Format (Default)
 ```bash
-gdrive files list
+gdrv files list
 ```
 
 ### JSON Format
 ```bash
-gdrive files list --json
+gdrv files list --json
 ```
 
 ### Quiet Mode
 ```bash
-gdrive files upload file.txt --quiet
+gdrv files upload file.txt --quiet
 ```
 
 ## Safety Controls
@@ -707,14 +707,14 @@ gdrive files upload file.txt --quiet
 ### Dry Run (Preview)
 Preview what would happen without executing:
 ```bash
-gdrive files delete 123 --dry-run
+gdrv files delete 123 --dry-run
 ```
 
 ### Default Behavior (Non-Interactive)
 By default, commands execute without prompts for agent-friendliness:
 ```bash
 # Executes immediately (no confirmation prompt)
-gdrive files delete 123
+gdrv files delete 123
 ```
 
 ### Interactive Mode
@@ -726,10 +726,10 @@ Configure behavior via config commands or environment variables:
 
 ```bash
 # Set default output format
-gdrive config set output_format json
+gdrv config set output_format json
 
 # Set cache TTL
-gdrive config set cache_ttl 300
+gdrv config set cache_ttl 300
 
 # OAuth credentials
 export GDRIVE_CLIENT_ID="your-client-id"
@@ -748,26 +748,26 @@ export GDRIVE_CONFIG_DIR=/path/to/config
 ```bash
 export GDRIVE_CLIENT_ID="your-client-id"
 export GDRIVE_CLIENT_SECRET="your-client-secret"
-gdrive auth login
+gdrv auth login
 ```
 
 **"Browser not opening"**
 Use device code flow:
 ```bash
-gdrive auth device
+gdrv auth device
 ```
 
 **"Invalid credentials"**
 Re-authenticate:
 ```bash
-gdrive auth logout
-gdrive auth login
+gdrv auth logout
+gdrv auth login
 ```
 
 **"Missing required scope"**
 ```bash
-gdrive auth status
-gdrive auth login --preset workspace-full
+gdrv auth status
+gdrv auth login --preset workspace-full
 ```
 
 ### Permission Errors
@@ -775,7 +775,7 @@ gdrive auth login --preset workspace-full
 **"Insufficient permissions"**
 Check your OAuth scopes and Shared Drive access:
 ```bash
-gdrive auth status
+gdrv auth status
 ```
 
 ### Path Resolution
@@ -783,7 +783,7 @@ gdrive auth status
 **"File not found"**
 Use file IDs for Shared Drives:
 ```bash
-gdrive files list --drive-id <drive-id>
+gdrv files list --drive-id <drive-id>
 ```
 
 ### Performance Issues
@@ -807,7 +807,7 @@ go test -tags=integration ./test/integration/...
 
 ### Building
 ```bash
-go build -o gdrive cmd/gdrive/main.go
+go build -o gdrv cmd/gdrv/main.go
 ```
 
 ## Contributing

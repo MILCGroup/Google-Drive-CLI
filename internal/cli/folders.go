@@ -4,11 +4,11 @@ import (
 	"context"
 	"os"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/folders"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/folders"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -100,7 +100,7 @@ func getFolderManager() (*folders.Manager, error) {
 	creds, err := authMgr.LoadCredentials(flags.Profile)
 	if err != nil {
 		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
-			"Authentication required. Run 'gdrive auth login' first.").Build())
+			"Authentication required. Run 'gdrv auth login' first.").Build())
 	}
 
 	service, err := authMgr.GetDriveService(context.Background(), creds)

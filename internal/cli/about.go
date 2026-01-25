@@ -70,9 +70,9 @@ func runAbout(cmd *cobra.Command, args []string) error {
 		},
 		"output_formats": []string{"json", "table"},
 		"configuration": map[string]interface{}{
-			"config_file":     "~/.config/gdrive/config.json",
-			"credentials_dir": "~/.config/gdrive/credentials",
-			"cache_dir":       "~/.config/gdrive/cache",
+			"config_file":     "~/.config/gdrv/config.json",
+			"credentials_dir": "~/.config/gdrv/credentials",
+			"cache_dir":       "~/.config/gdrv/cache",
 		},
 	}
 

@@ -1,4 +1,4 @@
-pkgbase = gdrive-git
+pkgbase = gdrv-git
 	pkgdesc = Google Drive CLI
 	pkgver = 0.1.0.3.g38517bd
 	pkgrel = 1
@@ -9,9 +9,9 @@ pkgbase = gdrive-git
 	makedepends = git
 	makedepends = go
 	depends = libsecret
-	provides = gdrive
-	conflicts = gdrive
+	provides = gdrv
+	conflicts = gdrv
 	source = git+https://github.com/dl-alexandre/Google-Drive-CLI.git
 	sha256sums = SKIP
 
-pkgname = gdrive-git
+pkgname = gdrv-git

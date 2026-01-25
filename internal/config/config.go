@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/types"
 )
 
 const (
 	// ConfigFileName is the name of the config file
 	ConfigFileName = "config.json"
 	// ConfigDirName is the directory where config is stored
-	ConfigDirName = ".gdrive"
+	ConfigDirName = ".gdrv"
 	// EnvPrefix is the prefix for environment variables
-	EnvPrefix = "GDRIVE_"
+	EnvPrefix = "GDRV_"
 )
 
 // Config holds application configuration

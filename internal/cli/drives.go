@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/drives"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/drives"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 )
 

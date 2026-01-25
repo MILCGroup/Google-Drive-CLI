@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/dl-alexandre/gdrive/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 )
 

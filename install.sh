@@ -4,8 +4,8 @@ set -e
 # Google Drive CLI Installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/dl-alexandre/Google-Drive-CLI/master/install.sh | bash
 
-VERSION="${GDRIVE_VERSION:-latest}"
-INSTALL_DIR="${GDRIVE_INSTALL_DIR:-$HOME/.local/bin}"
+VERSION="${GDRV_VERSION:-latest}"
+INSTALL_DIR="${GDRV_INSTALL_DIR:-$HOME/.local/bin}"
 REPO="dl-alexandre/Google-Drive-CLI"
 
 # Detect OS and architecture
@@ -61,22 +61,22 @@ if command -v go &> /dev/null; then
     
     # Clone and build
     echo "Cloning repository..."
-    git clone --depth 1 "https://github.com/${REPO}.git" gdrive 2>/dev/null || {
+    git clone --depth 1 "https://github.com/${REPO}.git" gdrv 2>/dev/null || {
         echo "Failed to clone repository. Trying local build..."
         cd -
-        if [ -f "go.mod" ] && [ -f "cmd/gdrive/main.go" ]; then
+        if [ -f "go.mod" ] && [ -f "cmd/gdrv/main.go" ]; then
             echo "Building from current directory..."
-            go build -o "$INSTALL_DIR/gdrive" ./cmd/gdrive
+            go build -o "$INSTALL_DIR/gdrv" ./cmd/gdrv
         else
             echo "Error: Could not find source files"
             exit 1
         fi
     }
     
-    if [ -d "$TEMP_DIR/gdrive" ]; then
-        cd "$TEMP_DIR/gdrive"
+    if [ -d "$TEMP_DIR/gdrv" ]; then
+        cd "$TEMP_DIR/gdrv"
         echo "Building..."
-        go build -o "$INSTALL_DIR/gdrive" ./cmd/gdrive
+        go build -o "$INSTALL_DIR/gdrv" ./cmd/gdrv
         cd -
         rm -rf "$TEMP_DIR"
     fi
@@ -85,22 +85,22 @@ else
     
     # Construct download URL
     if [ "$VERSION" = "latest" ]; then
-        DOWNLOAD_URL="https://github.com/${REPO}/releases/latest/download/gdrive_${OS}_${ARCH}"
+        DOWNLOAD_URL="https://github.com/${REPO}/releases/latest/download/gdrv_${OS}_${ARCH}"
     else
-        DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/gdrive_${OS}_${ARCH}"
+        DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/gdrv_${OS}_${ARCH}"
     fi
     
     # Download binary
     echo "Downloading from: $DOWNLOAD_URL"
     if command -v curl &> /dev/null; then
-        curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/gdrive" || {
+        curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/gdrv" || {
             echo ""
             echo "Pre-built binary not available. Please install Go and run this script again."
             echo "Install Go from: https://go.dev/dl/"
             exit 1
         }
     elif command -v wget &> /dev/null; then
-        wget -q "$DOWNLOAD_URL" -O "$INSTALL_DIR/gdrive" || {
+        wget -q "$DOWNLOAD_URL" -O "$INSTALL_DIR/gdrv" || {
             echo ""
             echo "Pre-built binary not available. Please install Go and run this script again."
             echo "Install Go from: https://go.dev/dl/"
@@ -113,14 +113,14 @@ else
 fi
 
 # Make executable
-chmod +x "$INSTALL_DIR/gdrive"
+chmod +x "$INSTALL_DIR/gdrv"
 
 # Verify installation
-if [ -x "$INSTALL_DIR/gdrive" ]; then
+if [ -x "$INSTALL_DIR/gdrv" ]; then
     echo ""
     echo "Installation successful!"
     echo ""
-    "$INSTALL_DIR/gdrive" version 2>/dev/null || echo "gdrive installed to $INSTALL_DIR/gdrive"
+    "$INSTALL_DIR/gdrv" version 2>/dev/null || echo "gdrv installed to $INSTALL_DIR/gdrv"
     echo ""
     
     # Check if install dir is in PATH
@@ -132,9 +132,9 @@ if [ -x "$INSTALL_DIR/gdrive" ]; then
     fi
     
     echo "Quick start:"
-    echo "  gdrive auth login    # Authenticate with Google Drive"
-    echo "  gdrive files list    # List your files"
-    echo "  gdrive --help        # See all commands"
+    echo "  gdrv auth login    # Authenticate with Google Drive"
+    echo "  gdrv files list    # List your files"
+    echo "  gdrv --help        # See all commands"
 else
     echo "Installation failed"
     exit 1

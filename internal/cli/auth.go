@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -104,10 +104,10 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	if clientID == "" || clientSecret == "" {
-		clientID = os.Getenv("GDRIVE_CLIENT_ID")
-		clientSecret = os.Getenv("GDRIVE_CLIENT_SECRET")
+		clientID = os.Getenv("GDRV_CLIENT_ID")
+		clientSecret = os.Getenv("GDRV_CLIENT_SECRET")
 		if clientID == "" || clientSecret == "" {
-			return fmt.Errorf("OAuth client ID and secret required. Set via --client-id/--client-secret or GDRIVE_CLIENT_ID/GDRIVE_CLIENT_SECRET")
+			return fmt.Errorf("OAuth client ID and secret required. Set via --client-id/--client-secret or GDRV_CLIENT_ID/GDRV_CLIENT_SECRET")
 		}
 	}
 
@@ -152,10 +152,10 @@ func runAuthDevice(cmd *cobra.Command, args []string) error {
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	if clientID == "" || clientSecret == "" {
-		clientID = os.Getenv("GDRIVE_CLIENT_ID")
-		clientSecret = os.Getenv("GDRIVE_CLIENT_SECRET")
+		clientID = os.Getenv("GDRV_CLIENT_ID")
+		clientSecret = os.Getenv("GDRV_CLIENT_SECRET")
 		if clientID == "" || clientSecret == "" {
-			return fmt.Errorf("OAuth client ID and secret required. Set via --client-id/--client-secret or GDRIVE_CLIENT_ID/GDRIVE_CLIENT_SECRET")
+			return fmt.Errorf("OAuth client ID and secret required. Set via --client-id/--client-secret or GDRV_CLIENT_ID/GDRV_CLIENT_SECRET")
 		}
 	}
 
@@ -252,11 +252,11 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 }
 
 func getConfigDir() string {
-	if dir := os.Getenv("GDRIVE_CONFIG_DIR"); dir != "" {
+	if dir := os.Getenv("GDRV_CONFIG_DIR"); dir != "" {
 		return dir
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "gdrive")
+	return filepath.Join(home, ".config", "gdrv")
 }
 
 func runAuthProfiles(cmd *cobra.Command, args []string) error {

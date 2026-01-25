@@ -5,16 +5,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dl-alexandre/gdrive/internal/config"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/config"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Configuration management",
-	Long:  "Commands for managing gdrive configuration",
+	Long:  "Commands for managing gdrv configuration",
 }
 
 var configShowCmd = &cobra.Command{

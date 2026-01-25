@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/logging"
-	"github.com/dl-alexandre/gdrive/internal/resolver"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/logging"
+	"github.com/dl-alexandre/gdrv/internal/resolver"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -22,9 +22,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "gdrive",
+	Use:   "gdrv",
 	Short: "Google Drive CLI - Command line interface for Google Drive",
-	Long: `gdrive is a command-line tool for interacting with Google Drive.
+	Long: `gdrv is a command-line tool for interacting with Google Drive.
 It supports file operations, folder management, permissions, and more.
 
 All commands support JSON output for automation and scripting.`,
@@ -64,7 +64,7 @@ All commands support JSON output for automation and scripting.`,
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
-	Long:  "Print the version number of gdrive",
+	Long:  "Print the version number of gdrv",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(version)
 	},

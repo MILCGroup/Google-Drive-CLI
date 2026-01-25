@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dl-alexandre/gdrive/internal/admin"
-	"github.com/dl-alexandre/gdrive/internal/api"
-	"github.com/dl-alexandre/gdrive/internal/auth"
-	"github.com/dl-alexandre/gdrive/internal/types"
-	"github.com/dl-alexandre/gdrive/internal/utils"
+	"github.com/dl-alexandre/gdrv/internal/admin"
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 	adminapi "google.golang.org/api/admin/directory/v1"
 )
