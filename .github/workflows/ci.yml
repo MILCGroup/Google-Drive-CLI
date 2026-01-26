@@ -69,13 +69,7 @@ jobs:
           cache: true
 
       - name: Build for all platforms
-        run: |
-          GOOS=linux GOARCH=amd64 go build -o bin/gdrv-linux-amd64 ./cmd/gdrv
-          GOOS=linux GOARCH=arm64 go build -o bin/gdrv-linux-arm64 ./cmd/gdrv
-          GOOS=darwin GOARCH=amd64 go build -o bin/gdrv-darwin-amd64 ./cmd/gdrv
-          GOOS=darwin GOARCH=arm64 go build -o bin/gdrv-darwin-arm64 ./cmd/gdrv
-          GOOS=windows GOARCH=amd64 go build -o bin/gdrv-windows-amd64.exe ./cmd/gdrv
-          GOOS=windows GOARCH=arm64 go build -o bin/gdrv-windows-arm64.exe ./cmd/gdrv
+        run: make build-all
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
