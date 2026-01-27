@@ -10,7 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-
+	"strings"
 )
 
 // StorageBackend defines the interface for credential storage
@@ -236,6 +236,7 @@ func getOrCreateEncryptionKey(baseDir string) ([]byte, error) {
 // ListProfiles lists all stored credential profiles
 func (m *Manager) ListProfiles() ([]string, error) {
 	var profiles []string
+	seenProfiles := map[string]bool{}
 
 	if m.useKeyring {
 		// For keyring storage, we need to track profiles separately
@@ -268,7 +269,18 @@ func (m *Manager) ListProfiles() ([]string, error) {
 				name := entry.Name()
 				// Remove .json or .enc extension
 				if ext := filepath.Ext(name); ext == ".json" || ext == ".enc" {
-					profiles = append(profiles, name[:len(name)-len(ext)])
+					if strings.HasSuffix(name, metadataSuffix) {
+						continue
+					}
+					base := name[:len(name)-len(ext)]
+					profileName := base
+					if idx := strings.LastIndex(base, credentialKeySeparator); idx > 0 {
+						profileName = base[:idx]
+					}
+					if !seenProfiles[profileName] {
+						profiles = append(profiles, profileName)
+						seenProfiles[profileName] = true
+					}
 				}
 			}
 		}

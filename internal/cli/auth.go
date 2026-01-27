@@ -64,6 +64,13 @@ var authProfilesCmd = &cobra.Command{
 	RunE:  runAuthProfiles,
 }
 
+var authDiagnoseCmd = &cobra.Command{
+	Use:   "diagnose",
+	Short: "Diagnose authentication configuration",
+	Long:  "Show detailed authentication diagnostics and token status",
+	RunE:  runAuthDiagnose,
+}
+
 var (
 	authScopes    []string
 	authNoBrowser bool
@@ -73,6 +80,7 @@ var (
 	authImpersonateUser string
 	clientID      string
 	clientSecret  string
+	authDiagnoseRefreshCheck bool
 )
 
 func init() {
@@ -90,6 +98,7 @@ func init() {
 	authServiceAccountCmd.Flags().BoolVar(&authWide, "wide", false, "Request full Drive access scope")
 	authServiceAccountCmd.Flags().StringVar(&authPreset, "preset", "", "Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin")
 	_ = authServiceAccountCmd.MarkFlagRequired("key-file")
+	authDiagnoseCmd.Flags().BoolVar(&authDiagnoseRefreshCheck, "refresh-check", false, "Attempt a token refresh and report errors")
 
 	authCmd.AddCommand(authLoginCmd)
 	authCmd.AddCommand(authDeviceCmd)
@@ -97,6 +106,7 @@ func init() {
 	authCmd.AddCommand(authLogoutCmd)
 	authCmd.AddCommand(authStatusCmd)
 	authCmd.AddCommand(authProfilesCmd)
+	authCmd.AddCommand(authDiagnoseCmd)
 	rootCmd.AddCommand(authCmd)
 }
 
@@ -403,6 +413,78 @@ func validateAdminScopesRequireImpersonation(scopes []string, impersonateUser st
 	}
 
 	return nil
+}
+
+func runAuthDiagnose(cmd *cobra.Command, args []string) error {
+	flags := GetGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+
+	configDir := getConfigDir()
+	mgr := auth.NewManager(configDir)
+
+	if clientID == "" || clientSecret == "" {
+		clientID = os.Getenv("GDRV_CLIENT_ID")
+		clientSecret = os.Getenv("GDRV_CLIENT_SECRET")
+	}
+	if clientID != "" && clientSecret != "" {
+		mgr.SetOAuthConfig(clientID, clientSecret, []string{})
+	}
+
+	creds, err := mgr.LoadCredentials(flags.Profile)
+	if err != nil {
+		return out.WriteError("auth.diagnose", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+
+	location, _ := mgr.CredentialLocation(flags.Profile)
+	metadata, _ := mgr.LoadAuthMetadata(flags.Profile)
+
+	clientHash := ""
+	clientFingerprint := ""
+	if metadata != nil {
+		clientHash = metadata.ClientIDHash
+		clientFingerprint = metadata.ClientIDLast4
+	}
+
+	diagnostics := map[string]interface{}{
+		"profile":            flags.Profile,
+		"storageBackend":     mgr.GetStorageBackend(),
+		"tokenLocation":      location,
+		"clientIdHash":       clientHash,
+		"clientIdLast4":      clientFingerprint,
+		"scopes":             creds.Scopes,
+		"expiry":             creds.ExpiryDate.Format(time.RFC3339),
+		"refreshToken":       creds.RefreshToken != "",
+		"type":               creds.Type,
+		"serviceAccount":     creds.ServiceAccountEmail,
+		"impersonatedUser":   creds.ImpersonatedUser,
+	}
+
+	if authDiagnoseRefreshCheck && creds.Type == types.AuthTypeOAuth {
+		if mgr.GetOAuthConfig() == nil {
+			return out.WriteError("auth.diagnose", utils.NewCLIError(utils.ErrCodeAuthRequired,
+				"OAuth client ID and secret required for refresh check. Set GDRV_CLIENT_ID/GDRV_CLIENT_SECRET or pass --client-id/--client-secret.").Build())
+		}
+		_, refreshErr := mgr.RefreshCredentials(context.Background(), creds)
+		if refreshErr != nil {
+			if appErr, ok := refreshErr.(*utils.AppError); ok {
+				diagnostics["refreshCheck"] = map[string]interface{}{
+					"success": false,
+					"error":   appErr.CLIError,
+				}
+			} else {
+				diagnostics["refreshCheck"] = map[string]interface{}{
+					"success": false,
+					"error":   refreshErr.Error(),
+				}
+			}
+		} else {
+			diagnostics["refreshCheck"] = map[string]interface{}{
+				"success": true,
+			}
+		}
+	}
+
+	return out.WriteSuccess("auth.diagnose", diagnostics)
 }
 
 func openBrowser(url string) error {

@@ -268,6 +268,9 @@ gdrv auth login --profile personal
 gdrv --profile work files list
 ```
 
+### OAuth Testing-Mode Limits
+If your OAuth consent screen is in testing mode, refresh tokens expire after 7 days and Google enforces a 100 refresh-token issuance cap per client. If you see repeated `invalid_grant` errors, re-authenticate and revoke unused tokens in Google Cloud Console or move the app to production to avoid the testing-mode limits.
+
 ## Commands
 
 ### File Operations

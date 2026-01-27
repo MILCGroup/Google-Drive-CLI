@@ -105,7 +105,7 @@ func ClassifyGoogleAPIError(service string, err error, reqCtx *types.RequestCont
 
 	switch code {
 	case utils.ErrCodeAuthExpired:
-		builder.WithContext("suggestedAction", "run 'gdrv auth login' to re-authenticate")
+		applyAuthRemediation(builder, apiErr.Code, apiErr.Header)
 	case utils.ErrCodeFileNotFound:
 		if reqCtx.DriveID != "" {
 			builder.WithContext("searchDomain", "sharedDrive").

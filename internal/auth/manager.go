@@ -2,12 +2,17 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/dl-alexandre/gdrv/internal/errors"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/zalando/go-keyring"
@@ -22,6 +27,8 @@ import (
 const (
 	serviceName        = "gdrv-cli"
 	tokenRefreshBuffer = 5 * time.Minute
+	credentialKeySeparator = "--"
+	metadataSuffix         = ".meta.json"
 )
 
 // Manager handles authentication operations
@@ -129,6 +136,7 @@ func (m *Manager) LoadCredentials(profile string) (*types.Credentials, error) {
 		ExpiryDate:          expiryDate,
 		Scopes:              stored.Scopes,
 		Type:                stored.Type,
+		ClientID:            stored.ClientID,
 		ServiceAccountEmail: stored.ServiceAccountEmail,
 		ImpersonatedUser:    stored.ImpersonatedUser,
 	}, nil
@@ -136,6 +144,12 @@ func (m *Manager) LoadCredentials(profile string) (*types.Credentials, error) {
 
 // SaveCredentials saves credentials for a profile
 func (m *Manager) SaveCredentials(profile string, creds *types.Credentials) error {
+	clientID := m.clientIDForStorage(creds)
+	if creds.ClientID == "" {
+		creds.ClientID = clientID
+	}
+	hash, last4 := clientIDHash(clientID)
+	key := credentialKey(profile, hash)
 	stored := types.StoredCredentials{
 		Profile:             profile,
 		AccessToken:         creds.AccessToken,
@@ -143,6 +157,7 @@ func (m *Manager) SaveCredentials(profile string, creds *types.Credentials) erro
 		ExpiryDate:          creds.ExpiryDate.Format(time.RFC3339),
 		Scopes:              creds.Scopes,
 		Type:                creds.Type,
+		ClientID:            clientID,
 		ServiceAccountEmail: creds.ServiceAccountEmail,
 		ImpersonatedUser:    creds.ImpersonatedUser,
 	}
@@ -152,9 +167,22 @@ func (m *Manager) SaveCredentials(profile string, creds *types.Credentials) erro
 		return fmt.Errorf("failed to marshal credentials: %w", err)
 	}
 
-	if err := m.storage.Save(profile, data); err != nil {
+	if err := m.storage.Save(key, data); err != nil {
 		return err
 	}
+
+	metadata := &AuthMetadata{
+		Profile:        profile,
+		ClientIDHash:   hash,
+		ClientIDLast4:  last4,
+		Scopes:         creds.Scopes,
+		ExpiryDate:     creds.ExpiryDate.Format(time.RFC3339),
+		RefreshToken:   creds.RefreshToken != "",
+		CredentialType: string(creds.Type),
+		StorageBackend: m.storage.Name(),
+		UpdatedAt:      metadataTimestamp(),
+	}
+	_ = writeMetadata(m.configDir, key, metadata)
 
 	// Track profile for keyring storage
 	if err := m.addProfileToList(profile); err != nil {
@@ -167,7 +195,7 @@ func (m *Manager) SaveCredentials(profile string, creds *types.Credentials) erro
 
 // DeleteCredentials removes credentials for a profile
 func (m *Manager) DeleteCredentials(profile string) error {
-	if err := m.storage.Delete(profile); err != nil {
+	if err := m.deleteStoredCredentials(profile); err != nil {
 		return err
 	}
 
@@ -203,7 +231,7 @@ func (m *Manager) RefreshCredentials(ctx context.Context, creds *types.Credentia
 	tokenSource := m.oauthConfig.TokenSource(ctx, token)
 	newToken, err := tokenSource.Token()
 	if err != nil {
-		return nil, fmt.Errorf("failed to refresh token: %w", err)
+		return nil, errors.ClassifyAuthRefreshError(err)
 	}
 
 	return &types.Credentials{
@@ -212,6 +240,7 @@ func (m *Manager) RefreshCredentials(ctx context.Context, creds *types.Credentia
 		ExpiryDate:   newToken.Expiry,
 		Scopes:       creds.Scopes,
 		Type:         types.AuthTypeOAuth,
+		ClientID:     m.clientIDForStorage(creds),
 	}, nil
 }
 
@@ -264,9 +293,26 @@ func (m *Manager) GetHTTPClient(ctx context.Context, creds *types.Credentials) *
 
 // loadStoredCredentials loads credentials from storage
 func (m *Manager) loadStoredCredentials(profile string) (*types.StoredCredentials, error) {
-	data, err := m.storage.Load(profile)
+	key, err := m.resolveCredentialKey(profile)
 	if err != nil {
 		return nil, err
+	}
+
+	data, err := m.storage.Load(key)
+	if err != nil {
+		if key != profile {
+			data, err = m.storage.Load(profile)
+			if err != nil {
+				return nil, err
+			}
+			if m.oauthConfig != nil {
+				if err := m.storage.Save(key, data); err == nil {
+					_ = m.storage.Delete(profile)
+				}
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	var stored types.StoredCredentials
@@ -275,6 +321,148 @@ func (m *Manager) loadStoredCredentials(profile string) (*types.StoredCredential
 	}
 
 	return &stored, nil
+}
+
+func (m *Manager) deleteStoredCredentials(profile string) error {
+	key, err := m.resolveCredentialKey(profile)
+	if err == nil {
+		_ = m.storage.Delete(key)
+		_ = os.Remove(metadataFilePath(m.configDir, key))
+	}
+	if err := m.storage.Delete(profile); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) resolveCredentialKey(profile string) (string, error) {
+	clientID := m.clientIDForStorage(nil)
+	hash, _ := clientIDHash(clientID)
+	if hash != "" {
+		key := credentialKey(profile, hash)
+		if _, err := m.storage.Load(key); err == nil {
+			return key, nil
+		}
+	}
+
+	metaKey, err := m.findMetadataKey(profile)
+	if err != nil {
+		return "", err
+	}
+	if metaKey != "" {
+		if hash != "" && metaKey != credentialKey(profile, hash) {
+			return "", utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
+				"Stored credentials were created with a different OAuth client. Run 'gdrv auth login' to re-authenticate with the correct client ID.").
+				WithContext("profile", profile).
+				WithContext("clientIdHash", hash).
+				Build())
+		}
+		return metaKey, nil
+	}
+
+	if hash != "" {
+		metaMismatch, err := m.profileHasDifferentClient(profile, hash)
+		if err == nil && metaMismatch {
+			return "", utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
+				"Stored credentials were created with a different OAuth client. Run 'gdrv auth login' to re-authenticate with the correct client ID.").
+				WithContext("profile", profile).
+				WithContext("clientIdHash", hash).
+				Build())
+		}
+	}
+
+	return profile, nil
+}
+
+func (m *Manager) profileHasDifferentClient(profile, currentHash string) (bool, error) {
+	credDir := filepath.Join(m.configDir, "credentials")
+	entries, err := os.ReadDir(credDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), metadataSuffix) {
+			continue
+		}
+		metaPath := filepath.Join(credDir, entry.Name())
+		meta, err := readMetadata(metaPath)
+		if err != nil {
+			continue
+		}
+		if meta.Profile == profile && meta.ClientIDHash != "" && meta.ClientIDHash != currentHash {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (m *Manager) findMetadataKey(profile string) (string, error) {
+	credDir := filepath.Join(m.configDir, "credentials")
+	entries, err := os.ReadDir(credDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	var selectedKey string
+	var selectedMod time.Time
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), metadataSuffix) {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		metaPath := filepath.Join(credDir, entry.Name())
+		meta, err := readMetadata(metaPath)
+		if err != nil {
+			continue
+		}
+		if meta.Profile != profile {
+			continue
+		}
+		if selectedKey == "" || info.ModTime().After(selectedMod) {
+			selectedKey = strings.TrimSuffix(entry.Name(), metadataSuffix)
+			selectedMod = info.ModTime()
+		}
+	}
+	return selectedKey, nil
+}
+
+func (m *Manager) clientIDForStorage(creds *types.Credentials) string {
+	if m.oauthConfig != nil && m.oauthConfig.ClientID != "" {
+		return m.oauthConfig.ClientID
+	}
+	if creds != nil && creds.ClientID != "" {
+		return creds.ClientID
+	}
+	return ""
+}
+
+func clientIDHash(clientID string) (string, string) {
+	if clientID == "" {
+		return "", ""
+	}
+	hash := sha256.Sum256([]byte(clientID))
+	hexHash := hex.EncodeToString(hash[:])
+	last4 := clientID
+	if len(clientID) > 4 {
+		last4 = clientID[len(clientID)-4:]
+	}
+	return hexHash, last4
+}
+
+func credentialKey(profile, hash string) string {
+	if hash == "" {
+		return profile
+	}
+	return profile + credentialKeySeparator + hash
 }
 
 
@@ -302,6 +490,40 @@ func (m *Manager) UseKeyring() bool {
 // ConfigDir returns the configuration directory
 func (m *Manager) ConfigDir() string {
 	return m.configDir
+}
+
+func (m *Manager) ResolveCredentialKey(profile string) (string, error) {
+	return m.resolveCredentialKey(profile)
+}
+
+func (m *Manager) CredentialLocation(profile string) (string, error) {
+	key, err := m.resolveCredentialKey(profile)
+	if err != nil {
+		return "", err
+	}
+	switch m.storage.Name() {
+	case "system-keyring":
+		return "system-keyring", nil
+	case "encrypted-file":
+		return filepath.Join(m.configDir, "credentials", key+".enc"), nil
+	case "plain-file":
+		return filepath.Join(m.configDir, "credentials", key+".json"), nil
+	default:
+		return m.storage.Name(), nil
+	}
+}
+
+func (m *Manager) LoadAuthMetadata(profile string) (*AuthMetadata, error) {
+	key, err := m.resolveCredentialKey(profile)
+	if err != nil {
+		return nil, err
+	}
+	path := metadataFilePath(m.configDir, key)
+	meta, err := readMetadata(path)
+	if err != nil {
+		return nil, err
+	}
+	return meta, nil
 }
 
 // GetStorageBackend returns the name of the storage backend being used

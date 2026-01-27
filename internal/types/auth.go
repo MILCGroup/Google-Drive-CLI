@@ -9,6 +9,7 @@ type Credentials struct {
 	ExpiryDate          time.Time `json:"expiry_date"`
 	Scopes              []string  `json:"scopes"`
 	Type                AuthType  `json:"type"`
+	ClientID            string    `json:"client_id,omitempty"`
 	ServiceAccountEmail string    `json:"service_account_email,omitempty"`
 	ImpersonatedUser    string    `json:"impersonated_user,omitempty"`
 }
@@ -29,6 +30,7 @@ type StoredCredentials struct {
 	ExpiryDate          string   `json:"expiry_date"`
 	Scopes              []string `json:"scopes"`
 	Type                AuthType `json:"type"`
+	ClientID            string   `json:"client_id,omitempty"`
 	ServiceAccountEmail string   `json:"service_account_email,omitempty"`
 	ImpersonatedUser    string   `json:"impersonated_user,omitempty"`
 }

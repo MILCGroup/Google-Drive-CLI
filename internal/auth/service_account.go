@@ -89,6 +89,7 @@ func (m *Manager) LoadServiceAccount(ctx context.Context, keyFilePath string, sc
 		ExpiryDate:          token.Expiry,
 		Scopes:              scopes,
 		Type:                authType,
+		ClientID:            saKey.ClientID,
 		ServiceAccountEmail: saKey.ClientEmail,
 		ImpersonatedUser:    impersonateUser,
 	}, nil
