@@ -1,11 +1,12 @@
-version: 2
+version: "2"
 
 run:
   timeout: 5m
 
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - unused
-        - staticcheck
+linters:
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - unused
+          - staticcheck
