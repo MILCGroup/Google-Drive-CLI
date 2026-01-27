@@ -547,3 +547,268 @@ func TestFolderMetadataStructure(t *testing.T) {
 		})
 	}
 }
+
+// Test MimeTypeFolder constant
+func TestMimeTypeFolder(t *testing.T) {
+	expected := "application/vnd.google-apps.folder"
+	if utils.MimeTypeFolder != expected {
+		t.Errorf("MimeTypeFolder = %s, want %s", utils.MimeTypeFolder, expected)
+	}
+}
+
+// Test that converted files maintain folder properties
+func TestConvertDriveFile_FolderProperties(t *testing.T) {
+	folder := &drive.File{
+		Id:           "folder-id",
+		Name:         "My Folder",
+		MimeType:     utils.MimeTypeFolder,
+		CreatedTime:  "2024-01-01T00:00:00Z",
+		ModifiedTime: "2024-01-02T00:00:00Z",
+	}
+
+	result := convertDriveFile(folder)
+
+	if result.MimeType != utils.MimeTypeFolder {
+		t.Errorf("Expected folder MIME type, got %s", result.MimeType)
+	}
+
+	if result.Size != 0 {
+		t.Error("Folders should have size 0")
+	}
+}
+
+// Test conversion of folder capabilities
+func TestConvertDriveFile_FolderCapabilities(t *testing.T) {
+	tests := []struct {
+		name         string
+		capabilities *drive.FileCapabilities
+		checkFunc    func(*testing.T, *types.FileCapabilities)
+	}{
+		{
+			name: "full folder capabilities",
+			capabilities: &drive.FileCapabilities{
+				CanEdit:   true,
+				CanShare:  true,
+				CanDelete: true,
+				CanTrash:  true,
+			},
+			checkFunc: func(t *testing.T, caps *types.FileCapabilities) {
+				if !caps.CanEdit {
+					t.Error("CanEdit should be true")
+				}
+				if !caps.CanShare {
+					t.Error("CanShare should be true")
+				}
+				if !caps.CanDelete {
+					t.Error("CanDelete should be true")
+				}
+				if !caps.CanTrash {
+					t.Error("CanTrash should be true")
+				}
+			},
+		},
+		{
+			name: "read-only folder",
+			capabilities: &drive.FileCapabilities{
+				CanEdit:   false,
+				CanShare:  false,
+				CanDelete: false,
+				CanTrash:  false,
+			},
+			checkFunc: func(t *testing.T, caps *types.FileCapabilities) {
+				if caps.CanEdit {
+					t.Error("CanEdit should be false")
+				}
+				if caps.CanShare {
+					t.Error("CanShare should be false")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			folder := &drive.File{
+				Id:           "folder-id",
+				Name:         "Test Folder",
+				MimeType:     utils.MimeTypeFolder,
+				Capabilities: tt.capabilities,
+			}
+
+			result := convertDriveFile(folder)
+			if result.Capabilities == nil {
+				t.Fatal("Capabilities should not be nil")
+			}
+
+			tt.checkFunc(t, result.Capabilities)
+		})
+	}
+}
+
+// Test FileListResult with mixed content
+func TestFileListResult_MixedContent(t *testing.T) {
+	files := []*types.DriveFile{
+		{ID: "f1", Name: "File 1", MimeType: "text/plain"},
+		{ID: "f2", Name: "Folder 1", MimeType: utils.MimeTypeFolder},
+		{ID: "f3", Name: "File 2", MimeType: "application/pdf"},
+		{ID: "f4", Name: "Folder 2", MimeType: utils.MimeTypeFolder},
+	}
+
+	result := &types.FileListResult{
+		Files:            files,
+		NextPageToken:    "",
+		IncompleteSearch: false,
+	}
+
+	// Count folders
+	folderCount := 0
+	fileCount := 0
+	for _, f := range result.Files {
+		if f.MimeType == utils.MimeTypeFolder {
+			folderCount++
+		} else {
+			fileCount++
+		}
+	}
+
+	if folderCount != 2 {
+		t.Errorf("Expected 2 folders, got %d", folderCount)
+	}
+
+	if fileCount != 2 {
+		t.Errorf("Expected 2 files, got %d", fileCount)
+	}
+}
+
+// Test pagination token handling
+func TestFileListResult_Pagination(t *testing.T) {
+	tests := []struct {
+		name              string
+		nextPageToken     string
+		incompleteSearch  bool
+		expectMoreResults bool
+	}{
+		{
+			name:              "has next page",
+			nextPageToken:     "token-123",
+			incompleteSearch:  false,
+			expectMoreResults: true,
+		},
+		{
+			name:              "last page",
+			nextPageToken:     "",
+			incompleteSearch:  false,
+			expectMoreResults: false,
+		},
+		{
+			name:              "incomplete search",
+			nextPageToken:     "token-456",
+			incompleteSearch:  true,
+			expectMoreResults: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := &types.FileListResult{
+				Files:            []*types.DriveFile{},
+				NextPageToken:    tt.nextPageToken,
+				IncompleteSearch: tt.incompleteSearch,
+			}
+
+			hasMore := result.NextPageToken != ""
+			if hasMore != tt.expectMoreResults {
+				t.Errorf("Expected hasMore=%v, got %v", tt.expectMoreResults, hasMore)
+			}
+		})
+	}
+}
+
+// Test ResourceKey handling in folder operations
+func TestResourceKey_FolderContext(t *testing.T) {
+	folder := &drive.File{
+		Id:          "folder-id",
+		Name:        "Shared Folder",
+		MimeType:    utils.MimeTypeFolder,
+		ResourceKey: "resource-key-123",
+	}
+
+	result := convertDriveFile(folder)
+
+	if result.ResourceKey != "resource-key-123" {
+		t.Errorf("ResourceKey = %s, want resource-key-123", result.ResourceKey)
+	}
+}
+
+// Test folder parent handling
+func TestFolderParents_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name    string
+		parents []string
+		valid   bool
+	}{
+		{"no parents (root)", []string{}, true},
+		{"single parent", []string{"parent1"}, true},
+		{"multiple parents", []string{"parent1", "parent2"}, true},
+		{"nil parents", nil, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			folder := &drive.File{
+				Id:       "folder-id",
+				Name:     "Test Folder",
+				MimeType: utils.MimeTypeFolder,
+				Parents:  tt.parents,
+			}
+
+			result := convertDriveFile(folder)
+
+			if tt.parents == nil {
+				if result.Parents != nil && len(result.Parents) != 0 {
+					t.Errorf("Expected nil or empty parents, got %v", result.Parents)
+				}
+			} else {
+				if len(result.Parents) != len(tt.parents) {
+					t.Errorf("Expected %d parents, got %d", len(tt.parents), len(result.Parents))
+				}
+			}
+		})
+	}
+}
+
+// Test trashed folder handling
+func TestTrashedFolder_Properties(t *testing.T) {
+	trashedFolder := &drive.File{
+		Id:       "trashed-folder",
+		Name:     "Deleted Folder",
+		MimeType: utils.MimeTypeFolder,
+		Trashed:  true,
+	}
+
+	result := convertDriveFile(trashedFolder)
+
+	if !result.Trashed {
+		t.Error("Folder should be marked as trashed")
+	}
+
+	if result.MimeType != utils.MimeTypeFolder {
+		t.Error("Trashed folder should still have folder MIME type")
+	}
+}
+
+// Test MD5 checksum (folders don't have checksums)
+func TestFolder_NoChecksum(t *testing.T) {
+	folder := &drive.File{
+		Id:          "folder-id",
+		Name:        "Test Folder",
+		MimeType:    utils.MimeTypeFolder,
+		Md5Checksum: "", // Folders don't have MD5 checksums
+	}
+
+	result := convertDriveFile(folder)
+
+	if result.MD5Checksum != "" {
+		t.Error("Folders should not have MD5 checksum")
+	}
+}
