@@ -8,7 +8,12 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	if err := cli.Execute(); err != nil {
-		os.Exit(utils.ExitUnknown)
+		return utils.ExitUnknown
 	}
+	return 0
 }

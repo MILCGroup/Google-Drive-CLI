@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/logging"
 	"github.com/dl-alexandre/gdrv/internal/resolver"
 	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/dl-alexandre/gdrv/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -106,10 +104,7 @@ func validateGlobalFlags() error {
 
 // Execute runs the root command
 func Execute() error {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(utils.ExitUnknown)
-	}
-	return nil
+	return rootCmd.Execute()
 }
 
 // GetGlobalFlags returns the global flags
