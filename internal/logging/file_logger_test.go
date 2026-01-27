@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,9 +26,7 @@ func TestFileLogger_Creation(t *testing.T) {
 		t.Fatalf("NewFileLogger() error = %v", err)
 	}
 	t.Cleanup(func() {
-		if closeErr := logger.Close(); closeErr != nil {
-			t.Fatalf("Failed to close logger: %v", closeErr)
-		}
+		closeLogger(t, logger)
 	})
 
 	// Verify file was created
@@ -52,9 +51,7 @@ func TestFileLogger_Logging(t *testing.T) {
 		t.Fatalf("NewFileLogger() error = %v", err)
 	}
 	t.Cleanup(func() {
-		if closeErr := logger.Close(); closeErr != nil {
-			t.Fatalf("Failed to close logger: %v", closeErr)
-		}
+		closeLogger(t, logger)
 	})
 
 	// Log various levels
@@ -63,9 +60,7 @@ func TestFileLogger_Logging(t *testing.T) {
 	logger.Warn("warn message")
 	logger.Error("error message", F("key3", true))
 
-	if err := logger.Close(); err != nil {
-		t.Fatalf("Failed to close logger: %v", err)
-	}
+	closeLogger(t, logger)
 
 	// Read log file
 	data, err := os.ReadFile(logPath)
@@ -117,9 +112,7 @@ func TestFileLogger_LevelFiltering(t *testing.T) {
 	logger.Warn("warn message")   // Should be logged
 	logger.Error("error message") // Should be logged
 
-	if err := logger.Close(); err != nil {
-		t.Fatalf("Failed to close logger: %v", err)
-	}
+	closeLogger(t, logger)
 
 	// Read log file
 	data, err := os.ReadFile(logPath)
@@ -153,9 +146,7 @@ func TestFileLogger_WithTraceID(t *testing.T) {
 	tracedLogger := logger.WithTraceID(traceID)
 	tracedLogger.Info("test message")
 
-	if err := logger.Close(); err != nil {
-		t.Fatalf("Failed to close logger: %v", err)
-	}
+	closeLogger(t, logger)
 
 	// Read and verify trace ID
 	data, err := os.ReadFile(logPath)
@@ -197,9 +188,7 @@ func TestFileLogger_WithContext(t *testing.T) {
 	tracedLogger := logger.WithContext(ctx)
 	tracedLogger.Info("test message")
 
-	if err := logger.Close(); err != nil {
-		t.Fatalf("Failed to close logger: %v", err)
-	}
+	closeLogger(t, logger)
 
 	// Read and verify trace ID
 	data, err := os.ReadFile(logPath)
@@ -240,9 +229,7 @@ func TestFileLogger_Rotation(t *testing.T) {
 		time.Sleep(1 * time.Millisecond)
 	}
 
-	if err := logger.Close(); err != nil {
-		t.Fatalf("Failed to close logger: %v", err)
-	}
+	closeLogger(t, logger)
 
 	// Check for rotated files
 	files, err := filepath.Glob(filepath.Join(tempDir, "test.log*"))
@@ -281,9 +268,7 @@ func TestFileLogger_SetLevel(t *testing.T) {
 	logger.Info("info 2")   // Should be filtered
 	logger.Error("error 1") // Should be logged
 
-	if err := logger.Close(); err != nil {
-		t.Fatalf("Failed to close logger: %v", err)
-	}
+	closeLogger(t, logger)
 
 	data, err := os.ReadFile(logPath)
 	if err != nil {
@@ -314,4 +299,11 @@ func splitLogLines(data []byte) []string {
 		lines = append(lines, current)
 	}
 	return lines
+}
+
+func closeLogger(t *testing.T, logger *FileLogger) {
+	t.Helper()
+	if err := logger.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+		t.Fatalf("Failed to close logger: %v", err)
+	}
 }
