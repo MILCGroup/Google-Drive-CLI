@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -8,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/permissions"
 	"github.com/dl-alexandre/gdrv/internal/types"
@@ -21,45 +20,29 @@ func TestIntegration_PermissionOperations_CreationListingDeletion(t *testing.T) 
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	permManager := permissions.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Create a test file
 	fileName := "test-file-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", nil)
 
 	// List initial permissions
-	perms, err := permManager.List(ctx, reqCtx, file.ID)
+	perms, err := permManager.List(ctx, reqCtx, file.ID, permissions.ListOptions{})
 	if err != nil {
 		t.Fatalf("Failed to list initial permissions: %v", err)
 	}
 
-	initialCount := len(perms.Permissions)
+	initialCount := len(perms)
 	t.Logf("Initial permission count: %d", initialCount)
 
 	// Create a new permission (reader role)
 	opts := permissions.CreateOptions{
-		Type:  "anyone",
-		Role:  "reader",
-		Email: "",
+		Type: "anyone",
+		Role: "reader",
 	}
 	perm, err := permManager.Create(ctx, reqCtx, file.ID, opts)
 	if err != nil {
@@ -71,29 +54,29 @@ func TestIntegration_PermissionOperations_CreationListingDeletion(t *testing.T) 
 	}
 
 	// List permissions again
-	perms, err = permManager.List(ctx, reqCtx, file.ID)
+	perms, err = permManager.List(ctx, reqCtx, file.ID, permissions.ListOptions{})
 	if err != nil {
 		t.Fatalf("Failed to list permissions after creation: %v", err)
 	}
 
-	if len(perms.Permissions) != initialCount+1 {
-		t.Errorf("Expected %d permissions, got %d", initialCount+1, len(perms.Permissions))
+	if len(perms) != initialCount+1 {
+		t.Errorf("Expected %d permissions, got %d", initialCount+1, len(perms))
 	}
 
 	// Delete the permission
-	err = permManager.Delete(ctx, reqCtx, file.ID, perm.ID)
+	err = permManager.Delete(ctx, reqCtx, file.ID, perm.ID, permissions.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("Failed to delete permission: %v", err)
 	}
 
 	// Verify deletion
-	perms, err = permManager.List(ctx, reqCtx, file.ID)
+	perms, err = permManager.List(ctx, reqCtx, file.ID, permissions.ListOptions{})
 	if err != nil {
 		t.Fatalf("Failed to list permissions after deletion: %v", err)
 	}
 
-	if len(perms.Permissions) != initialCount {
-		t.Errorf("Expected %d permissions after deletion, got %d", initialCount, len(perms.Permissions))
+	if len(perms) != initialCount {
+		t.Errorf("Expected %d permissions after deletion, got %d", initialCount, len(perms))
 	}
 
 	// Clean up file
@@ -109,30 +92,15 @@ func TestIntegration_PermissionOperations_PublicLink(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	permManager := permissions.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Create a test file
 	fileName := "public-link-test-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", nil)
 
 	// Create public link
 	perm, err := permManager.CreatePublicLink(ctx, reqCtx, file.ID, "reader", true)
@@ -152,7 +120,7 @@ func TestIntegration_PermissionOperations_PublicLink(t *testing.T) {
 	t.Logf("Created public link permission with ID: %s", perm.ID)
 
 	// Clean up
-	err = permManager.Delete(ctx, reqCtx, file.ID, perm.ID)
+	err = permManager.Delete(ctx, reqCtx, file.ID, perm.ID, permissions.DeleteOptions{})
 	if err != nil {
 		t.Errorf("Failed to delete public link permission: %v", err)
 	}
@@ -169,30 +137,15 @@ func TestIntegration_PermissionOperations_Update(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	permManager := permissions.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Create a test file
 	fileName := "update-perm-test-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", nil)
 
 	// Create initial permission
 	opts := permissions.CreateOptions{
@@ -218,7 +171,7 @@ func TestIntegration_PermissionOperations_Update(t *testing.T) {
 	}
 
 	// Clean up
-	err = permManager.Delete(ctx, reqCtx, file.ID, perm.ID)
+	err = permManager.Delete(ctx, reqCtx, file.ID, perm.ID, permissions.DeleteOptions{})
 	if err != nil {
 		t.Errorf("Failed to delete permission: %v", err)
 	}
@@ -235,11 +188,6 @@ func TestIntegration_PermissionOperations_SharedDrive(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	// This test requires a Shared Drive to be available
 	driveID := os.Getenv("TEST_SHARED_DRIVE_ID")
 	if driveID == "" {
@@ -247,37 +195,26 @@ func TestIntegration_PermissionOperations_SharedDrive(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	permManager := permissions.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Create a file in the Shared Drive
 	fileName := "shared-drive-perm-test-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, driveID, "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create file in Shared Drive: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, driveID, "text/plain", nil)
 
 	// List permissions (should include Shared Drive specific ones)
-	perms, err := permManager.List(ctx, reqCtx, file.ID)
+	perms, err := permManager.List(ctx, reqCtx, file.ID, permissions.ListOptions{})
 	if err != nil {
 		t.Fatalf("Failed to list Shared Drive permissions: %v", err)
 	}
 
-	t.Logf("Shared Drive file has %d permissions", len(perms.Permissions))
+	t.Logf("Shared Drive file has %d permissions", len(perms))
 
 	// Clean up
 	err = fileManager.Delete(ctx, reqCtx, file.ID, false)
 	if err != nil {
 		t.Errorf("Failed to delete Shared Drive test file: %v", err)
 	}
-}</content>
-<parameter name="filePath">test/integration/permission_operations_test.go
+}

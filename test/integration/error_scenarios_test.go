@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -5,11 +6,10 @@ package integration
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/types"
 )
@@ -20,25 +20,13 @@ func TestIntegration_ErrorScenarios_NetworkFailures(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Test with invalid file ID (should trigger API error)
-	_, err = fileManager.Get(ctx, reqCtx, "invalid-file-id-12345")
+	_, err := fileManager.Get(ctx, reqCtx, "invalid-file-id-12345", "id")
 	if err == nil {
 		t.Error("Expected error for invalid file ID")
 	}
@@ -64,19 +52,12 @@ func TestIntegration_ErrorScenarios_PermissionDenied(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Try to access file without permission
-	_, err = fileManager.Get(ctx, reqCtx, fileID)
+	_, err := fileManager.Get(ctx, reqCtx, fileID, "id")
 	if err == nil {
 		t.Log("File was accessible - permission denied test inconclusive")
 	} else {
@@ -96,27 +77,28 @@ func TestIntegration_ErrorScenarios_InvalidParameters(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
-	// Test empty file name (should be handled gracefully)
-	_, err = fileManager.Create(ctx, reqCtx, "", "", "text/plain", nil)
+	// Test invalid local path (should be handled gracefully)
+	_, err := fileManager.Upload(ctx, reqCtx, "/nonexistent/path", files.UploadOptions{})
 	if err == nil {
-		t.Error("Expected error for empty file name")
+		t.Error("Expected error for invalid local path")
 	} else {
 		t.Logf("Handled invalid parameter error: %v", err)
 	}
 
 	// Test invalid parent ID
-	_, err = fileManager.Create(ctx, reqCtx, "test.txt", "invalid-parent-id", "text/plain", nil)
+	tmpPath := filepath.Join(t.TempDir(), "test.txt")
+	if writeErr := os.WriteFile(tmpPath, []byte("test"), 0644); writeErr != nil {
+		t.Fatalf("Failed to create temp file: %v", writeErr)
+	}
+	_, err = fileManager.Upload(ctx, reqCtx, tmpPath, files.UploadOptions{
+		ParentID: "invalid-parent-id",
+		Name:     "test.txt",
+		MimeType: "text/plain",
+	})
 	if err == nil {
 		t.Error("Expected error for invalid parent ID")
 	} else {
@@ -136,14 +118,7 @@ func TestIntegration_ErrorScenarios_QuotaExceeded(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
@@ -155,7 +130,14 @@ func TestIntegration_ErrorScenarios_QuotaExceeded(t *testing.T) {
 	}
 
 	fileName := "large-file-test-" + time.Now().Format("20060102150405") + ".bin"
-	_, err = fileManager.Create(ctx, reqCtx, fileName, "", "application/octet-stream", largeContent)
+	tmpPath := filepath.Join(t.TempDir(), fileName)
+	if writeErr := os.WriteFile(tmpPath, largeContent, 0644); writeErr != nil {
+		t.Fatalf("Failed to create temp file: %v", writeErr)
+	}
+	_, err := fileManager.Upload(ctx, reqCtx, tmpPath, files.UploadOptions{
+		Name:     fileName,
+		MimeType: "application/octet-stream",
+	})
 	if err != nil {
 		t.Logf("Handled large file upload error (possibly quota): %v", err)
 	} else {
@@ -177,21 +159,14 @@ func TestIntegration_ErrorScenarios_RateLimiting(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Make many rapid requests to potentially trigger rate limiting
 	for i := 0; i < 50; i++ {
-		_, err = fileManager.List(ctx, reqCtx, &types.FileListRequest{
-			Query: "trashed=false",
+		_, err := fileManager.List(ctx, reqCtx, files.ListOptions{
+			Query:    "trashed=false",
 			PageSize: 10,
 		})
 		if err != nil {
@@ -201,5 +176,4 @@ func TestIntegration_ErrorScenarios_RateLimiting(t *testing.T) {
 	}
 
 	t.Log("Rate limiting test completed - check logs for backoff behavior")
-}</content>
-<parameter name="filePath">test/integration/error_scenarios_test.go
+}

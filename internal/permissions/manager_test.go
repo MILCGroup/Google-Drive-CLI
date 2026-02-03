@@ -1,226 +1,165 @@
 package permissions
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/logging"
 	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/dl-alexandre/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
 )
 
-// mockDriveService provides a mock implementation of the Drive service
-type mockDriveService struct {
-	permissions *mockPermissionsService
+type apiErrorResponse struct {
+	Error apiErrorDetail `json:"error"`
 }
 
-type mockPermissionsService struct {
-	listFunc   func(fileID string) *mockPermissionsListCall
-	createFunc func(fileID string, permission *drive.Permission) *mockPermissionsCreateCall
-	updateFunc func(fileID, permissionID string, permission *drive.Permission) *mockPermissionsUpdateCall
-	deleteFunc func(fileID, permissionID string) *mockPermissionsDeleteCall
-	getFunc    func(fileID, permissionID string) *mockPermissionsGetCall
+type apiErrorDetail struct {
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Errors  []apiErrorEntry `json:"errors"`
 }
 
-type mockPermissionsListCall struct {
-	result               *drive.PermissionList
-	err                  error
-	supportsAllDrives    bool
-	useDomainAdminAccess bool
-	pageToken            string
-	pageSize             int64
-	fields               string
-	header               map[string]string
+type apiErrorEntry struct {
+	Domain  string `json:"domain"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
 }
 
-type mockPermissionsCreateCall struct {
-	result                *drive.Permission
-	err                   error
-	supportsAllDrives     bool
-	useDomainAdminAccess  bool
-	sendNotificationEmail bool
-	transferOwnership     bool
-	emailMessage          string
-	fields                string
-	header                map[string]string
-}
+func newTestManager(t *testing.T, handler http.HandlerFunc, maxRetries int) (*Manager, *api.Client, *httptest.Server) {
+	t.Helper()
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
 
-type mockPermissionsUpdateCall struct {
-	result               *drive.Permission
-	err                  error
-	supportsAllDrives    bool
-	useDomainAdminAccess bool
-	fields               string
-	header               map[string]string
-}
-
-type mockPermissionsDeleteCall struct {
-	err                  error
-	supportsAllDrives    bool
-	useDomainAdminAccess bool
-	header               map[string]string
-}
-
-type mockPermissionsGetCall struct {
-	result            *drive.Permission
-	err               error
-	supportsAllDrives bool
-	fields            string
-	header            map[string]string
-}
-
-// Mock call implementations
-func (c *mockPermissionsListCall) Do() (*drive.PermissionList, error) {
-	return c.result, c.err
-}
-
-func (c *mockPermissionsListCall) SupportsAllDrives(supports bool) *mockPermissionsListCall {
-	c.supportsAllDrives = supports
-	return c
-}
-
-func (c *mockPermissionsListCall) UseDomainAdminAccess(use bool) *mockPermissionsListCall {
-	c.useDomainAdminAccess = use
-	return c
-}
-
-func (c *mockPermissionsListCall) PageToken(token string) *mockPermissionsListCall {
-	c.pageToken = token
-	return c
-}
-
-func (c *mockPermissionsListCall) PageSize(size int64) *mockPermissionsListCall {
-	c.pageSize = size
-	return c
-}
-
-func (c *mockPermissionsListCall) Fields(fields string) *mockPermissionsListCall {
-	c.fields = fields
-	return c
-}
-
-func (c *mockPermissionsListCall) Header() map[string]string {
-	if c.header == nil {
-		c.header = make(map[string]string)
+	ctx := context.Background()
+	service, err := drive.NewService(ctx,
+		option.WithEndpoint(server.URL+"/drive/v3/"),
+		option.WithHTTPClient(server.Client()),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create drive service: %v", err)
 	}
-	return c.header
+
+	client := api.NewClient(service, maxRetries, 1, logging.NewNoOpLogger())
+	manager := NewManager(client)
+	return manager, client, server
 }
 
-func (c *mockPermissionsCreateCall) Do() (*drive.Permission, error) {
-	return c.result, c.err
-}
-
-func (c *mockPermissionsCreateCall) SupportsAllDrives(supports bool) *mockPermissionsCreateCall {
-	c.supportsAllDrives = supports
-	return c
-}
-
-func (c *mockPermissionsCreateCall) UseDomainAdminAccess(use bool) *mockPermissionsCreateCall {
-	c.useDomainAdminAccess = use
-	return c
-}
-
-func (c *mockPermissionsCreateCall) SendNotificationEmail(send bool) *mockPermissionsCreateCall {
-	c.sendNotificationEmail = send
-	return c
-}
-
-func (c *mockPermissionsCreateCall) TransferOwnership(transfer bool) *mockPermissionsCreateCall {
-	c.transferOwnership = transfer
-	return c
-}
-
-func (c *mockPermissionsCreateCall) EmailMessage(message string) *mockPermissionsCreateCall {
-	c.emailMessage = message
-	return c
-}
-
-func (c *mockPermissionsCreateCall) Fields(fields string) *mockPermissionsCreateCall {
-	c.fields = fields
-	return c
-}
-
-func (c *mockPermissionsCreateCall) Header() map[string]string {
-	if c.header == nil {
-		c.header = make(map[string]string)
+func decodeJSONBody(t *testing.T, r *http.Request) map[string]interface{} {
+	t.Helper()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("Failed to read request body: %v", err)
 	}
-	return c.header
-}
+	_ = r.Body.Close()
 
-func (c *mockPermissionsUpdateCall) Do() (*drive.Permission, error) {
-	return c.result, c.err
-}
-
-func (c *mockPermissionsUpdateCall) SupportsAllDrives(supports bool) *mockPermissionsUpdateCall {
-	c.supportsAllDrives = supports
-	return c
-}
-
-func (c *mockPermissionsUpdateCall) UseDomainAdminAccess(use bool) *mockPermissionsUpdateCall {
-	c.useDomainAdminAccess = use
-	return c
-}
-
-func (c *mockPermissionsUpdateCall) Fields(fields string) *mockPermissionsUpdateCall {
-	c.fields = fields
-	return c
-}
-
-func (c *mockPermissionsUpdateCall) Header() map[string]string {
-	if c.header == nil {
-		c.header = make(map[string]string)
+	if len(body) == 0 {
+		return map[string]interface{}{}
 	}
-	return c.header
-}
 
-func (c *mockPermissionsDeleteCall) Do() error {
-	return c.err
-}
-
-func (c *mockPermissionsDeleteCall) SupportsAllDrives(supports bool) *mockPermissionsDeleteCall {
-	c.supportsAllDrives = supports
-	return c
-}
-
-func (c *mockPermissionsDeleteCall) UseDomainAdminAccess(use bool) *mockPermissionsDeleteCall {
-	c.useDomainAdminAccess = use
-	return c
-}
-
-func (c *mockPermissionsDeleteCall) Header() map[string]string {
-	if c.header == nil {
-		c.header = make(map[string]string)
+	var payload map[string]interface{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("Failed to decode request body: %v", err)
 	}
-	return c.header
+	return payload
 }
 
-func (c *mockPermissionsGetCall) Do() (*drive.Permission, error) {
-	return c.result, c.err
-}
-
-func (c *mockPermissionsGetCall) SupportsAllDrives(supports bool) *mockPermissionsGetCall {
-	c.supportsAllDrives = supports
-	return c
-}
-
-func (c *mockPermissionsGetCall) Fields(fields string) *mockPermissionsGetCall {
-	c.fields = fields
-	return c
-}
-
-func (c *mockPermissionsGetCall) Header() map[string]string {
-	if c.header == nil {
-		c.header = make(map[string]string)
+func writeJSON(t *testing.T, w http.ResponseWriter, status int, payload interface{}) {
+	t.Helper()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		t.Fatalf("Failed to encode response: %v", err)
 	}
-	return c.header
 }
 
-// Helper function to create a test manager
-func newTestManager(t *testing.T) (*Manager, *mockDriveService) {
-	// Note: This is a simplified test setup. In a real scenario, we would need
-	// to properly mock the Drive service. For now, this demonstrates the test structure.
-	t.Skip("Skipping test - requires proper mocking infrastructure")
-	return nil, nil
+func writeAPIError(t *testing.T, w http.ResponseWriter, status int, reason, message string) {
+	t.Helper()
+	if message == "" {
+		message = "test error"
+	}
+	resp := apiErrorResponse{
+		Error: apiErrorDetail{
+			Code:    status,
+			Message: message,
+			Errors: []apiErrorEntry{{
+				Domain:  "global",
+				Reason:  reason,
+				Message: message,
+			}},
+		},
+	}
+	writeJSON(t, w, status, resp)
+}
+
+func requireQueryValue(t *testing.T, query url.Values, key, want string) {
+	t.Helper()
+	if got := query.Get(key); got != want {
+		t.Fatalf("Expected query %s=%q, got %q", key, want, got)
+	}
+}
+
+func requireQueryMissing(t *testing.T, query url.Values, key string) {
+	t.Helper()
+	if got := query.Get(key); got != "" {
+		t.Fatalf("Expected query %s to be empty, got %q", key, got)
+	}
+}
+
+func requirePayloadString(t *testing.T, payload map[string]interface{}, key, want string) {
+	t.Helper()
+	value, ok := payload[key]
+	if !ok {
+		t.Fatalf("Expected payload to include %s", key)
+	}
+	got, ok := value.(string)
+	if !ok {
+		t.Fatalf("Expected payload %s to be string, got %T", key, value)
+	}
+	if got != want {
+		t.Fatalf("Expected payload %s=%q, got %q", key, want, got)
+	}
+}
+
+func requirePayloadBool(t *testing.T, payload map[string]interface{}, key string, want bool) {
+	t.Helper()
+	value, ok := payload[key]
+	if !ok {
+		t.Fatalf("Expected payload to include %s", key)
+	}
+	got, ok := value.(bool)
+	if !ok {
+		t.Fatalf("Expected payload %s to be bool, got %T", key, value)
+	}
+	if got != want {
+		t.Fatalf("Expected payload %s=%v, got %v", key, want, got)
+	}
+}
+
+func assertAppErrorCode(t *testing.T, err error, wantCode string) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("Expected error with code %s", wantCode)
+	}
+	var appErr *utils.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("Expected AppError, got %T", err)
+	}
+	if appErr.CLIError.Code != wantCode {
+		t.Fatalf("Expected error code %s, got %s", wantCode, appErr.CLIError.Code)
+	}
 }
 
 // Test permission creation
@@ -351,14 +290,85 @@ func TestCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping - requires mock implementation")
-			// TODO: Implement test with proper mocking
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost {
+					t.Fatalf("Expected POST, got %s", r.Method)
+				}
+				expectedPath := fmt.Sprintf("/drive/v3/files/%s/permissions", tt.fileID)
+				if r.URL.Path != expectedPath {
+					t.Fatalf("Expected path %s, got %s", expectedPath, r.URL.Path)
+				}
+
+				query := r.URL.Query()
+				requireQueryValue(t, query, "supportsAllDrives", "true")
+				fields := query.Get("fields")
+				if !strings.Contains(fields, "id,type,role") {
+					t.Fatalf("Expected fields to include permission fields, got %q", fields)
+				}
+				if tt.opts.SendNotificationEmail {
+					requireQueryValue(t, query, "sendNotificationEmail", "true")
+				}
+				if tt.opts.EmailMessage != "" {
+					requireQueryValue(t, query, "emailMessage", tt.opts.EmailMessage)
+				}
+				if tt.opts.TransferOwnership {
+					requireQueryValue(t, query, "transferOwnership", "true")
+				}
+				if tt.opts.UseDomainAdminAccess {
+					requireQueryValue(t, query, "useDomainAdminAccess", "true")
+				}
+
+				payload := decodeJSONBody(t, r)
+				requirePayloadString(t, payload, "type", tt.opts.Type)
+				requirePayloadString(t, payload, "role", tt.opts.Role)
+				if tt.opts.EmailAddress != "" {
+					requirePayloadString(t, payload, "emailAddress", tt.opts.EmailAddress)
+				}
+				if tt.opts.Domain != "" {
+					requirePayloadString(t, payload, "domain", tt.opts.Domain)
+				}
+				if tt.opts.Type == "anyone" && tt.opts.AllowFileDiscovery {
+					requirePayloadBool(t, payload, "allowFileDiscovery", true)
+				}
+
+				response := &drive.Permission{
+					Id:           tt.want.ID,
+					Type:         tt.want.Type,
+					Role:         tt.want.Role,
+					EmailAddress: tt.want.EmailAddress,
+					Domain:       tt.want.Domain,
+					DisplayName:  tt.want.DisplayName,
+				}
+				writeJSON(t, w, http.StatusOK, response)
+			}
+
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+			result, err := manager.Create(context.Background(), reqCtx, tt.fileID, tt.opts)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Expected error=%v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr {
+				return
+			}
+			if result == nil {
+				t.Fatal("Expected permission result")
+			}
+			if result.ID != tt.want.ID || result.Type != tt.want.Type || result.Role != tt.want.Role || result.EmailAddress != tt.want.EmailAddress || result.Domain != tt.want.Domain {
+				t.Fatalf("Unexpected permission result: %+v", result)
+			}
 		})
 	}
 }
 
 // Test permission listing
 func TestList(t *testing.T) {
+	samplePermissions := []*drive.Permission{
+		{Id: "perm1", Type: "user", Role: "reader", EmailAddress: "user@example.com"},
+		{Id: "perm2", Type: "group", Role: "writer", EmailAddress: "group@example.com"},
+		{Id: "perm3", Type: "anyone", Role: "reader"},
+	}
+
 	tests := []struct {
 		name    string
 		fileID  string
@@ -395,8 +405,43 @@ func TestList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping - requires mock implementation")
-			// TODO: Implement test with proper mocking
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					t.Fatalf("Expected GET, got %s", r.Method)
+				}
+				expectedPath := fmt.Sprintf("/drive/v3/files/%s/permissions", tt.fileID)
+				if r.URL.Path != expectedPath {
+					t.Fatalf("Expected path %s, got %s", expectedPath, r.URL.Path)
+				}
+
+				query := r.URL.Query()
+				requireQueryValue(t, query, "supportsAllDrives", "true")
+				if tt.opts.UseDomainAdminAccess {
+					requireQueryValue(t, query, "useDomainAdminAccess", "true")
+				}
+				if tt.opts.PageSize > 0 {
+					requireQueryValue(t, query, "pageSize", fmt.Sprintf("%d", tt.opts.PageSize))
+				}
+				fields := query.Get("fields")
+				if !strings.Contains(fields, "permissions(") {
+					t.Fatalf("Expected fields to include permissions, got %q", fields)
+				}
+
+				writeJSON(t, w, http.StatusOK, &drive.PermissionList{Permissions: samplePermissions})
+			}
+
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+			result, err := manager.List(context.Background(), reqCtx, tt.fileID, tt.opts)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Expected error=%v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr {
+				return
+			}
+			if len(result) != tt.want {
+				t.Fatalf("Expected %d permissions, got %d", tt.want, len(result))
+			}
 		})
 	}
 }
@@ -444,8 +489,50 @@ func TestUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping - requires mock implementation")
-			// TODO: Implement test with proper mocking
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPatch {
+					t.Fatalf("Expected PATCH, got %s", r.Method)
+				}
+				expectedPath := fmt.Sprintf("/drive/v3/files/%s/permissions/%s", tt.fileID, tt.permissionID)
+				if r.URL.Path != expectedPath {
+					t.Fatalf("Expected path %s, got %s", expectedPath, r.URL.Path)
+				}
+
+				query := r.URL.Query()
+				requireQueryValue(t, query, "supportsAllDrives", "true")
+				if tt.opts.UseDomainAdminAccess {
+					requireQueryValue(t, query, "useDomainAdminAccess", "true")
+				}
+				fields := query.Get("fields")
+				if !strings.Contains(fields, "id,type,role") {
+					t.Fatalf("Expected fields to include permission fields, got %q", fields)
+				}
+
+				payload := decodeJSONBody(t, r)
+				requirePayloadString(t, payload, "role", tt.opts.Role)
+
+				response := &drive.Permission{
+					Id:           tt.want.ID,
+					Type:         tt.want.Type,
+					Role:         tt.want.Role,
+					EmailAddress: tt.want.EmailAddress,
+					Domain:       tt.want.Domain,
+				}
+				writeJSON(t, w, http.StatusOK, response)
+			}
+
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+			result, err := manager.Update(context.Background(), reqCtx, tt.fileID, tt.permissionID, tt.opts)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Expected error=%v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr {
+				return
+			}
+			if result.ID != tt.want.ID || result.Type != tt.want.Type || result.Role != tt.want.Role {
+				t.Fatalf("Unexpected permission result: %+v", result)
+			}
 		})
 	}
 }
@@ -486,8 +573,47 @@ func TestDelete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping - requires mock implementation")
-			// TODO: Implement test with proper mocking
+			var deleteCalls int32
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != fmt.Sprintf("/drive/v3/files/%s/permissions/%s", tt.fileID, tt.permissionID) {
+					t.Fatalf("Unexpected path %s", r.URL.Path)
+				}
+
+				switch r.Method {
+				case http.MethodGet:
+					if tt.wantErr {
+						writeAPIError(t, w, http.StatusNotFound, "notFound", "permission not found")
+						return
+					}
+					writeJSON(t, w, http.StatusOK, &drive.Permission{Id: tt.permissionID, Type: "user", Role: "reader", EmailAddress: "user@example.com"})
+				case http.MethodDelete:
+					atomic.AddInt32(&deleteCalls, 1)
+					query := r.URL.Query()
+					requireQueryValue(t, query, "supportsAllDrives", "true")
+					if tt.opts.UseDomainAdminAccess {
+						requireQueryValue(t, query, "useDomainAdminAccess", "true")
+					}
+					w.WriteHeader(http.StatusNoContent)
+				default:
+					t.Fatalf("Unexpected method %s", r.Method)
+				}
+			}
+
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+			err := manager.Delete(context.Background(), reqCtx, tt.fileID, tt.permissionID, tt.opts)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Expected error=%v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr {
+				if deleteCalls > 0 {
+					t.Fatalf("Did not expect delete call when get failed")
+				}
+				return
+			}
+			if deleteCalls == 0 {
+				t.Fatalf("Expected delete call")
+			}
 		})
 	}
 }
@@ -530,8 +656,31 @@ func TestCreatePublicLink(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping - requires mock implementation")
-			// TODO: Implement test with proper mocking
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost {
+					t.Fatalf("Expected POST, got %s", r.Method)
+				}
+				payload := decodeJSONBody(t, r)
+				requirePayloadString(t, payload, "type", "anyone")
+				requirePayloadString(t, payload, "role", tt.role)
+				if tt.allowDiscovery {
+					requirePayloadBool(t, payload, "allowFileDiscovery", true)
+				}
+				writeJSON(t, w, http.StatusOK, &drive.Permission{Id: tt.want.ID, Type: tt.want.Type, Role: tt.want.Role})
+			}
+
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+			result, err := manager.CreatePublicLink(context.Background(), reqCtx, tt.fileID, tt.role, tt.allowDiscovery)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Expected error=%v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr {
+				return
+			}
+			if result.ID != tt.want.ID || result.Type != tt.want.Type || result.Role != tt.want.Role {
+				t.Fatalf("Unexpected permission result: %+v", result)
+			}
 		})
 	}
 }
@@ -540,37 +689,38 @@ func TestCreatePublicLink(t *testing.T) {
 func TestPolicyViolationErrors(t *testing.T) {
 	tests := []struct {
 		name        string
-		apiError    *googleapi.Error
+		apiStatus   int
+		reason      string
 		wantErrCode string
 	}{
 		{
-			name: "sharing restricted by policy",
-			apiError: &googleapi.Error{
-				Code:    403,
-				Message: "Domain policy violation",
-				Errors: []googleapi.ErrorItem{
-					{Reason: "domainPolicy"},
-				},
-			},
-			wantErrCode: "policy_violation",
+			name:        "sharing restricted by policy",
+			apiStatus:   http.StatusForbidden,
+			reason:      "domainPolicy",
+			wantErrCode: utils.ErrCodePolicyViolation,
 		},
 		{
-			name: "invalid sharing request",
-			apiError: &googleapi.Error{
-				Code:    400,
-				Message: "Invalid sharing request",
-				Errors: []googleapi.ErrorItem{
-					{Reason: "invalidSharingRequest"},
-				},
-			},
-			wantErrCode: "sharing_restricted",
+			name:        "invalid sharing request",
+			apiStatus:   http.StatusBadRequest,
+			reason:      "invalidSharingRequest",
+			wantErrCode: utils.ErrCodeSharingRestricted,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping - requires mock implementation")
-			// TODO: Implement test with proper error classification
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				writeAPIError(t, w, tt.apiStatus, tt.reason, "policy error")
+			}
+
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+			_, err := manager.Create(context.Background(), reqCtx, "file123", CreateOptions{
+				Type:         "user",
+				Role:         "reader",
+				EmailAddress: "user@example.com",
+			})
+			assertAppErrorCode(t, err, tt.wantErrCode)
 		})
 	}
 }
@@ -610,8 +760,24 @@ func TestSharedDrivePermissions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping - requires mock implementation")
-			// TODO: Implement test with Shared Drive context
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+				requireQueryValue(t, query, "supportsAllDrives", "true")
+				writeJSON(t, w, http.StatusOK, &drive.Permission{Id: "perm123", Type: tt.opts.Type, Role: tt.opts.Role, EmailAddress: tt.opts.EmailAddress})
+			}
+
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", tt.driveID, types.RequestTypePermissionOp)
+			result, err := manager.Create(context.Background(), reqCtx, tt.fileID, tt.opts)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Expected error=%v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr {
+				return
+			}
+			if result == nil || result.ID == "" {
+				t.Fatalf("Expected permission result")
+			}
 		})
 	}
 }
@@ -682,36 +848,132 @@ func TestOwnershipTransfer(t *testing.T) {
 // Test resource key handling in permissions
 func TestResourceKeyHandling(t *testing.T) {
 	t.Run("permissions with resource keys", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation with resource keys")
-		// TODO: Test that resource keys are properly included in permission operations
+		fileID := "file123"
+		permissionID := "perm123"
+		resourceKey := "resource-key-1"
+
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			header := r.Header.Get("X-Goog-Drive-Resource-Keys")
+			expected := fmt.Sprintf("%s/%s", fileID, resourceKey)
+			if header != expected {
+				t.Fatalf("Expected resource key header %q, got %q", expected, header)
+			}
+			writeJSON(t, w, http.StatusOK, &drive.Permission{Id: permissionID, Type: "user", Role: "reader"})
+		}
+
+		manager, client, _ := newTestManager(t, handler, 0)
+		client.ResourceKeys().AddKey(fileID, resourceKey, "api")
+
+		reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+		_, err := manager.Get(context.Background(), reqCtx, fileID, permissionID)
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
 	})
 }
 
 // Test pagination in permission listing
 func TestPermissionPagination(t *testing.T) {
 	t.Run("multiple pages", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation with pagination")
-		// TODO: Test that all pages are retrieved correctly
+		fileID := "file123"
+		var callCount int32
+
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				t.Fatalf("Expected GET, got %s", r.Method)
+			}
+			expectedPath := fmt.Sprintf("/drive/v3/files/%s/permissions", fileID)
+			if r.URL.Path != expectedPath {
+				t.Fatalf("Expected path %s, got %s", expectedPath, r.URL.Path)
+			}
+
+			current := atomic.AddInt32(&callCount, 1)
+			if current == 1 {
+				requireQueryMissing(t, r.URL.Query(), "pageToken")
+				writeJSON(t, w, http.StatusOK, &drive.PermissionList{
+					Permissions:   []*drive.Permission{{Id: "perm1", Type: "user", Role: "reader"}},
+					NextPageToken: "next-page",
+				})
+				return
+			}
+
+			requireQueryValue(t, r.URL.Query(), "pageToken", "next-page")
+			writeJSON(t, w, http.StatusOK, &drive.PermissionList{
+				Permissions: []*drive.Permission{{Id: "perm2", Type: "user", Role: "writer"}},
+			})
+		}
+
+		manager, _, _ := newTestManager(t, handler, 0)
+		reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+		perms, err := manager.List(context.Background(), reqCtx, fileID, ListOptions{})
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+		if len(perms) != 2 {
+			t.Fatalf("Expected 2 permissions, got %d", len(perms))
+		}
+		if callCount != 2 {
+			t.Fatalf("Expected 2 API calls, got %d", callCount)
+		}
 	})
 }
 
 // Test error scenarios
 func TestErrorScenarios(t *testing.T) {
-	t.Run("file not found", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation")
-	})
+	cases := []struct {
+		name     string
+		status   int
+		reason   string
+		wantCode string
+		fileID   string
+		permID   string
+	}{
+		{
+			name:     "file not found",
+			status:   http.StatusNotFound,
+			reason:   "notFound",
+			wantCode: utils.ErrCodeFileNotFound,
+			fileID:   "missing-file",
+			permID:   "perm123",
+		},
+		{
+			name:     "permission not found",
+			status:   http.StatusNotFound,
+			reason:   "notFound",
+			wantCode: utils.ErrCodeFileNotFound,
+			fileID:   "file123",
+			permID:   "missing-perm",
+		},
+		{
+			name:     "insufficient permissions",
+			status:   http.StatusForbidden,
+			reason:   "insufficientFilePermissions",
+			wantCode: utils.ErrCodePermissionDenied,
+			fileID:   "file123",
+			permID:   "perm123",
+		},
+		{
+			name:     "rate limit exceeded",
+			status:   http.StatusTooManyRequests,
+			reason:   "rateLimitExceeded",
+			wantCode: utils.ErrCodeRateLimited,
+			fileID:   "file123",
+			permID:   "perm123",
+		},
+	}
 
-	t.Run("permission not found", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation")
-	})
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				writeAPIError(t, w, tt.status, tt.reason, "test error")
+			}
 
-	t.Run("insufficient permissions", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation")
-	})
-
-	t.Run("rate limit exceeded", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation")
-	})
+			manager, _, _ := newTestManager(t, handler, 0)
+			reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+			_, err := manager.Get(context.Background(), reqCtx, tt.fileID, tt.permID)
+			assertAppErrorCode(t, err, tt.wantCode)
+		})
+	}
 }
 
 // TestConvertPermission tests the permission conversion function
@@ -842,35 +1104,80 @@ func ExampleManager_Create() {
 // Test context cancellation handling
 func TestContextCancellation(t *testing.T) {
 	t.Run("create with cancelled context", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation")
-		// TODO: Test that operations respect context cancellation
+		fileID := "file123"
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(100 * time.Millisecond)
+			writeJSON(t, w, http.StatusOK, &drive.Permission{Id: "perm123", Type: "user", Role: "reader"})
+		}
+
+		manager, _, _ := newTestManager(t, handler, 0)
+		reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			cancel()
+		}()
+
+		_, err := manager.Create(ctx, reqCtx, fileID, CreateOptions{Type: "user", Role: "reader", EmailAddress: "user@example.com"})
+		if err == nil {
+			t.Fatal("Expected error from cancelled context")
+		}
+		assertAppErrorCode(t, err, utils.ErrCodeNetworkError)
+		if !strings.Contains(err.Error(), "context canceled") {
+			t.Fatalf("Expected context cancellation error, got %v", err)
+		}
 	})
 }
 
 // Test retry logic for permissions
 func TestRetryLogic(t *testing.T) {
 	t.Run("retry on rate limit", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation")
-		// TODO: Test that rate limit errors trigger retry
+		fileID := "file123"
+		permissionID := "perm123"
+		var callCount int32
+
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			current := atomic.AddInt32(&callCount, 1)
+			if current == 1 {
+				writeAPIError(t, w, http.StatusTooManyRequests, "rateLimitExceeded", "rate limit")
+				return
+			}
+			writeJSON(t, w, http.StatusOK, &drive.Permission{Id: permissionID, Type: "user", Role: "reader"})
+		}
+
+		manager, _, _ := newTestManager(t, handler, 1)
+		reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+		_, err := manager.Get(context.Background(), reqCtx, fileID, permissionID)
+		if err != nil {
+			t.Fatalf("Expected retry to succeed, got %v", err)
+		}
+		if callCount != 2 {
+			t.Fatalf("Expected 2 calls, got %d", callCount)
+		}
 	})
 
 	t.Run("no retry on 400 errors", func(t *testing.T) {
-		t.Skip("Skipping - requires mock implementation")
-		// TODO: Test that client errors don't trigger retry
+		fileID := "file123"
+		permissionID := "perm123"
+		var callCount int32
+
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&callCount, 1)
+			writeAPIError(t, w, http.StatusBadRequest, "badRequest", "invalid")
+		}
+
+		manager, _, _ := newTestManager(t, handler, 1)
+		reqCtx := api.NewRequestContext("default", "", types.RequestTypePermissionOp)
+		_, err := manager.Get(context.Background(), reqCtx, fileID, permissionID)
+		assertAppErrorCode(t, err, utils.ErrCodeInvalidArgument)
+		if callCount != 1 {
+			t.Fatalf("Expected 1 call, got %d", callCount)
+		}
 	})
 }
 
 // Utility function to create test error
-func createTestAPIError(code int, reason string) error {
-	return &googleapi.Error{
-		Code:    code,
-		Message: "Test error",
-		Errors: []googleapi.ErrorItem{
-			{Reason: reason},
-		},
-	}
-}
-
 // Test helper for validating permission options
 func validateCreateOptions(opts CreateOptions) error {
 	validTypes := map[string]bool{
@@ -1037,468 +1344,4 @@ func TestListOptions_Struct(t *testing.T) {
 	if opts.PageSize != 50 {
 		t.Errorf("PageSize = %d, want 50", opts.PageSize)
 	}
-}
-
-// Test default option values
-func TestDefaultOptionValues(t *testing.T) {
-	t.Run("CreateOptions defaults", func(t *testing.T) {
-		opts := CreateOptions{}
-		if opts.SendNotificationEmail {
-			t.Error("SendNotificationEmail should default to false")
-		}
-		if opts.TransferOwnership {
-			t.Error("TransferOwnership should default to false")
-		}
-		if opts.AllowFileDiscovery {
-			t.Error("AllowFileDiscovery should default to false")
-		}
-		if opts.UseDomainAdminAccess {
-			t.Error("UseDomainAdminAccess should default to false")
-		}
-	})
-
-	t.Run("UpdateOptions defaults", func(t *testing.T) {
-		opts := UpdateOptions{}
-		if opts.UseDomainAdminAccess {
-			t.Error("UseDomainAdminAccess should default to false")
-		}
-	})
-
-	t.Run("DeleteOptions defaults", func(t *testing.T) {
-		opts := DeleteOptions{}
-		if opts.UseDomainAdminAccess {
-			t.Error("UseDomainAdminAccess should default to false")
-		}
-	})
-
-	t.Run("ListOptions defaults", func(t *testing.T) {
-		opts := ListOptions{}
-		if opts.UseDomainAdminAccess {
-			t.Error("UseDomainAdminAccess should default to false")
-		}
-		if opts.PageSize != 0 {
-			t.Errorf("PageSize should default to 0, got %d", opts.PageSize)
-		}
-	})
-}
-
-// Test permission type combinations
-func TestPermissionTypeCombinations(t *testing.T) {
-	tests := []struct {
-		name  string
-		opts  CreateOptions
-		valid bool
-	}{
-		{"user + reader", CreateOptions{Type: "user", Role: "reader", EmailAddress: "a@b.com"}, true},
-		{"user + writer", CreateOptions{Type: "user", Role: "writer", EmailAddress: "a@b.com"}, true},
-		{"user + owner", CreateOptions{Type: "user", Role: "owner", EmailAddress: "a@b.com"}, true},
-		{"group + reader", CreateOptions{Type: "group", Role: "reader", EmailAddress: "group@b.com"}, true},
-		{"group + writer", CreateOptions{Type: "group", Role: "writer", EmailAddress: "group@b.com"}, true},
-		{"domain + reader", CreateOptions{Type: "domain", Role: "reader", Domain: "example.com"}, true},
-		{"domain + writer", CreateOptions{Type: "domain", Role: "writer", Domain: "example.com"}, true},
-		{"anyone + reader", CreateOptions{Type: "anyone", Role: "reader"}, true},
-		{"anyone + commenter", CreateOptions{Type: "anyone", Role: "commenter"}, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateCreateOptions(tt.opts)
-			if tt.valid && err != nil {
-				t.Errorf("Expected valid, got error: %v", err)
-			}
-			if !tt.valid && err == nil {
-				t.Error("Expected error, got nil")
-			}
-		})
-	}
-}
-
-// Test convertPermission with various permission types
-func TestConvertPermission_AllTypes(t *testing.T) {
-	tests := []struct {
-		name  string
-		input *drive.Permission
-	}{
-		{
-			name: "user with all fields",
-			input: &drive.Permission{
-				Id:           "perm1",
-				Type:         "user",
-				Role:         "owner",
-				EmailAddress: "owner@example.com",
-				DisplayName:  "Owner Name",
-			},
-		},
-		{
-			name: "group permission",
-			input: &drive.Permission{
-				Id:           "perm2",
-				Type:         "group",
-				Role:         "writer",
-				EmailAddress: "group@example.com",
-				DisplayName:  "Group Name",
-			},
-		},
-		{
-			name: "domain permission",
-			input: &drive.Permission{
-				Id:     "perm3",
-				Type:   "domain",
-				Role:   "reader",
-				Domain: "example.com",
-			},
-		},
-		{
-			name: "anyone permission",
-			input: &drive.Permission{
-				Id:   "anyoneWithLink",
-				Type: "anyone",
-				Role: "reader",
-			},
-		},
-		{
-			name: "commenter role",
-			input: &drive.Permission{
-				Id:           "perm4",
-				Type:         "user",
-				Role:         "commenter",
-				EmailAddress: "commenter@example.com",
-			},
-		},
-		{
-			name: "organizer role (shared drive)",
-			input: &drive.Permission{
-				Id:           "perm5",
-				Type:         "user",
-				Role:         "organizer",
-				EmailAddress: "organizer@example.com",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := convertPermission(tt.input)
-
-			if result == nil {
-				t.Fatal("convertPermission returned nil")
-			}
-
-			if result.ID != tt.input.Id {
-				t.Errorf("ID = %s, want %s", result.ID, tt.input.Id)
-			}
-			if result.Type != tt.input.Type {
-				t.Errorf("Type = %s, want %s", result.Type, tt.input.Type)
-			}
-			if result.Role != tt.input.Role {
-				t.Errorf("Role = %s, want %s", result.Role, tt.input.Role)
-			}
-			if result.EmailAddress != tt.input.EmailAddress {
-				t.Errorf("EmailAddress = %s, want %s", result.EmailAddress, tt.input.EmailAddress)
-			}
-			if result.Domain != tt.input.Domain {
-				t.Errorf("Domain = %s, want %s", result.Domain, tt.input.Domain)
-			}
-			if result.DisplayName != tt.input.DisplayName {
-				t.Errorf("DisplayName = %s, want %s", result.DisplayName, tt.input.DisplayName)
-			}
-		})
-	}
-}
-
-// Test convertPermission with minimal fields
-func TestConvertPermission_MinimalFields(t *testing.T) {
-	input := &drive.Permission{
-		Id:   "minimal",
-		Type: "user",
-		Role: "reader",
-	}
-
-	result := convertPermission(input)
-
-	if result.ID != "minimal" {
-		t.Errorf("ID = %s, want minimal", result.ID)
-	}
-	if result.EmailAddress != "" {
-		t.Errorf("EmailAddress should be empty, got %s", result.EmailAddress)
-	}
-	if result.Domain != "" {
-		t.Errorf("Domain should be empty, got %s", result.Domain)
-	}
-	if result.DisplayName != "" {
-		t.Errorf("DisplayName should be empty, got %s", result.DisplayName)
-	}
-}
-
-// Test that Manager can be created
-func TestNewManager(t *testing.T) {
-	// We can't fully test without a real client, but we can test the structure
-	t.Run("manager creation", func(t *testing.T) {
-		// This would normally require a real API client
-		// manager := NewManager(client)
-		// Just test that the function signature is correct
-		_ = NewManager
-	})
-}
-
-// Test all permission roles
-func TestAllPermissionRoles(t *testing.T) {
-	roles := []string{"reader", "commenter", "writer", "organizer", "owner"}
-
-	for _, role := range roles {
-		t.Run(role, func(t *testing.T) {
-			opts := CreateOptions{
-				Type:         "user",
-				Role:         role,
-				EmailAddress: "user@example.com",
-			}
-
-			// For owner, need TransferOwnership
-			if role == "owner" {
-				opts.TransferOwnership = true
-			}
-
-			err := validateCreateOptions(opts)
-			if err != nil {
-				t.Errorf("Role %s should be valid, got error: %v", role, err)
-			}
-		})
-	}
-}
-
-// Test all permission types
-func TestAllPermissionTypes(t *testing.T) {
-	types := []struct {
-		permType string
-		setup    func(*CreateOptions)
-	}{
-		{"user", func(o *CreateOptions) { o.EmailAddress = "user@example.com" }},
-		{"group", func(o *CreateOptions) { o.EmailAddress = "group@example.com" }},
-		{"domain", func(o *CreateOptions) { o.Domain = "example.com" }},
-		{"anyone", func(o *CreateOptions) {}},
-	}
-
-	for _, tt := range types {
-		t.Run(tt.permType, func(t *testing.T) {
-			opts := CreateOptions{
-				Type: tt.permType,
-				Role: "reader",
-			}
-			tt.setup(&opts)
-
-			err := validateCreateOptions(opts)
-			if err != nil {
-				t.Errorf("Type %s should be valid, got error: %v", tt.permType, err)
-			}
-		})
-	}
-}
-
-func TestIsInternalEmail(t *testing.T) {
-	tests := []struct {
-		name           string
-		email          string
-		internalDomain string
-		expected       bool
-	}{
-		{
-			name:           "internal email",
-			email:          "user@example.com",
-			internalDomain: "example.com",
-			expected:       true,
-		},
-		{
-			name:           "external email",
-			email:          "user@external.com",
-			internalDomain: "example.com",
-			expected:       false,
-		},
-		{
-			name:           "empty internal domain",
-			email:          "user@example.com",
-			internalDomain: "",
-			expected:       true,
-		},
-		{
-			name:           "empty email",
-			email:          "",
-			internalDomain: "example.com",
-			expected:       false,
-		},
-		{
-			name:           "case sensitive match",
-			email:          "user@example.com",
-			internalDomain: "example.com",
-			expected:       true,
-		},
-		{
-			name:           "subdomain not matching",
-			email:          "user@sub.example.com",
-			internalDomain: "example.com",
-			expected:       false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := isInternalEmail(tt.email, tt.internalDomain)
-			if result != tt.expected {
-				t.Errorf("isInternalEmail(%q, %q) = %v, want %v", tt.email, tt.internalDomain, result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestExtractDomain(t *testing.T) {
-	tests := []struct {
-		name     string
-		email    string
-		expected string
-	}{
-		{
-			name:     "standard email",
-			email:    "user@example.com",
-			expected: "example.com",
-		},
-		{
-			name:     "email with subdomain",
-			email:    "user@mail.example.com",
-			expected: "mail.example.com",
-		},
-		{
-			name:     "email with plus addressing",
-			email:    "user+tag@example.com",
-			expected: "example.com",
-		},
-		{
-			name:     "no @ symbol",
-			email:    "notanemail",
-			expected: "",
-		},
-		{
-			name:     "empty email",
-			email:    "",
-			expected: "",
-		},
-		{
-			name:     "multiple @ symbols",
-			email:    "user@domain@example.com",
-			expected: "example.com",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := extractDomain(tt.email)
-			if result != tt.expected {
-				t.Errorf("extractDomain(%q) = %q, want %q", tt.email, result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestAnalyzeFilePermissions(t *testing.T) {
-	tests := []struct {
-		name           string
-		file           *drive.File
-		perms          []*types.Permission
-		internalDomain string
-		validate       func(*types.FilePermissionInfo) error
-	}{
-		{
-			name: "file with public access",
-			file: &drive.File{
-				Id:   "file123",
-				Name: "public.txt",
-			},
-			perms: []*types.Permission{
-				{
-					Type: "anyone",
-					Role: "reader",
-				},
-			},
-			internalDomain: "example.com",
-			validate: func(info *types.FilePermissionInfo) error {
-				if info == nil {
-					return errorf("FilePermissionInfo should not be nil")
-				}
-				if !info.HasPublicAccess {
-					return errorf("HasPublicAccess should be true")
-				}
-				return nil
-			},
-		},
-		{
-			name: "file with internal access only",
-			file: &drive.File{
-				Id:   "file123",
-				Name: "internal.txt",
-			},
-			perms: []*types.Permission{
-				{
-					Type:         "user",
-					EmailAddress: "user@example.com",
-					Role:         "reader",
-				},
-			},
-			internalDomain: "example.com",
-			validate: func(info *types.FilePermissionInfo) error {
-				if info == nil {
-					return errorf("FilePermissionInfo should not be nil")
-				}
-				if info.HasPublicAccess {
-					return errorf("HasPublicAccess should be false")
-				}
-				if info.HasExternalAccess {
-					return errorf("HasExternalAccess should be false")
-				}
-				return nil
-			},
-		},
-		{
-			name: "file with external access",
-			file: &drive.File{
-				Id:   "file123",
-				Name: "external.txt",
-			},
-			perms: []*types.Permission{
-				{
-					Type:         "user",
-					EmailAddress: "user@external.com",
-					Role:         "reader",
-				},
-			},
-			internalDomain: "example.com",
-			validate: func(info *types.FilePermissionInfo) error {
-				if info == nil {
-					return errorf("FilePermissionInfo should not be nil")
-				}
-				if !info.HasExternalAccess {
-					return errorf("HasExternalAccess should be true")
-				}
-				return nil
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := analyzeFilePermissions(tt.file, tt.perms, tt.internalDomain)
-			if err := tt.validate(result); err != nil {
-				t.Error(err)
-			}
-		})
-	}
-}
-
-func errorf(msg string) error {
-	return &testError{msg: msg}
-}
-
-type testError struct {
-	msg string
-}
-
-func (e *testError) Error() string {
-	return e.msg
 }

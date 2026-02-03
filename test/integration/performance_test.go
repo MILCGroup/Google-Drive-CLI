@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -9,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/types"
 )
@@ -21,41 +20,25 @@ func TestIntegration_Performance_ResponseTimes(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Test file creation time
 	start := time.Now()
 	fileName := "perf-test-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", []byte("performance test"))
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", []byte("performance test"))
 	creationTime := time.Since(start)
-
-	if err != nil {
-		t.Fatalf("Failed to create file: %v", err)
-	}
 
 	t.Logf("File creation took: %v", creationTime)
 
 	// Test file listing time
 	start = time.Now()
-	listReq := &types.FileListRequest{
+	listReq := files.ListOptions{
 		Query: fmt.Sprintf("name='%s'", fileName),
 	}
-	results, err := fileManager.List(ctx, reqCtx, listReq)
+	_, err := fileManager.List(ctx, reqCtx, listReq)
 	listTime := time.Since(start)
 
 	if err != nil {
@@ -66,7 +49,7 @@ func TestIntegration_Performance_ResponseTimes(t *testing.T) {
 
 	// Test file get time
 	start = time.Now()
-	_, err = fileManager.Get(ctx, reqCtx, file.ID)
+	_, err = fileManager.Get(ctx, reqCtx, file.ID, "id")
 	getTime := time.Since(start)
 
 	if err != nil {
@@ -88,20 +71,8 @@ func TestIntegration_Performance_MemoryUsage(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
@@ -109,10 +80,7 @@ func TestIntegration_Performance_MemoryUsage(t *testing.T) {
 	var fileIDs []string
 	for i := 0; i < 10; i++ {
 		fileName := fmt.Sprintf("mem-test-%d-%s.txt", i, time.Now().Format("20060102150405"))
-		file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", []byte("memory test"))
-		if err != nil {
-			t.Fatalf("Failed to create file %d: %v", i, err)
-		}
+		file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", []byte("memory test"))
 		fileIDs = append(fileIDs, file.ID)
 	}
 
@@ -120,8 +88,7 @@ func TestIntegration_Performance_MemoryUsage(t *testing.T) {
 
 	// Delete files
 	for _, id := range fileIDs {
-		err = fileManager.Delete(ctx, reqCtx, id, false)
-		if err != nil {
+		if err := fileManager.Delete(ctx, reqCtx, id, false); err != nil {
 			t.Errorf("Failed to delete file %s: %v", id, err)
 		}
 	}
@@ -135,20 +102,8 @@ func TestIntegration_Performance_ConcurrentOperations(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
@@ -161,7 +116,23 @@ func TestIntegration_Performance_ConcurrentOperations(t *testing.T) {
 	for i := 0; i < numConcurrent; i++ {
 		go func(index int) {
 			fileName := fmt.Sprintf("concurrent-test-%d-%s.txt", index, time.Now().Format("20060102150405"))
-			file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", []byte("concurrent test"))
+			tmpFile, err := os.CreateTemp("", "concurrent-test-*.txt")
+			if err != nil {
+				t.Errorf("Concurrent temp file %d failed: %v", index, err)
+				done <- true
+				return
+			}
+			if _, err := tmpFile.WriteString("concurrent test"); err != nil {
+				t.Errorf("Concurrent temp write %d failed: %v", index, err)
+				_ = tmpFile.Close()
+				done <- true
+				return
+			}
+			_ = tmpFile.Close()
+			file, err := fileManager.Upload(ctx, reqCtx, tmpFile.Name(), files.UploadOptions{
+				Name:     fileName,
+				MimeType: "text/plain",
+			})
 			if err != nil {
 				t.Errorf("Concurrent creation %d failed: %v", index, err)
 			} else {
@@ -182,5 +153,4 @@ func TestIntegration_Performance_ConcurrentOperations(t *testing.T) {
 
 	totalTime := time.Since(start)
 	t.Logf("Concurrent operations took: %v", totalTime)
-}</content>
-<parameter name="filePath">test/integration/performance_test.go
+}

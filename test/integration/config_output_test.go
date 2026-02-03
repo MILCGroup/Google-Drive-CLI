@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -9,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/config"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/types"
@@ -52,35 +51,20 @@ func TestIntegration_ConfigOutput_OutputFormats(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Create a test file
 	fileName := "output-test-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", nil)
 
 	// Test JSON output
 	jsonOutput := config.NewOutputFormatter(config.OutputOptions{
 		Format: types.OutputFormatJSON,
 	})
-	err = jsonOutput.WriteSuccess("files.list", []*types.DriveFile{file})
+	err := jsonOutput.WriteSuccess("files.list", []*types.DriveFile{file})
 	if err != nil {
 		t.Fatalf("Failed to output in JSON format: %v", err)
 	}
@@ -107,29 +91,14 @@ func TestIntegration_ConfigOutput_FieldMasking(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Create a test file
 	fileName := "field-test-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", nil)
 
 	minimalMask := config.GetFieldMask(config.FieldMaskMinimal, false)
 	if minimalMask == "" {
@@ -148,7 +117,7 @@ func TestIntegration_ConfigOutput_FieldMasking(t *testing.T) {
 	}
 
 	// Clean up
-	err = fileManager.Delete(ctx, reqCtx, file.ID, false)
+	err := fileManager.Delete(ctx, reqCtx, file.ID, false)
 	if err != nil {
 		t.Errorf("Failed to delete test file: %v", err)
 	}
@@ -160,36 +129,21 @@ func TestIntegration_ConfigOutput_QuietVerboseModes(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Create a test file
 	fileName := "quiet-verbose-test-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", nil)
 
 	// Test quiet mode (no output)
 	quietOutput := config.NewOutputFormatter(config.OutputOptions{
 		Format: types.OutputFormatTable,
 		Quiet:  true,
 	})
-	err = quietOutput.WriteSuccess("files.list", []*types.DriveFile{file})
+	err := quietOutput.WriteSuccess("files.list", []*types.DriveFile{file})
 	if err != nil {
 		t.Fatalf("Failed to output in quiet mode: %v", err)
 	}
@@ -209,5 +163,4 @@ func TestIntegration_ConfigOutput_QuietVerboseModes(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to delete test file: %v", err)
 	}
-}</content>
-<parameter name="filePath">test/integration/config_output_test.go
+}

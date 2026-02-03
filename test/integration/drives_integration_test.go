@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -8,39 +9,17 @@ import (
 	"testing"
 
 	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/drives"
 	"github.com/dl-alexandre/gdrv/internal/types"
-	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/option"
 )
 
 // Integration Test: Shared Drives Operations
 // Run with: go test -tags=integration ./test/integration/...
 
 func setupDrivesManager(t *testing.T) (*drives.Manager, *api.Client, context.Context) {
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
+	client, _, _ := setupDriveClient(t)
 	ctx := context.Background()
-	service, err := drive.NewService(ctx, option.WithTokenSource(
-		manager.GetConfig().TokenSource(ctx, token),
-	))
-	if err != nil {
-		t.Fatalf("Failed to create Drive service: %v", err)
-	}
-
-	client := api.NewClient(service, 3, 1000)
 	drivesMgr := drives.NewManager(client)
-
 	return drivesMgr, client, ctx
 }
 

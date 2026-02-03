@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -11,39 +12,17 @@ import (
 	"time"
 
 	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/types"
-	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/option"
 )
 
 // Integration Test: File Operations End-to-End
 // Run with: go test -tags=integration ./test/integration/...
 
 func setupFileManager(t *testing.T) (*files.Manager, *api.Client, context.Context) {
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
+	client, _, _ := setupDriveClient(t)
 	ctx := context.Background()
-	service, err := drive.NewService(ctx, option.WithTokenSource(
-		manager.GetConfig().TokenSource(ctx, token),
-	))
-	if err != nil {
-		t.Fatalf("Failed to create Drive service: %v", err)
-	}
-
-	client := api.NewClient(service, 3, 1000)
 	fileMgr := files.NewManager(client)
-	
 	return fileMgr, client, ctx
 }
 
@@ -58,7 +37,7 @@ func TestIntegration_FileOperations_UploadDownload(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test-upload.txt")
 	testContent := []byte("This is a test file for upload integration test.\nCreated at: " + time.Now().String())
-	
+
 	err := ioutil.WriteFile(testFile, testContent, 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
@@ -75,7 +54,7 @@ func TestIntegration_FileOperations_UploadDownload(t *testing.T) {
 		t.Fatalf("Upload failed: %v", err)
 	}
 
-	t.Logf("Uploaded file: %s (ID: %s)", uploadedFile.Name, uploadedFile.Id)
+	t.Logf("Uploaded file: %s (ID: %s)", uploadedFile.Name, uploadedFile.ID)
 
 	// Download the file
 	downloadReqCtx := api.NewRequestContext("default", "", types.RequestTypeDownloadOrExport)
@@ -84,7 +63,7 @@ func TestIntegration_FileOperations_UploadDownload(t *testing.T) {
 		OutputPath: downloadPath,
 	}
 
-	err = fileMgr.Download(ctx, downloadReqCtx, uploadedFile.Id, downloadOpts)
+	err = fileMgr.Download(ctx, downloadReqCtx, uploadedFile.ID, downloadOpts)
 	if err != nil {
 		t.Fatalf("Download failed: %v", err)
 	}
@@ -103,7 +82,7 @@ func TestIntegration_FileOperations_UploadDownload(t *testing.T) {
 
 	// Clean up - delete the uploaded file
 	deleteReqCtx := api.NewRequestContext("default", "", types.RequestTypeMutation)
-	err = fileMgr.Delete(ctx, deleteReqCtx, uploadedFile.Id, false)
+	err = fileMgr.Delete(ctx, deleteReqCtx, uploadedFile.ID, false)
 	if err != nil {
 		t.Errorf("Failed to clean up uploaded file: %v", err)
 	}
@@ -137,7 +116,7 @@ func TestIntegration_FileOperations_UploadTypeSelection(t *testing.T) {
 			for i := range content {
 				content[i] = byte(i % 256)
 			}
-			
+
 			err := ioutil.WriteFile(testFile, content, 0644)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
@@ -154,8 +133,8 @@ func TestIntegration_FileOperations_UploadTypeSelection(t *testing.T) {
 				t.Fatalf("Upload failed: %v", err)
 			}
 
-			t.Logf("Uploaded %s: %s (ID: %s)", tt.name, uploadedFile.Name, uploadedFile.Id)
-			uploadedFiles = append(uploadedFiles, uploadedFile.Id)
+			t.Logf("Uploaded %s: %s (ID: %s)", tt.name, uploadedFile.Name, uploadedFile.ID)
+			uploadedFiles = append(uploadedFiles, uploadedFile.ID)
 
 			// Verify size
 			if uploadedFile.Size != tt.size {
@@ -260,17 +239,17 @@ func TestIntegration_FileOperations_CopyFile(t *testing.T) {
 	// Copy the file
 	reqCtx := api.NewRequestContext("default", "", types.RequestTypeMutation)
 	copyName := "copy-test-" + time.Now().Format("20060102-150405")
-	
+
 	copiedFile, err := fileMgr.Copy(ctx, reqCtx, sourceFileID, copyName, "")
 	if err != nil {
 		t.Fatalf("Copy failed: %v", err)
 	}
 
-	t.Logf("Copied file: %s (ID: %s)", copiedFile.Name, copiedFile.Id)
+	t.Logf("Copied file: %s (ID: %s)", copiedFile.Name, copiedFile.ID)
 
 	// Verify copy exists
 	getReqCtx := api.NewRequestContext("default", "", types.RequestTypeGetByID)
-	retrievedFile, err := fileMgr.Get(ctx, getReqCtx, copiedFile.Id, "id,name")
+	retrievedFile, err := fileMgr.Get(ctx, getReqCtx, copiedFile.ID, "id,name")
 	if err != nil {
 		t.Fatalf("Failed to retrieve copied file: %v", err)
 	}
@@ -281,7 +260,7 @@ func TestIntegration_FileOperations_CopyFile(t *testing.T) {
 
 	// Clean up
 	deleteReqCtx := api.NewRequestContext("default", "", types.RequestTypeMutation)
-	err = fileMgr.Delete(ctx, deleteReqCtx, copiedFile.Id, false)
+	err = fileMgr.Delete(ctx, deleteReqCtx, copiedFile.ID, false)
 	if err != nil {
 		t.Errorf("Failed to clean up copied file: %v", err)
 	}
@@ -313,7 +292,7 @@ func TestIntegration_FileOperations_TrashAndRestore(t *testing.T) {
 		t.Fatalf("Upload failed: %v", err)
 	}
 
-	fileID := uploadedFile.Id
+	fileID := uploadedFile.ID
 	t.Logf("Created test file: %s (ID: %s)", uploadedFile.Name, fileID)
 
 	// Trash the file
@@ -338,7 +317,7 @@ func TestIntegration_FileOperations_TrashAndRestore(t *testing.T) {
 
 	// Restore the file (implementation depends on file manager API)
 	// This would typically use files.update to set trashed=false
-	
+
 	// For now, permanently delete it
 	deleteReqCtx := api.NewRequestContext("default", "", types.RequestTypeMutation)
 	err = fileMgr.Delete(ctx, deleteReqCtx, fileID, true) // true = permanent
@@ -362,15 +341,15 @@ func TestIntegration_FileOperations_Metadata(t *testing.T) {
 	// Get file metadata
 	reqCtx := api.NewRequestContext("default", "", types.RequestTypeGetByID)
 	fields := "id,name,mimeType,size,createdTime,modifiedTime,owners,capabilities"
-	
+
 	file, err := fileMgr.Get(ctx, reqCtx, fileID, fields)
 	if err != nil {
 		t.Fatalf("Get metadata failed: %v", err)
 	}
 
 	// Verify metadata fields
-	if file.Id != fileID {
-		t.Errorf("ID mismatch: got %s, want %s", file.Id, fileID)
+	if file.ID != fileID {
+		t.Errorf("ID mismatch: got %s, want %s", file.ID, fileID)
 	}
 	if file.Name == "" {
 		t.Error("Name is empty")
@@ -385,7 +364,7 @@ func TestIntegration_FileOperations_Metadata(t *testing.T) {
 	t.Logf("  Size: %d bytes", file.Size)
 	t.Logf("  Created: %s", file.CreatedTime)
 	t.Logf("  Modified: %s", file.ModifiedTime)
-	
+
 	if file.Capabilities != nil {
 		t.Logf("  Can Download: %v", file.Capabilities.CanDownload)
 		t.Logf("  Can Edit: %v", file.Capabilities.CanEdit)

@@ -1,16 +1,13 @@
+//go:build integration
 // +build integration
 
 package integration
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/folders"
 	"github.com/dl-alexandre/gdrv/internal/types"
 )
@@ -21,21 +18,8 @@ func TestIntegration_FolderOperations_CreationDeletion(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	// Setup auth and client
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	folderManager := folders.NewManager(client)
 
 	// Create test folder
@@ -52,18 +36,19 @@ func TestIntegration_FolderOperations_CreationDeletion(t *testing.T) {
 	}
 
 	// Verify folder exists by listing
-	parentID := "" // root
-	listReq := &types.FolderListRequest{
-		ParentID: parentID,
-		Query:    fmt.Sprintf("name='%s' and trashed=false", folderName),
-	}
-
-	results, err := folderManager.List(ctx, reqCtx, listReq)
+	results, err := folderManager.List(ctx, reqCtx, "root", 100, "")
 	if err != nil {
 		t.Fatalf("Failed to list folders: %v", err)
 	}
 
-	if len(results.Files) == 0 {
+	found := false
+	for _, item := range results.Files {
+		if item.Name == folderName && item.MimeType == "application/vnd.google-apps.folder" {
+			found = true
+			break
+		}
+	}
+	if !found {
 		t.Error("Created folder not found in list")
 	}
 
@@ -74,12 +59,19 @@ func TestIntegration_FolderOperations_CreationDeletion(t *testing.T) {
 	}
 
 	// Verify deletion
-	results, err = folderManager.List(ctx, reqCtx, listReq)
+	results, err = folderManager.List(ctx, reqCtx, "root", 100, "")
 	if err != nil {
 		t.Fatalf("Failed to list after deletion: %v", err)
 	}
 
-	if len(results.Files) > 0 {
+	stillFound := false
+	for _, item := range results.Files {
+		if item.Name == folderName && item.MimeType == "application/vnd.google-apps.folder" {
+			stillFound = true
+			break
+		}
+	}
+	if stillFound {
 		t.Error("Folder still exists after deletion")
 	}
 }
@@ -90,20 +82,8 @@ func TestIntegration_FolderOperations_Hierarchies(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	folderManager := folders.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
@@ -127,16 +107,19 @@ func TestIntegration_FolderOperations_Hierarchies(t *testing.T) {
 	}
 
 	// List children of parent
-	listReq := &types.FolderListRequest{
-		ParentID: parent.ID,
-	}
-
-	results, err := folderManager.List(ctx, reqCtx, listReq)
+	results, err := folderManager.List(ctx, reqCtx, parent.ID, 100, "")
 	if err != nil {
 		t.Fatalf("Failed to list child folders: %v", err)
 	}
 
-	if len(results.Files) != 1 || results.Files[0].ID != child.ID {
+	foundChild := false
+	for _, item := range results.Files {
+		if item.ID == child.ID {
+			foundChild = true
+			break
+		}
+	}
+	if !foundChild {
 		t.Error("Child folder not found in parent's listing")
 	}
 
@@ -158,20 +141,8 @@ func TestIntegration_FolderOperations_Move(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	folderManager := folders.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
@@ -190,13 +161,13 @@ func TestIntegration_FolderOperations_Move(t *testing.T) {
 	}
 
 	// Move src into dest
-	err = folderManager.Move(ctx, reqCtx, src.ID, dest.ID)
+	_, err = folderManager.Move(ctx, reqCtx, src.ID, dest.ID)
 	if err != nil {
 		t.Fatalf("Failed to move folder: %v", err)
 	}
 
 	// Verify move
-	moved, err := folderManager.Get(ctx, reqCtx, src.ID)
+	moved, err := folderManager.Get(ctx, reqCtx, src.ID, "id,parents")
 	if err != nil {
 		t.Fatalf("Failed to get moved folder: %v", err)
 	}
@@ -223,20 +194,8 @@ func TestIntegration_FolderOperations_RecursiveDeletion(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	folderManager := folders.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
@@ -260,14 +219,13 @@ func TestIntegration_FolderOperations_RecursiveDeletion(t *testing.T) {
 	}
 
 	// Verify both are deleted
-	_, err = folderManager.Get(ctx, reqCtx, parent.ID)
+	_, err = folderManager.Get(ctx, reqCtx, parent.ID, "id")
 	if err == nil {
 		t.Error("Parent folder still exists after recursive deletion")
 	}
 
-	_, err = folderManager.Get(ctx, reqCtx, child.ID)
+	_, err = folderManager.Get(ctx, reqCtx, child.ID, "id")
 	if err == nil {
 		t.Error("Child folder still exists after recursive deletion")
 	}
-}</content>
-<parameter name="filePath">test/integration/folder_operations_test.go
+}

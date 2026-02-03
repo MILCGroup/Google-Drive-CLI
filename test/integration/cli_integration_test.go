@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -10,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/types"
 )
@@ -83,21 +82,12 @@ func TestIntegration_CLIIntegration_FileCommands(t *testing.T) {
 	ctx := context.Background()
 
 	// First create a test file using the API directly
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	fileName := "cli-test-" + time.Now().Format("20060102150405") + ".txt"
-	testFile, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", []byte("CLI test content"))
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	testFile := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", []byte("CLI test content"))
 
 	// Test files list command
 	cmd := exec.Command("./gdrv", "files", "list", "--profile", profile, "--query", "name='"+fileName+"'")
@@ -170,21 +160,12 @@ func TestIntegration_CLIIntegration_SafetyControls(t *testing.T) {
 	ctx := context.Background()
 
 	// Create test file
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	fileName := "safety-test-" + time.Now().Format("20060102150405") + ".txt"
-	testFile, err := fileManager.Create(ctx, reqCtx, fileName, "", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	testFile := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, "", "text/plain", nil)
 
 	// Test dry-run delete
 	cmd := exec.Command("./gdrv", "files", "delete", testFile.ID, "--profile", profile, "--dry-run")
@@ -196,7 +177,7 @@ func TestIntegration_CLIIntegration_SafetyControls(t *testing.T) {
 	t.Logf("Dry-run output: %s", output)
 
 	// Verify file still exists
-	_, err = fileManager.Get(ctx, reqCtx, testFile.ID)
+	_, err = fileManager.Get(ctx, reqCtx, testFile.ID, "id,name")
 	if err != nil {
 		t.Fatalf("File should still exist after dry-run: %v", err)
 	}
@@ -230,5 +211,4 @@ func TestIntegration_CLIIntegration_ConfigurationLoading(t *testing.T) {
 	}
 
 	t.Logf("Verbose output length: %d", len(output))
-}</content>
-<parameter name="filePath">test/integration/cli_integration_test.go
+}

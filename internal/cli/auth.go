@@ -124,7 +124,7 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 	clientSecret = resolvedSecret
 
 	if source == oauthClientSourceBundled {
-		out.Log("Using bundled OAuth client credentials.")
+		out.Log("Using default public OAuth client credentials.")
 	}
 
 	mgr := auth.NewManager(configDir)
@@ -171,7 +171,7 @@ func runAuthDevice(cmd *cobra.Command, args []string) error {
 	clientID = resolvedID
 	clientSecret = resolvedSecret
 	if source == oauthClientSourceBundled {
-		out.Log("Using bundled OAuth client credentials.")
+		out.Log("Using default public OAuth client credentials.")
 	}
 
 	mgr := auth.NewManager(configDir)
@@ -437,7 +437,7 @@ func runAuthDiagnose(cmd *cobra.Command, args []string) error {
 	clientID = resolvedID
 	clientSecret = resolvedSecret
 	if source == oauthClientSourceBundled {
-		out.Log("Using bundled OAuth client credentials.")
+		out.Log("Using default public OAuth client credentials.")
 	}
 	if clientID != "" {
 		mgr.SetOAuthConfig(clientID, clientSecret, []string{})
@@ -533,7 +533,7 @@ func resolveOAuthClient(cmd *cobra.Command, configDir string, allowMissing bool)
 	if flagIDSet || flagSecretSet {
 		if clientID == "" || (requireSecret && clientSecret == "") {
 			return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientPartial, configDir,
-				"Partial OAuth client override not allowed. Set all required client fields via flags, or clear them to use the default/bundled client if available.")
+				"Partial OAuth client override not allowed. Set client ID (and secret if required by your client type) via flags, or clear them to use the default client if available.")
 		}
 		return clientID, clientSecret, oauthClientSourceFlags, nil
 	}
@@ -543,7 +543,7 @@ func resolveOAuthClient(cmd *cobra.Command, configDir string, allowMissing bool)
 	if envID != "" || envSecret != "" {
 		if envID == "" || (requireSecret && envSecret == "") {
 			return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientPartial, configDir,
-				"Partial OAuth client override not allowed. Set all required client fields via environment variables, or clear them to use the default/bundled client if available.")
+				"Partial OAuth client override not allowed. Set client ID (and secret if required by your client type) via environment variables, or clear them to use the default client if available.")
 		}
 		return envID, envSecret, oauthClientSourceEnv, nil
 	}
@@ -555,20 +555,20 @@ func resolveOAuthClient(cmd *cobra.Command, configDir string, allowMissing bool)
 	if cfg.OAuthClientID != "" || cfg.OAuthClientSecret != "" {
 		if cfg.OAuthClientID == "" || (requireSecret && cfg.OAuthClientSecret == "") {
 			return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientPartial, configDir,
-				"Partial OAuth client override not allowed. Set all required client fields in config, or remove them to use the default/bundled client if available.")
+				"Partial OAuth client override not allowed. Set client ID (and secret if required by your client type) in config, or remove them to use the default client if available.")
 		}
 		return cfg.OAuthClientID, cfg.OAuthClientSecret, oauthClientSourceConfig, nil
 	}
 
 	if requireCustom && !allowMissing {
 		return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientMissing, configDir,
-			"Custom OAuth client required. Set GDRV_CLIENT_ID (and GDRV_CLIENT_SECRET if required) or configure the client in the config file. Bundled credentials are disabled by GDRV_REQUIRE_CUSTOM_OAUTH.")
+			"Custom OAuth client required. Set GDRV_CLIENT_ID (and GDRV_CLIENT_SECRET if required) or configure the client in the config file. Default credentials are disabled by GDRV_REQUIRE_CUSTOM_OAUTH.")
 	}
 
 	if bundledID, bundledSecret, ok := auth.GetBundledOAuthClient(); ok {
 		if requireCustom {
 			return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientMissing, configDir,
-				"Custom OAuth client required. Set GDRV_CLIENT_ID (and GDRV_CLIENT_SECRET if required) or configure the client in the config file. Bundled credentials are disabled by GDRV_REQUIRE_CUSTOM_OAUTH.")
+				"Custom OAuth client required. Set GDRV_CLIENT_ID (and GDRV_CLIENT_SECRET if required) or configure the client in the config file. Default credentials are disabled by GDRV_REQUIRE_CUSTOM_OAUTH.")
 		}
 		return bundledID, bundledSecret, oauthClientSourceBundled, nil
 	}
@@ -578,7 +578,7 @@ func resolveOAuthClient(cmd *cobra.Command, configDir string, allowMissing bool)
 	}
 
 	return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientMissing, configDir,
-		"OAuth client credentials missing. Bundled credentials are not available in this build. Provide a custom client via environment variables or config.")
+		"OAuth client ID missing. Default credentials are not available in this build. Provide a custom client ID via environment variables or config.")
 }
 
 func buildOAuthClientError(code, configDir, message string) *utils.CLIErrorBuilder {

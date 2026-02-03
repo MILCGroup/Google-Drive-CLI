@@ -325,7 +325,7 @@ go build -o gdrv ./cmd/gdrv
 
 1. **(Optional) Configure a custom OAuth client**:
    ```bash
-   # By default, gdrv uses the bundled OAuth client.
+   # By default, gdrv uses a public OAuth client (ID-only, no secret embedded).
    # To use your own client, set GDRV_CLIENT_ID
    # and GDRV_CLIENT_SECRET only if your client type requires it.
    export GDRV_CLIENT_ID="your-client-id"
@@ -451,7 +451,7 @@ gdrv files delete 1abc123... --permanent
 
 ## Authentication
 
-The CLI supports multiple authentication methods and scope presets. OAuth uses Authorization Code + PKCE for installed/desktop apps (public client). Any bundled client secret is treated as public and not relied on for security.
+The CLI supports multiple authentication methods and scope presets. OAuth uses Authorization Code + PKCE for installed/desktop apps (public client). The default client is ID-only (no embedded secret).
 
 ### OAuth Client Sources and Precedence
 
@@ -459,7 +459,7 @@ Credentials are resolved in this order:
 1. CLI flags (`--client-id`, `--client-secret`)
 2. Environment variables (`GDRV_CLIENT_ID`, `GDRV_CLIENT_SECRET`)
 3. Config file (`oauthClientId`, `oauthClientSecret`)
-4. Bundled OAuth client (release builds)
+4. Default public OAuth client (embedded ID, no secret)
 
 No partial overrides: if any OAuth client variable is set, all required OAuth client fields must be set (client ID always; secret only if your client type requires it).
 
@@ -469,13 +469,13 @@ No partial overrides: if any OAuth client variable is set, all required OAuth cl
 - Windows: `%APPDATA%\\gdrv\\config.json`
 - Override with `GDRV_CONFIG_DIR`
 
-**Contributor/CI policy:** set `GDRV_REQUIRE_CUSTOM_OAUTH=1` to refuse bundled credentials.
+**Contributor/CI policy:** set `GDRV_REQUIRE_CUSTOM_OAUTH=1` to refuse default credentials.
 
-Bundled client credentials may rotate between releases. If you see `invalid_client` errors with the bundled client, upgrade or configure a custom client.
+Default public client IDs may rotate between releases. If you see `invalid_client` errors with the default client, upgrade or configure a custom client.
 
-### Shared OAuth Client Notes
+### Default OAuth Client Notes
 
-- The bundled client secret is public and not relied on for security (PKCE is used).
+- The default public client is ID-only; any secret provided is treated as public (PKCE is used).
 - The shared client is hosted in a dedicated Google Cloud project with quota monitoring and a rotation plan.
 - If the shared client is disabled or rotated, the CLI will instruct you to upgrade or configure a custom client.
 
@@ -1251,7 +1251,7 @@ export GDRV_REQUIRE_CUSTOM_OAUTH=1
 
 **"OAuth client credentials missing"**
 ```bash
-# Use bundled client (release builds) or set a custom client:
+# Use default public client (release builds) or set a custom client:
 export GDRV_CLIENT_ID="your-client-id"
 export GDRV_CLIENT_SECRET="your-client-secret" # only if required by your client type
 gdrv auth login

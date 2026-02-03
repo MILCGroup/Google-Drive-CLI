@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package integration
@@ -9,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/drives"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/folders"
@@ -24,20 +23,8 @@ func TestIntegration_SharedDrives_Enumeration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	driveManager := drives.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
@@ -72,11 +59,6 @@ func TestIntegration_SharedDrives_GetDrive(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	// Need a test Shared Drive ID
 	driveID := os.Getenv("TEST_SHARED_DRIVE_ID")
 	if driveID == "" {
@@ -84,19 +66,12 @@ func TestIntegration_SharedDrives_GetDrive(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	driveManager := drives.NewManager(client)
 	reqCtx := &types.RequestContext{}
 
 	// Get specific drive
-	drive, err := driveManager.Get(ctx, reqCtx, driveID)
+	drive, err := driveManager.Get(ctx, reqCtx, driveID, "id,name")
 	if err != nil {
 		t.Fatalf("Failed to get Shared Drive: %v", err)
 	}
@@ -118,36 +93,27 @@ func TestIntegration_SharedDrives_PathResolution(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	driveID := os.Getenv("TEST_SHARED_DRIVE_ID")
 	if driveID == "" {
 		t.Skip("TEST_SHARED_DRIVE_ID not set")
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
-	resolver := resolver.NewResolver(client)
+	client, _, _ := setupDriveClient(t)
+	pathResolver := resolver.NewPathResolver(client, time.Minute)
 	reqCtx := &types.RequestContext{}
 
 	// Test path resolution in Shared Drive context
-	path := "SharedDrives/" + driveID + "/test-path"
-	resolved, err := resolver.Resolve(ctx, reqCtx, path, "")
+	path := "test-path"
+	resolved, err := pathResolver.Resolve(ctx, reqCtx, path, resolver.ResolveOptions{
+		DriveID:  driveID,
+		UseCache: false,
+	})
 	if err != nil {
 		// Path might not exist, that's okay for this test
 		t.Logf("Path resolution failed (expected if path doesn't exist): %v", err)
 	} else {
-		t.Logf("Resolved path %s to ID: %s", path, resolved.ID)
+		t.Logf("Resolved path %s to ID: %s", path, resolved.FileID)
 	}
 }
 
@@ -157,25 +123,13 @@ func TestIntegration_SharedDrives_SpecificOperations(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	profile := os.Getenv("TEST_PROFILE")
-	if profile == "" {
-		t.Skip("TEST_PROFILE not set")
-	}
-
 	driveID := os.Getenv("TEST_SHARED_DRIVE_ID")
 	if driveID == "" {
 		t.Skip("TEST_SHARED_DRIVE_ID not set")
 	}
 
 	ctx := context.Background()
-
-	manager := auth.NewManager("")
-	token, err := manager.GetToken(profile)
-	if err != nil {
-		t.Fatalf("Failed to get token: %v", err)
-	}
-
-	client := api.NewClient(token)
+	client, _, _ := setupDriveClient(t)
 	fileManager := files.NewManager(client)
 	folderManager := folders.NewManager(client)
 	reqCtx := &types.RequestContext{}
@@ -189,13 +143,10 @@ func TestIntegration_SharedDrives_SpecificOperations(t *testing.T) {
 
 	// Create a file in the Shared Drive folder
 	fileName := "shared-drive-file-" + time.Now().Format("20060102150405") + ".txt"
-	file, err := fileManager.Create(ctx, reqCtx, fileName, folder.ID, "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to create file in Shared Drive: %v", err)
-	}
+	file := uploadTempFile(t, ctx, fileManager, reqCtx, fileName, folder.ID, "text/plain", nil)
 
 	// List contents of the Shared Drive folder
-	listReq := &types.FileListRequest{
+	listReq := files.ListOptions{
 		Query: fmt.Sprintf("'%s' in parents and trashed=false", folder.ID),
 	}
 	results, err := fileManager.List(ctx, reqCtx, listReq)
@@ -217,5 +168,4 @@ func TestIntegration_SharedDrives_SpecificOperations(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to delete Shared Drive folder: %v", err)
 	}
-}</content>
-<parameter name="filePath">test/integration/shared_drives_test.go
+}

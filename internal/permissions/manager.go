@@ -132,6 +132,7 @@ func (m *Manager) List(ctx context.Context, reqCtx *types.RequestContext, fileID
 	if opts.PageSize > 0 {
 		call = call.PageSize(int64(opts.PageSize))
 	}
+	call = call.Context(ctx)
 
 	var allPerms []*types.Permission
 	pageToken := ""
@@ -222,6 +223,7 @@ func (m *Manager) Create(ctx context.Context, reqCtx *types.RequestContext, file
 	if opts.UseDomainAdminAccess {
 		call = call.UseDomainAdminAccess(true)
 	}
+	call = call.Context(ctx)
 
 	result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.Permission, error) {
 		return call.Do()
@@ -285,6 +287,7 @@ func (m *Manager) UpdateWithSafety(ctx context.Context, reqCtx *types.RequestCon
 	if header != "" {
 		call.Header().Set("X-Goog-Drive-Resource-Keys", header)
 	}
+	call = call.Context(ctx)
 
 	result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.Permission, error) {
 		return call.Do()
@@ -367,6 +370,7 @@ func (m *Manager) DeleteWithSafety(ctx context.Context, reqCtx *types.RequestCon
 	if header != "" {
 		call.Header().Set("X-Goog-Drive-Resource-Keys", header)
 	}
+	call = call.Context(ctx)
 
 	_, err = api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (interface{}, error) {
 		return nil, call.Do()
@@ -422,6 +426,7 @@ func (m *Manager) Get(ctx context.Context, reqCtx *types.RequestContext, fileID,
 	if header != "" {
 		call.Header().Set("X-Goog-Drive-Resource-Keys", header)
 	}
+	call = call.Context(ctx)
 
 	result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.Permission, error) {
 		return call.Do()
