@@ -1317,6 +1317,15 @@ go test -tags=integration ./test/integration/...
 go build -o gdrv cmd/gdrv/main.go
 ```
 
+
+## Privacy & Terms
+
+- **[Privacy Policy](https://github.com/dl-alexandre/Google-Drive-CLI/blob/master/docs/PRIVACY.md)** - How we handle your data (we don't collect any)
+- **[Terms of Service](https://github.com/dl-alexandre/Google-Drive-CLI/blob/master/docs/TERMS.md)** - License, warranty, and usage terms
+
+**TL;DR:** gdrv stores credentials locally encrypted, contacts only Google APIs, collects zero data, and is fully open source.
+
+
 ## Contributing
 
 1. Fork the repository
