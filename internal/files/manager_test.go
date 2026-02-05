@@ -1102,7 +1102,7 @@ func TestConvertDriveFile_NilParents(t *testing.T) {
 
 	converted := convertDriveFile(driveFile)
 
-	if converted.Parents != nil && len(converted.Parents) != 0 {
+	if len(converted.Parents) != 0 {
 		t.Errorf("Parents should be nil or empty, got %v", converted.Parents)
 	}
 }
@@ -1118,7 +1118,7 @@ func TestConvertDriveFile_NilExportLinks(t *testing.T) {
 
 	converted := convertDriveFile(driveFile)
 
-	if converted.ExportLinks != nil && len(converted.ExportLinks) != 0 {
+	if len(converted.ExportLinks) != 0 {
 		t.Errorf("ExportLinks should be nil or empty, got %v", converted.ExportLinks)
 	}
 }
@@ -1583,11 +1583,11 @@ func TestConvertDriveFile_AllFieldsNil(t *testing.T) {
 		t.Error("Capabilities should be nil")
 	}
 
-	if converted.ExportLinks != nil && len(converted.ExportLinks) != 0 {
+	if len(converted.ExportLinks) != 0 {
 		t.Error("ExportLinks should be nil or empty")
 	}
 
-	if converted.Parents != nil && len(converted.Parents) != 0 {
+	if len(converted.Parents) != 0 {
 		t.Error("Parents should be nil or empty")
 	}
 }
@@ -2250,11 +2250,11 @@ func TestConvertDriveFile_WithAllNilFields(t *testing.T) {
 		t.Error("Capabilities should be nil")
 	}
 
-	if converted.ExportLinks != nil && len(converted.ExportLinks) != 0 {
+	if len(converted.ExportLinks) != 0 {
 		t.Error("ExportLinks should be nil or empty")
 	}
 
-	if converted.Parents != nil && len(converted.Parents) != 0 {
+	if len(converted.Parents) != 0 {
 		t.Error("Parents should be nil or empty")
 	}
 }
