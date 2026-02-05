@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net"
@@ -439,10 +440,8 @@ func TestCodeChallengeComputation(t *testing.T) {
 
 // TestOAuthFlowWithMockServer validates full OAuth flow with mock server
 func TestOAuthFlowWithMockServer(t *testing.T) {
-	// Create mock OAuth server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/token" {
-			// Verify code_verifier is present in token exchange
 			if err := r.ParseForm(); err != nil {
 				http.Error(w, "bad request", http.StatusBadRequest)
 				return
@@ -453,7 +452,6 @@ func TestOAuthFlowWithMockServer(t *testing.T) {
 				t.Error("Token exchange missing code_verifier parameter")
 			}
 
-			// Return mock token
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprintf(w, `{
 				"access_token": "mock_access_token",
@@ -481,18 +479,148 @@ func TestOAuthFlowWithMockServer(t *testing.T) {
 	}
 	defer flow.Close()
 
-	// Exchange a mock code
 	ctx := context.Background()
 	creds, err := flow.ExchangeCode(ctx, "mock_auth_code")
 	if err != nil {
 		t.Fatalf("ExchangeCode failed: %v", err)
 	}
 
-	// Verify credentials
 	if creds.AccessToken != "mock_access_token" {
 		t.Errorf("Expected access_token=mock_access_token, got %s", creds.AccessToken)
 	}
 	if creds.RefreshToken != "mock_refresh_token" {
 		t.Errorf("Expected refresh_token=mock_refresh_token, got %s", creds.RefreshToken)
+	}
+}
+
+func TestNewOAuthFlow_NilConfig(t *testing.T) {
+	listener, _ := net.Listen("tcp", "127.0.0.1:0")
+	defer listener.Close()
+
+	_, err := NewOAuthFlow(nil, listener, "http://127.0.0.1:8080/callback")
+	if err == nil {
+		t.Error("NewOAuthFlow should fail with nil config")
+	}
+}
+
+func TestNewOAuthFlow_NoRedirectURL(t *testing.T) {
+	config := &oauth2.Config{
+		ClientID: "test-client-id",
+		Scopes:   []string{"https://www.googleapis.com/auth/drive.readonly"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+	}
+
+	listener, _ := net.Listen("tcp", "127.0.0.1:0")
+	defer listener.Close()
+
+	_, err := NewOAuthFlow(config, listener, "")
+	if err == nil {
+		t.Error("NewOAuthFlow should fail with no redirect URL")
+	}
+}
+
+func TestOAuthFlow_GetAuthURL_HasRequiredParams(t *testing.T) {
+	config := &oauth2.Config{
+		ClientID:     "test-client-id",
+		ClientSecret: "test-client-secret",
+		Scopes:       []string{"https://www.googleapis.com/auth/drive.readonly"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+	}
+
+	flow, err := newLoopbackFlow(config)
+	if err != nil {
+		t.Fatalf("Failed to create flow: %v", err)
+	}
+	defer flow.Close()
+
+	authURL := flow.GetAuthURL()
+	parsedURL, _ := url.Parse(authURL)
+	query := parsedURL.Query()
+
+	if query.Get("client_id") != "test-client-id" {
+		t.Error("Auth URL missing client_id")
+	}
+	if query.Get("response_type") != "code" {
+		t.Error("Auth URL missing response_type=code")
+	}
+	if query.Get("scope") == "" {
+		t.Error("Auth URL missing scope")
+	}
+}
+
+func TestOAuthFlow_StartCallbackServer_ContextCancel(t *testing.T) {
+	config := &oauth2.Config{
+		ClientID: "test-client-id",
+		Scopes:   []string{"https://www.googleapis.com/auth/drive.readonly"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+	}
+
+	flow, err := newLoopbackFlow(config)
+	if err != nil {
+		t.Fatalf("Failed to create flow: %v", err)
+	}
+	defer flow.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	flow.StartCallbackServer(ctx)
+
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+}
+
+func TestGenerateState_Uniqueness(t *testing.T) {
+	states := make(map[string]bool)
+
+	for i := 0; i < 50; i++ {
+		state, err := generateState()
+		if err != nil {
+			t.Fatalf("Failed to generate state: %v", err)
+		}
+
+		if states[state] {
+			t.Errorf("Duplicate state generated: %s", state)
+		}
+		states[state] = true
+
+		if len(state) == 0 {
+			t.Error("Generated state is empty")
+		}
+	}
+}
+
+func TestPromptForAuthCode(t *testing.T) {
+	input := "test-auth-code\n"
+	reader := bufio.NewReader(strings.NewReader(input))
+
+	code, err := promptForAuthCode(reader)
+	if err != nil {
+		t.Fatalf("promptForAuthCode failed: %v", err)
+	}
+
+	if code != "test-auth-code" {
+		t.Errorf("Expected 'test-auth-code', got %q", code)
+	}
+}
+
+func TestPromptForAuthCode_WithWhitespace(t *testing.T) {
+	input := "  test-auth-code  \n"
+	reader := bufio.NewReader(strings.NewReader(input))
+
+	code, err := promptForAuthCode(reader)
+	if err != nil {
+		t.Fatalf("promptForAuthCode failed: %v", err)
+	}
+
+	if code != "test-auth-code" {
+		t.Errorf("Expected 'test-auth-code', got %q", code)
 	}
 }

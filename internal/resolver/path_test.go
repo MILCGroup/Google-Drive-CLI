@@ -131,12 +131,12 @@ func TestDomainPriority(t *testing.T) {
 	sharedWithMePriority := resolver.getDomainPriority(SearchDomainSharedWithMe)
 
 	if myDrivePriority >= sharedDrivePriority {
-		t.Errorf("My Drive priority (%d) should be less than Shared Drive priority (%d)", 
+		t.Errorf("My Drive priority (%d) should be less than Shared Drive priority (%d)",
 			myDrivePriority, sharedDrivePriority)
 	}
 
 	if sharedDrivePriority >= sharedWithMePriority {
-		t.Errorf("Shared Drive priority (%d) should be less than shared-with-me priority (%d)", 
+		t.Errorf("Shared Drive priority (%d) should be less than shared-with-me priority (%d)",
 			sharedDrivePriority, sharedWithMePriority)
 	}
 }
@@ -190,7 +190,7 @@ func TestDisambiguationOrdering(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sorted := resolver.sortMatchesWithDomainPreference(tt.matches, tt.domain)
-			
+
 			if len(sorted) != len(tt.expected) {
 				t.Fatalf("Expected %d results, got %d", len(tt.expected), len(sorted))
 			}
@@ -270,7 +270,7 @@ func TestClearCache(t *testing.T) {
 	// Verify all are cached
 	for key, expectedFileID := range entries {
 		if cached, ok := resolver.checkCacheByKey(key); !ok || cached != expectedFileID {
-			t.Errorf("Key %s: expected cached value %s, got ok=%v, cached=%s", 
+			t.Errorf("Key %s: expected cached value %s, got ok=%v, cached=%s",
 				key, expectedFileID, ok, cached)
 		}
 	}
@@ -371,6 +371,130 @@ func TestFileDomainInference(t *testing.T) {
 			result := resolver.inferFileDomain(tt.file)
 			if result != tt.expected {
 				t.Errorf("inferFileDomain() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestInvalidateCacheByKey tests cache invalidation by key
+func TestInvalidateCacheByKey(t *testing.T) {
+	resolver := NewPathResolver(nil, 1*time.Hour)
+
+	// Add a cache entry
+	key := "test:my-drive:foo/bar"
+	fileID := "file123"
+	resolver.updateCacheByKey(key, fileID)
+
+	// Verify it's cached
+	if cached, ok := resolver.checkCacheByKey(key); !ok || cached != fileID {
+		t.Errorf("Expected cached value %s, got ok=%v, cached=%s", fileID, ok, cached)
+	}
+
+	// Invalidate by key
+	resolver.InvalidateCacheByKey(key)
+
+	// Should no longer be cached
+	if _, ok := resolver.checkCacheByKey(key); ok {
+		t.Errorf("Expected cache entry to be invalidated, but it was still present")
+	}
+}
+
+// TestGetDomainPriorityEdgeCases tests domain priority for edge cases
+func TestGetDomainPriorityEdgeCases(t *testing.T) {
+	resolver := &PathResolver{}
+
+	tests := []struct {
+		name     string
+		domain   SearchDomain
+		expected int
+	}{
+		{name: "my-drive", domain: SearchDomainMyDrive, expected: 1},
+		{name: "shared-drive", domain: SearchDomainSharedDrive, expected: 2},
+		{name: "shared-with-me", domain: SearchDomainSharedWithMe, expected: 3},
+		{name: "all-drives", domain: SearchDomainAllDrives, expected: 4},
+		{name: "domain", domain: SearchDomainDomain, expected: 4},
+		{name: "unknown", domain: SearchDomain("unknown"), expected: 4},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := resolver.getDomainPriority(tt.domain)
+			if result != tt.expected {
+				t.Errorf("getDomainPriority(%v) = %d, want %d", tt.domain, result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestShouldSwapWithDomainShortcutPreference tests shortcut preference in disambiguation
+func TestShouldSwapWithDomainShortcutPreference(t *testing.T) {
+	resolver := &PathResolver{}
+
+	tests := []struct {
+		name     string
+		fileA    *types.DriveFile
+		fileB    *types.DriveFile
+		domain   SearchDomain
+		expected bool // true if should swap (A before B)
+	}{
+		{
+			name: "prefer non-shortcut",
+			fileA: &types.DriveFile{
+				ID:       "id1",
+				Name:     "doc",
+				MimeType: "application/vnd.google-apps.shortcut",
+				Parents:  []string{"root"},
+			},
+			fileB: &types.DriveFile{
+				ID:       "id2",
+				Name:     "doc",
+				MimeType: "application/vnd.google-apps.document",
+				Parents:  []string{"root"},
+			},
+			domain:   SearchDomainMyDrive,
+			expected: true, // A is shortcut, should swap to put B first
+		},
+		{
+			name: "both non-shortcuts, prefer by name",
+			fileA: &types.DriveFile{
+				ID:       "id1",
+				Name:     "zebra",
+				MimeType: "application/vnd.google-apps.document",
+				Parents:  []string{"root"},
+			},
+			fileB: &types.DriveFile{
+				ID:       "id2",
+				Name:     "apple",
+				MimeType: "application/vnd.google-apps.document",
+				Parents:  []string{"root"},
+			},
+			domain:   SearchDomainMyDrive,
+			expected: true, // zebra > apple, should swap
+		},
+		{
+			name: "same name and type, prefer by ID",
+			fileA: &types.DriveFile{
+				ID:       "zzz",
+				Name:     "doc",
+				MimeType: "application/vnd.google-apps.document",
+				Parents:  []string{"root"},
+			},
+			fileB: &types.DriveFile{
+				ID:       "aaa",
+				Name:     "doc",
+				MimeType: "application/vnd.google-apps.document",
+				Parents:  []string{"root"},
+			},
+			domain:   SearchDomainMyDrive,
+			expected: true, // zzz > aaa, should swap
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := resolver.shouldSwapWithDomain(tt.fileA, tt.fileB, tt.domain)
+			if result != tt.expected {
+				t.Errorf("shouldSwapWithDomain() = %v, want %v", result, tt.expected)
 			}
 		})
 	}

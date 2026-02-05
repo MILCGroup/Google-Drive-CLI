@@ -50,12 +50,48 @@ func TestDeviceCodeFlow_PollOnce(t *testing.T) {
 		Interval:        5,
 	}
 
-	// Test polling (will return authorization_pending error in test environment)
-	// This validates the error handling path
 	ctx := context.Background()
 	_, err := flow.pollOnce(ctx, http.DefaultClient)
 	if err != nil {
-		// Expected in test environment
 		t.Logf("Poll returned error (expected): %v", err)
+	}
+}
+
+func TestDeviceCodeFlow_PollForToken_NoResponse(t *testing.T) {
+	config := &oauth2.Config{
+		ClientID: "test-client-id",
+		Scopes:   []string{"https://www.googleapis.com/auth/drive.file"},
+	}
+
+	flow := NewDeviceCodeFlow(config)
+
+	ctx := context.Background()
+	_, err := flow.PollForToken(ctx)
+	if err == nil {
+		t.Error("PollForToken should fail when response is nil")
+	}
+}
+
+func TestDeviceCodeFlow_PollForToken_ContextCanceled(t *testing.T) {
+	config := &oauth2.Config{
+		ClientID: "test-client-id",
+		Scopes:   []string{"https://www.googleapis.com/auth/drive.file"},
+	}
+
+	flow := NewDeviceCodeFlow(config)
+	flow.response = &DeviceCodeResponse{
+		DeviceCode:      "test-device-code",
+		UserCode:        "TEST-CODE",
+		VerificationURL: "https://google.com/device",
+		ExpiresIn:       300,
+		Interval:        5,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := flow.PollForToken(ctx)
+	if err == nil {
+		t.Error("PollForToken should fail when context is canceled")
 	}
 }
