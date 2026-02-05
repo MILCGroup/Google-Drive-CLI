@@ -111,3 +111,87 @@ func TestConvertGroup(t *testing.T) {
 		}
 	})
 }
+
+func TestBoolPtr(t *testing.T) {
+	t.Run("true", func(t *testing.T) {
+		ptr := boolPtr(true)
+		if ptr == nil {
+			t.Fatal("expected non-nil pointer")
+		}
+		if !*ptr {
+			t.Fatal("expected true value")
+		}
+	})
+
+	t.Run("false", func(t *testing.T) {
+		ptr := boolPtr(false)
+		if ptr == nil {
+			t.Fatal("expected non-nil pointer")
+		}
+		if *ptr {
+			t.Fatal("expected false value")
+		}
+	})
+}
+
+func TestConvertMembers(t *testing.T) {
+	t.Run("nil input", func(t *testing.T) {
+		if got := convertMembers(nil); len(got) != 0 {
+			t.Fatalf("expected empty slice, got %d", len(got))
+		}
+	})
+
+	t.Run("empty members", func(t *testing.T) {
+		if got := convertMembers(&adminapi.Members{Members: []*adminapi.Member{}}); len(got) != 0 {
+			t.Fatalf("expected empty slice, got %d", len(got))
+		}
+	})
+
+	t.Run("multiple members", func(t *testing.T) {
+		members := &adminapi.Members{Members: []*adminapi.Member{
+			{Id: "1", Email: "a@example.com", Role: "MEMBER", Type: "USER"},
+			{Id: "2", Email: "b@example.com", Role: "OWNER", Type: "GROUP"},
+		}}
+		got := convertMembers(members)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 members, got %d", len(got))
+		}
+		if got[0].Email != "a@example.com" {
+			t.Fatalf("expected first member email to match")
+		}
+		if got[1].Role != "OWNER" {
+			t.Fatalf("expected second member role to be OWNER")
+		}
+	})
+}
+
+func TestConvertMember(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		got := convertMember(nil)
+		if got.ID != "" || got.Email != "" {
+			t.Fatalf("expected empty member")
+		}
+	})
+
+	t.Run("full member", func(t *testing.T) {
+		member := &adminapi.Member{
+			Id:    "1",
+			Email: "a@example.com",
+			Role:  "MEMBER",
+			Type:  "USER",
+		}
+		got := convertMember(member)
+		if got.ID != "1" {
+			t.Fatalf("expected ID 1, got %s", got.ID)
+		}
+		if got.Email != "a@example.com" {
+			t.Fatalf("expected email a@example.com, got %s", got.Email)
+		}
+		if got.Role != "MEMBER" {
+			t.Fatalf("expected role MEMBER, got %s", got.Role)
+		}
+		if got.Type != "USER" {
+			t.Fatalf("expected type USER, got %s", got.Type)
+		}
+	})
+}
