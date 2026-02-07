@@ -15,6 +15,7 @@ bin/
 
 # Temp files
 *.tmp
+.artifacts/
 
 # IDE
 .idea/
