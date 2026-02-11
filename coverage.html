@@ -1,0 +1,882 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>files: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/dl-alexandre/gdrv/internal/files/manager.go (5.4%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package files
+
+import (
+        "context"
+        "fmt"
+        "io"
+        "net/http"
+        "os"
+        "path/filepath"
+        "time"
+
+        "github.com/dl-alexandre/gdrv/internal/api"
+        "github.com/dl-alexandre/gdrv/internal/safety"
+        "github.com/dl-alexandre/gdrv/internal/types"
+        "github.com/dl-alexandre/gdrv/internal/utils"
+        "google.golang.org/api/drive/v3"
+        "google.golang.org/api/googleapi"
+)
+
+// Manager handles file operations
+type Manager struct {
+        client *api.Client
+        shaper *api.RequestShaper
+}
+
+// NewManager creates a new file manager
+func NewManager(client *api.Client) *Manager <span class="cov8" title="1">{
+        return &amp;Manager{
+                client: client,
+                shaper: api.NewRequestShaper(client),
+        }
+}</span>
+
+// UploadOptions configures file upload
+type UploadOptions struct {
+        ParentID    string
+        Name        string
+        MimeType    string
+        Convert     bool
+        PinRevision bool
+}
+
+type UpdateContentOptions struct {
+        Name     string
+        MimeType string
+        Fields   string
+}
+
+// DownloadOptions configures file download
+type DownloadOptions struct {
+        OutputPath   string
+        MimeType     string
+        Wait         bool
+        Timeout      int // in seconds
+        PollInterval int // in seconds
+}
+
+// ListOptions configures file listing
+type ListOptions struct {
+        ParentID       string
+        Query          string
+        PageSize       int
+        PageToken      string
+        OrderBy        string
+        IncludeTrashed bool
+        Fields         string
+}
+
+// Upload uploads a file to Drive
+func (m *Manager) Upload(ctx context.Context, reqCtx *types.RequestContext, localPath string, opts UploadOptions) (*types.DriveFile, error) <span class="cov8" title="1">{
+        file, err := os.Open(localPath)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
+                        fmt.Sprintf("Failed to open file: %s", err)).Build())
+        }</span>
+        <span class="cov0" title="0">defer file.Close()
+
+        stat, err := file.Stat()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">name := opts.Name
+        if name == "" </span><span class="cov0" title="0">{
+                name = filepath.Base(localPath)
+        }</span>
+
+        <span class="cov0" title="0">metadata := &amp;drive.File{
+                Name: name,
+        }
+        if opts.ParentID != "" </span><span class="cov0" title="0">{
+                metadata.Parents = []string{opts.ParentID}
+                reqCtx.InvolvedParentIDs = append(reqCtx.InvolvedParentIDs, opts.ParentID)
+        }</span>
+        <span class="cov0" title="0">if opts.MimeType != "" </span><span class="cov0" title="0">{
+                metadata.MimeType = opts.MimeType
+        }</span>
+
+        // Select upload type based on file size
+        <span class="cov0" title="0">uploadType := selectUploadType(stat.Size(), metadata)
+
+        var result *drive.File
+
+        switch uploadType </span>{
+        case "simple":<span class="cov0" title="0">
+                result, err = m.simpleUpload(ctx, reqCtx, file, metadata, opts)</span>
+        case "multipart":<span class="cov0" title="0">
+                result, err = m.multipartUpload(ctx, reqCtx, file, metadata, opts)</span>
+        case "resumable":<span class="cov0" title="0">
+                result, err = m.resumableUpload(ctx, reqCtx, file, metadata, stat.Size(), opts)</span>
+        }
+
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Update resource key cache
+        <span class="cov0" title="0">if result.ResourceKey != "" </span><span class="cov0" title="0">{
+                m.client.ResourceKeys().UpdateFromAPIResponse(result.Id, result.ResourceKey)
+        }</span>
+
+        <span class="cov0" title="0">return convertDriveFile(result), nil</span>
+}
+
+func (m *Manager) UpdateContent(ctx context.Context, reqCtx *types.RequestContext, fileID string, localPath string, opts UpdateContentOptions) (*types.DriveFile, error) <span class="cov8" title="1">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+
+        file, err := os.Open(localPath)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
+                        fmt.Sprintf("Failed to open file: %s", err)).Build())
+        }</span>
+        <span class="cov0" title="0">defer file.Close()
+
+        metadata := &amp;drive.File{}
+        if opts.Name != "" </span><span class="cov0" title="0">{
+                metadata.Name = opts.Name
+        }</span>
+        <span class="cov0" title="0">if opts.MimeType != "" </span><span class="cov0" title="0">{
+                metadata.MimeType = opts.MimeType
+        }</span>
+
+        <span class="cov0" title="0">call := m.client.Service().Files.Update(fileID, metadata).Media(file)
+        call = m.shaper.ShapeFilesUpdate(call, reqCtx)
+        if opts.Fields != "" </span><span class="cov0" title="0">{
+                call = call.Fields(googleapi.Field(opts.Fields))
+        }</span>
+
+        <span class="cov0" title="0">result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">if result.ResourceKey != "" </span><span class="cov0" title="0">{
+                m.client.ResourceKeys().UpdateFromAPIResponse(result.Id, result.ResourceKey)
+        }</span>
+
+        <span class="cov0" title="0">return convertDriveFile(result), nil</span>
+}
+
+func selectUploadType(size int64, metadata *drive.File) string <span class="cov8" title="1">{
+        // For files larger than 5MB, use resumable upload for better reliability
+        if size &gt; int64(utils.UploadSimpleMaxBytes) </span><span class="cov8" title="1">{
+                return "resumable"
+        }</span>
+        // If metadata is provided (name, mimeType, or parents), use multipart
+        // This allows sending metadata and content in a single request
+        <span class="cov8" title="1">if metadata.Name != "" || metadata.MimeType != "" || len(metadata.Parents) &gt; 0 </span><span class="cov8" title="1">{
+                return "multipart"
+        }</span>
+        // For small files without metadata, simple upload is sufficient
+        <span class="cov8" title="1">return "simple"</span>
+}
+
+func (m *Manager) simpleUpload(ctx context.Context, reqCtx *types.RequestContext, reader io.Reader, metadata *drive.File, opts UploadOptions) (*drive.File, error) <span class="cov0" title="0">{
+        call := m.client.Service().Files.Create(metadata).Media(reader)
+        call = m.shaper.ShapeFilesCreate(call, reqCtx)
+
+        return api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+}
+
+func (m *Manager) multipartUpload(ctx context.Context, reqCtx *types.RequestContext, reader io.Reader, metadata *drive.File, opts UploadOptions) (*drive.File, error) <span class="cov0" title="0">{
+        call := m.client.Service().Files.Create(metadata).Media(reader)
+        call = m.shaper.ShapeFilesCreate(call, reqCtx)
+
+        return api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+}
+
+func (m *Manager) resumableUpload(ctx context.Context, reqCtx *types.RequestContext, reader io.Reader, metadata *drive.File, size int64, opts UploadOptions) (*drive.File, error) <span class="cov0" title="0">{
+        call := m.client.Service().Files.Create(metadata).Media(reader)
+        call = m.shaper.ShapeFilesCreate(call, reqCtx)
+        call = call.ProgressUpdater(func(current, total int64) </span>{<span class="cov0" title="0">
+                // Progress callback - could be used to report upload progress
+                // For now, this is a placeholder for future enhancement
+        }</span>)
+
+        <span class="cov0" title="0">return api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+}
+
+// Download downloads a file from Drive
+func (m *Manager) Download(ctx context.Context, reqCtx *types.RequestContext, fileID string, opts DownloadOptions) error <span class="cov0" title="0">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+
+        // Get file metadata first with exportLinks included for Workspace files
+        fields := "id,name,mimeType,size,capabilities,exportLinks"
+        file, err := m.Get(ctx, reqCtx, fileID, fields)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // Check download capability
+        <span class="cov0" title="0">if file.Capabilities != nil &amp;&amp; !file.Capabilities.CanDownload </span><span class="cov0" title="0">{
+                return utils.NewAppError(utils.NewCLIError(utils.ErrCodePermissionDenied,
+                        "File cannot be downloaded").
+                        WithContext("capability", "canDownload=false").
+                        Build())
+        }</span>
+
+        <span class="cov0" title="0">outputPath := opts.OutputPath
+        if outputPath == "" </span><span class="cov0" title="0">{
+                if opts.MimeType == "text/plain" &amp;&amp; utils.IsWorkspaceMimeType(file.MimeType) </span><span class="cov0" title="0">{
+                        outputPath = file.Name + ".txt"
+                }</span> else<span class="cov0" title="0"> {
+                        outputPath = file.Name
+                }</span>
+        }
+
+        <span class="cov0" title="0">outFile, err := os.Create(outputPath)
+        if err != nil </span><span class="cov0" title="0">{
+                return utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
+                        fmt.Sprintf("Failed to create output file: %s", err)).Build())
+        }</span>
+        <span class="cov0" title="0">defer outFile.Close()
+
+        // Check if it's a Workspace file that needs export
+        if utils.IsWorkspaceMimeType(file.MimeType) </span><span class="cov0" title="0">{
+                return m.exportFile(ctx, reqCtx, fileID, file, opts, outFile)
+        }</span>
+
+        <span class="cov0" title="0">return m.downloadBlob(ctx, reqCtx, fileID, outFile)</span>
+}
+
+func (m *Manager) downloadBlob(ctx context.Context, reqCtx *types.RequestContext, fileID string, writer io.Writer) error <span class="cov0" title="0">{
+        call := m.client.Service().Files.Get(fileID)
+        call = m.shaper.ShapeFilesGet(call, reqCtx)
+
+        // Download content
+        httpResp, err := call.Download()
+        if err != nil </span><span class="cov0" title="0">{
+                return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                        fmt.Sprintf("Download failed: %s", err)).Build())
+        }</span>
+        <span class="cov0" title="0">defer httpResp.Body.Close()
+
+        _, err = io.Copy(writer, httpResp.Body)
+        return err</span>
+}
+
+func (m *Manager) exportFile(ctx context.Context, reqCtx *types.RequestContext, fileID string, file *types.DriveFile, opts DownloadOptions, writer io.Writer) error <span class="cov0" title="0">{
+        mimeType := opts.MimeType
+        if mimeType == "" </span><span class="cov0" title="0">{
+                mimeType = "application/pdf" // Default export format
+        }</span>
+
+        // Check if file size exceeds export limit (10MB)
+        // Note: Google Workspace files don't have a size property, but exports may fail if too large
+        <span class="cov0" title="0">if file.Size &gt; int64(utils.ExportMaxBytes) </span><span class="cov0" title="0">{
+                // Build error with exportLinks for manual download
+                errBuilder := utils.NewCLIError(utils.ErrCodeExportSizeLimit,
+                        fmt.Sprintf("File exceeds 10MB export limit (size: %d bytes)", file.Size)).
+                        WithContext("fileId", fileID).
+                        WithContext("size", file.Size).
+                        WithContext("limit", utils.ExportMaxBytes)
+
+                // Include exportLinks if available
+                if len(file.ExportLinks) &gt; 0 </span><span class="cov0" title="0">{
+                        errBuilder.WithContext("exportLinks", file.ExportLinks)
+                }</span>
+
+                <span class="cov0" title="0">return utils.NewAppError(errBuilder.Build())</span>
+        }
+
+        // Try direct export first
+        <span class="cov0" title="0">call := m.client.Service().Files.Export(fileID, mimeType)
+        header := m.client.ResourceKeys().BuildHeader(reqCtx.InvolvedFileIDs)
+        if header != "" </span><span class="cov0" title="0">{
+                call.Header().Set("X-Goog-Drive-Resource-Keys", header)
+        }</span>
+
+        <span class="cov0" title="0">resp, err := call.Download()
+        if err != nil </span><span class="cov0" title="0">{
+                if apiErr, ok := err.(*googleapi.Error); ok </span><span class="cov0" title="0">{
+                        // Check if this is a size limit error
+                        if apiErr.Code == 403 </span><span class="cov0" title="0">{
+                                for _, e := range apiErr.Errors </span><span class="cov0" title="0">{
+                                        if e.Reason == "exportSizeLimitExceeded" </span><span class="cov0" title="0">{
+                                                errBuilder := utils.NewCLIError(utils.ErrCodeExportSizeLimit,
+                                                        "File exceeds 10MB export limit").
+                                                        WithHTTPStatus(403).
+                                                        WithDriveReason("exportSizeLimitExceeded").
+                                                        WithContext("fileId", fileID)
+
+                                                if len(file.ExportLinks) &gt; 0 </span><span class="cov0" title="0">{
+                                                        errBuilder.WithContext("exportLinks", file.ExportLinks).
+                                                                WithContext("suggestedAction", "use exportLinks to download via browser")
+                                                }</span>
+
+                                                <span class="cov0" title="0">return utils.NewAppError(errBuilder.Build())</span>
+                                        }
+                                }
+                        }
+
+                        <span class="cov0" title="0">return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                                fmt.Sprintf("Export failed: %s", apiErr.Message)).
+                                WithHTTPStatus(apiErr.Code).
+                                Build())</span>
+                }
+                <span class="cov0" title="0">return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                        fmt.Sprintf("Export failed: %s", err)).Build())</span>
+        }
+        <span class="cov0" title="0">defer resp.Body.Close()
+
+        // Check if response indicates long-running operation
+        if resp.StatusCode == 202 </span><span class="cov0" title="0">{
+                // Operation started, need to poll
+                if !opts.Wait </span><span class="cov0" title="0">{
+                        return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                                "Export initiated as long-running operation. Use --wait flag to poll for completion.").
+                                WithContext("statusCode", 202).
+                                Build())
+                }</span>
+
+                <span class="cov0" title="0">return m.pollAndDownloadOperation(ctx, reqCtx, resp, opts, writer)</span>
+        }
+
+        <span class="cov0" title="0">_, err = io.Copy(writer, resp.Body)
+        return err</span>
+}
+
+func (m *Manager) pollAndDownloadOperation(ctx context.Context, reqCtx *types.RequestContext, resp *http.Response, opts DownloadOptions, writer io.Writer) error <span class="cov0" title="0">{
+        // Get operation name from response header
+        operationName := resp.Header.Get("X-Goog-Upload-URL")
+        if operationName == "" </span><span class="cov0" title="0">{
+                operationName = resp.Header.Get("Location")
+        }</span>
+
+        <span class="cov0" title="0">if operationName == "" </span><span class="cov0" title="0">{
+                return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                        "Long-running operation started but no operation URL provided").Build())
+        }</span>
+
+        // Create poller with timeout and poll interval
+        <span class="cov0" title="0">timeout := time.Duration(opts.Timeout) * time.Second
+        if timeout == 0 </span><span class="cov0" title="0">{
+                timeout = 5 * time.Minute // Default 5 minute timeout
+        }</span>
+
+        <span class="cov0" title="0">pollInterval := time.Duration(opts.PollInterval) * time.Second
+        if pollInterval == 0 </span><span class="cov0" title="0">{
+                pollInterval = 5 * time.Second // Default 5 second poll interval
+        }</span>
+
+        // Create HTTP client from Drive service
+        <span class="cov0" title="0">httpClient := &amp;http.Client{
+                Timeout: timeout,
+        }
+        poller := api.NewOperationPoller(httpClient, pollInterval, timeout)
+
+        // Poll until complete
+        operation, err := poller.PollUntilComplete(ctx, operationName, reqCtx)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // Check for operation error
+        <span class="cov0" title="0">if operation.Error != nil </span><span class="cov0" title="0">{
+                return operation.Error
+        }</span>
+
+        // Download from completed operation URI
+        <span class="cov0" title="0">if operation.DownloadURI == "" </span><span class="cov0" title="0">{
+                return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                        "Operation completed but no download URI available").Build())
+        }</span>
+
+        // Use the HTTP client to download
+        <span class="cov0" title="0">req, err := http.NewRequestWithContext(ctx, "GET", operation.DownloadURI, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">downloadResp, err := http.DefaultClient.Do(req)
+        if err != nil </span><span class="cov0" title="0">{
+                return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                        fmt.Sprintf("Download from operation URI failed: %s", err)).Build())
+        }</span>
+        <span class="cov0" title="0">defer downloadResp.Body.Close()
+
+        if downloadResp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
+                return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
+                        fmt.Sprintf("Download failed with status %d", downloadResp.StatusCode)).Build())
+        }</span>
+
+        <span class="cov0" title="0">_, err = io.Copy(writer, downloadResp.Body)
+        return err</span>
+}
+
+// Get retrieves file metadata
+func (m *Manager) Get(ctx context.Context, reqCtx *types.RequestContext, fileID string, fields string) (*types.DriveFile, error) <span class="cov0" title="0">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+
+        call := m.client.Service().Files.Get(fileID)
+        call = m.shaper.ShapeFilesGet(call, reqCtx)
+        if fields != "" </span><span class="cov0" title="0">{
+                call = call.Fields(googleapi.Field(fields))
+        }</span>
+
+        <span class="cov0" title="0">result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Update resource key cache
+        <span class="cov0" title="0">if result.ResourceKey != "" </span><span class="cov0" title="0">{
+                m.client.ResourceKeys().UpdateFromAPIResponse(result.Id, result.ResourceKey)
+        }</span>
+
+        <span class="cov0" title="0">return convertDriveFile(result), nil</span>
+}
+
+// Search searches for files using a query
+func (m *Manager) Search(ctx context.Context, reqCtx *types.RequestContext, query string, opts ListOptions) (*types.FileListResult, error) <span class="cov0" title="0">{
+        opts.Query = query
+        return m.List(ctx, reqCtx, opts)
+}</span>
+
+// List lists files
+func (m *Manager) List(ctx context.Context, reqCtx *types.RequestContext, opts ListOptions) (*types.FileListResult, error) <span class="cov0" title="0">{
+        call := m.client.Service().Files.List()
+        call = m.shaper.ShapeFilesList(call, reqCtx)
+
+        // Build query
+        query := ""
+        if opts.ParentID != "" </span><span class="cov0" title="0">{
+                query = fmt.Sprintf("'%s' in parents", opts.ParentID)
+                reqCtx.InvolvedParentIDs = append(reqCtx.InvolvedParentIDs, opts.ParentID)
+        }</span>
+        <span class="cov0" title="0">if !opts.IncludeTrashed </span><span class="cov0" title="0">{
+                if query != "" </span><span class="cov0" title="0">{
+                        query += " and "
+                }</span>
+                <span class="cov0" title="0">query += "trashed = false"</span>
+        }
+        <span class="cov0" title="0">if opts.Query != "" </span><span class="cov0" title="0">{
+                if query != "" </span><span class="cov0" title="0">{
+                        query += " and "
+                }</span>
+                <span class="cov0" title="0">query += opts.Query</span>
+        }
+        <span class="cov0" title="0">if query != "" </span><span class="cov0" title="0">{
+                call = call.Q(query)
+        }</span>
+
+        <span class="cov0" title="0">if opts.PageSize &gt; 0 </span><span class="cov0" title="0">{
+                call = call.PageSize(int64(opts.PageSize))
+        }</span>
+        <span class="cov0" title="0">if opts.PageToken != "" </span><span class="cov0" title="0">{
+                call = call.PageToken(opts.PageToken)
+        }</span>
+        <span class="cov0" title="0">if opts.OrderBy != "" </span><span class="cov0" title="0">{
+                call = call.OrderBy(opts.OrderBy)
+        }</span>
+        <span class="cov0" title="0">if opts.Fields != "" </span><span class="cov0" title="0">{
+                call = call.Fields(googleapi.Field("nextPageToken,incompleteSearch,files(" + opts.Fields + ")"))
+        }</span>
+
+        <span class="cov0" title="0">result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.FileList, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">files := make([]*types.DriveFile, len(result.Files))
+        for i, f := range result.Files </span><span class="cov0" title="0">{
+                files[i] = convertDriveFile(f)
+                if f.ResourceKey != "" </span><span class="cov0" title="0">{
+                        m.client.ResourceKeys().UpdateFromAPIResponse(f.Id, f.ResourceKey)
+                }</span>
+        }
+
+        <span class="cov0" title="0">return &amp;types.FileListResult{
+                Files:            files,
+                NextPageToken:    result.NextPageToken,
+                IncompleteSearch: result.IncompleteSearch,
+        }, nil</span>
+}
+
+// ListAll lists all files by following pagination
+func (m *Manager) ListAll(ctx context.Context, reqCtx *types.RequestContext, opts ListOptions) ([]*types.DriveFile, error) <span class="cov0" title="0">{
+        var allFiles []*types.DriveFile
+        pageToken := opts.PageToken
+
+        for </span><span class="cov0" title="0">{
+                opts.PageToken = pageToken
+                result, err := m.List(ctx, reqCtx, opts)
+                if err != nil </span><span class="cov0" title="0">{
+                        return allFiles, err
+                }</span>
+
+                <span class="cov0" title="0">allFiles = append(allFiles, result.Files...)
+
+                if result.NextPageToken == "" </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">pageToken = result.NextPageToken</span>
+        }
+
+        <span class="cov0" title="0">return allFiles, nil</span>
+}
+
+// Delete deletes or trashes a file
+func (m *Manager) Delete(ctx context.Context, reqCtx *types.RequestContext, fileID string, permanent bool) error <span class="cov0" title="0">{
+        return m.DeleteWithSafety(ctx, reqCtx, fileID, permanent, safety.Default(), nil)
+}</span>
+
+// DeleteWithSafety deletes or trashes a file with safety controls.
+// Supports dry-run mode, confirmation, and idempotency.
+//
+// Requirements:
+//   - Requirement 13.1: Support --dry-run mode for destructive operations
+//   - Requirement 13.2: Support --force flag to skip confirmations
+//   - Requirement 13.4: Add idempotent behavior for retry operations
+func (m *Manager) DeleteWithSafety(ctx context.Context, reqCtx *types.RequestContext, fileID string, permanent bool, opts safety.SafetyOptions, recorder safety.DryRunRecorder) error <span class="cov0" title="0">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+
+        // Get file metadata for confirmation and dry-run display
+        file, err := m.Get(ctx, reqCtx, fileID, "id,name")
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // Dry-run mode: record operation without executing
+        <span class="cov0" title="0">if opts.DryRun &amp;&amp; recorder != nil </span><span class="cov0" title="0">{
+                safety.RecordDelete(recorder, fileID, file.Name, permanent)
+                return nil
+        }</span>
+
+        // Confirmation for destructive operations
+        <span class="cov0" title="0">if opts.ShouldConfirm() </span><span class="cov0" title="0">{
+                operation := "trash"
+                if permanent </span><span class="cov0" title="0">{
+                        operation = "permanently delete"
+                }</span>
+                <span class="cov0" title="0">confirmed, err := safety.Confirm(
+                        fmt.Sprintf("About to %s '%s'. Continue?", operation, file.Name),
+                        opts,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">if !confirmed </span><span class="cov0" title="0">{
+                        return utils.NewAppError(utils.NewCLIError(utils.ErrCodeCancelled, "Operation cancelled by user").Build())
+                }</span>
+        }
+
+        <span class="cov0" title="0">if permanent </span><span class="cov0" title="0">{
+                call := m.client.Service().Files.Delete(fileID)
+                call = m.shaper.ShapeFilesDelete(call, reqCtx)
+
+                _, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (interface{}, error) </span><span class="cov0" title="0">{
+                        return nil, call.Do()
+                }</span>)
+                <span class="cov0" title="0">return err</span>
+        }
+
+        // Move to trash
+        <span class="cov0" title="0">call := m.client.Service().Files.Update(fileID, &amp;drive.File{Trashed: true})
+        call = m.shaper.ShapeFilesUpdate(call, reqCtx)
+
+        _, err = api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">return err</span>
+}
+
+// Copy copies a file
+func (m *Manager) Copy(ctx context.Context, reqCtx *types.RequestContext, fileID string, name string, parentID string) (*types.DriveFile, error) <span class="cov0" title="0">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+        if parentID != "" </span><span class="cov0" title="0">{
+                reqCtx.InvolvedParentIDs = append(reqCtx.InvolvedParentIDs, parentID)
+        }</span>
+
+        <span class="cov0" title="0">metadata := &amp;drive.File{}
+        if name != "" </span><span class="cov0" title="0">{
+                metadata.Name = name
+        }</span>
+        <span class="cov0" title="0">if parentID != "" </span><span class="cov0" title="0">{
+                metadata.Parents = []string{parentID}
+        }</span>
+
+        <span class="cov0" title="0">call := m.client.Service().Files.Copy(fileID, metadata)
+        call = m.shaper.ShapeFilesCopy(call, reqCtx)
+
+        result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return convertDriveFile(result), nil</span>
+}
+
+// Move moves a file to a new parent
+func (m *Manager) Move(ctx context.Context, reqCtx *types.RequestContext, fileID string, newParentID string) (*types.DriveFile, error) <span class="cov0" title="0">{
+        return m.MoveWithSafety(ctx, reqCtx, fileID, newParentID, safety.Default(), nil)
+}</span>
+
+// MoveWithSafety moves a file to a new parent with safety controls.
+// Supports dry-run mode and confirmation.
+//
+// Requirements:
+//   - Requirement 13.1: Support --dry-run mode for destructive operations
+func (m *Manager) MoveWithSafety(ctx context.Context, reqCtx *types.RequestContext, fileID string, newParentID string, opts safety.SafetyOptions, recorder safety.DryRunRecorder) (*types.DriveFile, error) <span class="cov0" title="0">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+        reqCtx.InvolvedParentIDs = append(reqCtx.InvolvedParentIDs, newParentID)
+
+        // Get current file info
+        file, err := m.Get(ctx, reqCtx, fileID, "parents,name")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Dry-run mode: record operation without executing
+        <span class="cov0" title="0">if opts.DryRun &amp;&amp; recorder != nil </span><span class="cov0" title="0">{
+                safety.RecordMove(recorder, fileID, file.Name, newParentID, newParentID)
+                return file, nil
+        }</span>
+
+        <span class="cov0" title="0">var removeParents string
+        if len(file.Parents) &gt; 0 </span><span class="cov0" title="0">{
+                for i, p := range file.Parents </span><span class="cov0" title="0">{
+                        if i &gt; 0 </span><span class="cov0" title="0">{
+                                removeParents += ","
+                        }</span>
+                        <span class="cov0" title="0">removeParents += p</span>
+                }
+        }
+
+        <span class="cov0" title="0">call := m.client.Service().Files.Update(fileID, &amp;drive.File{})
+        call = m.shaper.ShapeFilesUpdate(call, reqCtx)
+        call = call.AddParents(newParentID)
+        if removeParents != "" </span><span class="cov0" title="0">{
+                call = call.RemoveParents(removeParents)
+        }</span>
+
+        <span class="cov0" title="0">result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return convertDriveFile(result), nil</span>
+}
+
+// Trash moves a file to trash
+func (m *Manager) Trash(ctx context.Context, reqCtx *types.RequestContext, fileID string) (*types.DriveFile, error) <span class="cov0" title="0">{
+        return m.updateTrashed(ctx, reqCtx, fileID, true)
+}</span>
+
+// ListTrashed lists trashed files with pagination
+func (m *Manager) ListTrashed(ctx context.Context, reqCtx *types.RequestContext, opts ListOptions) (*types.FileListResult, error) <span class="cov0" title="0">{
+        // Force include trashed files
+        opts.IncludeTrashed = true
+
+        // Modify query to only show trashed files
+        if opts.Query != "" </span><span class="cov0" title="0">{
+                opts.Query = "trashed = true and (" + opts.Query + ")"
+        }</span> else<span class="cov0" title="0"> {
+                opts.Query = "trashed = true"
+        }</span>
+
+        <span class="cov0" title="0">return m.List(ctx, reqCtx, opts)</span>
+}
+
+// SearchTrashed searches for files in trash
+func (m *Manager) SearchTrashed(ctx context.Context, reqCtx *types.RequestContext, query string, opts ListOptions) (*types.FileListResult, error) <span class="cov0" title="0">{
+        opts.Query = query
+        return m.ListTrashed(ctx, reqCtx, opts)
+}</span>
+
+// Restore restores a file from trash
+func (m *Manager) Restore(ctx context.Context, reqCtx *types.RequestContext, fileID string) (*types.DriveFile, error) <span class="cov0" title="0">{
+        return m.updateTrashed(ctx, reqCtx, fileID, false)
+}</span>
+
+func (m *Manager) updateTrashed(ctx context.Context, reqCtx *types.RequestContext, fileID string, trashed bool) (*types.DriveFile, error) <span class="cov0" title="0">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+
+        call := m.client.Service().Files.Update(fileID, &amp;drive.File{Trashed: trashed})
+        call = m.shaper.ShapeFilesUpdate(call, reqCtx)
+
+        result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return convertDriveFile(result), nil</span>
+}
+
+// Update updates file metadata
+func (m *Manager) Update(ctx context.Context, reqCtx *types.RequestContext, fileID string, metadata *drive.File, fields string) (*types.DriveFile, error) <span class="cov0" title="0">{
+        reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
+
+        call := m.client.Service().Files.Update(fileID, metadata)
+        call = m.shaper.ShapeFilesUpdate(call, reqCtx)
+        if fields != "" </span><span class="cov0" title="0">{
+                call = call.Fields(googleapi.Field(fields))
+        }</span>
+
+        <span class="cov0" title="0">result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) </span><span class="cov0" title="0">{
+                return call.Do()
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Update resource key cache
+        <span class="cov0" title="0">if result.ResourceKey != "" </span><span class="cov0" title="0">{
+                m.client.ResourceKeys().UpdateFromAPIResponse(result.Id, result.ResourceKey)
+        }</span>
+
+        <span class="cov0" title="0">return convertDriveFile(result), nil</span>
+}
+
+func convertDriveFile(f *drive.File) *types.DriveFile <span class="cov8" title="1">{
+        file := &amp;types.DriveFile{
+                ID:             f.Id,
+                Name:           f.Name,
+                MimeType:       f.MimeType,
+                Size:           f.Size,
+                MD5Checksum:    f.Md5Checksum,
+                CreatedTime:    f.CreatedTime,
+                ModifiedTime:   f.ModifiedTime,
+                Parents:        f.Parents,
+                ResourceKey:    f.ResourceKey,
+                ExportLinks:    f.ExportLinks,
+                WebViewLink:    f.WebViewLink,
+                WebContentLink: f.WebContentLink,
+                Trashed:        f.Trashed,
+        }
+
+        if f.Capabilities != nil </span><span class="cov8" title="1">{
+                file.Capabilities = &amp;types.FileCapabilities{
+                        CanDownload:      f.Capabilities.CanDownload,
+                        CanEdit:          f.Capabilities.CanEdit,
+                        CanShare:         f.Capabilities.CanShare,
+                        CanDelete:        f.Capabilities.CanDelete,
+                        CanTrash:         f.Capabilities.CanTrash,
+                        CanReadRevisions: f.Capabilities.CanReadRevisions,
+                }
+        }</span>
+
+        <span class="cov8" title="1">return file</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
