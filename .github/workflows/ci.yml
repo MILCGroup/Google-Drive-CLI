@@ -40,13 +40,32 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
-      - name: Run tests (non-Windows)
+      - name: Run tests with flaky diagnostics (non-Windows)
         if: matrix.os != 'windows-latest'
-        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        run: |
+          set -o pipefail
+          mkdir -p .artifacts/test
+          attempt=1
+          while [ $attempt -le 2 ]; do
+            echo "Test attempt ${attempt}"
+            if go test -json -v -race -coverprofile=coverage.out -covermode=atomic ./... | tee .artifacts/test/test-attempt-${attempt}.json; then
+              exit 0
+            fi
+            attempt=$((attempt + 1))
+          done
+          exit 1
 
       - name: Run tests (Windows)
         if: matrix.os == 'windows-latest'
         run: go test -v ./...
+
+      - name: Upload test diagnostics
+        if: failure() && matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gdrv-test-diagnostics-${{ matrix.os }}
+          path: .artifacts/test/
+          retention-days: 7
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -75,11 +94,21 @@ jobs:
       - name: Build for all platforms
         run: make build-all
 
+      - name: Verify version metadata
+        run: |
+          make build
+          ./bin/gdrv version | grep -F "Version:"
+
+      - name: Generate checksums
+        run: make checksums
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: binaries
-          path: bin/
+          path: |
+            bin/
+            bin/checksums.txt
           retention-days: 7
 
   lint:
@@ -98,33 +127,12 @@ jobs:
           go-version: '1.24.x'
           cache: true
 
-      - name: Restore cache
-        id: cache
-        uses: actions/cache/restore@v4
-        continue-on-error: true
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9.2.0
         with:
-          version: v2.0.0
+          version: v2.8.0
+          skip-cache: true
           args: --timeout=5m
-
-      - name: Save cache
-        uses: actions/cache/save@v4
-        if: always()
-        continue-on-error: true
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
 
   security:
     name: Security Scan

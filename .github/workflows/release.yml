@@ -76,6 +76,14 @@ jobs:
 
           GOOS=windows GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o dist/${APP_NAME}-windows-arm64.exe ./cmd/${APP_NAME}
 
+      - name: Verify version metadata
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          DATE: ${{ github.event.head_commit.timestamp }}
+        run: |
+          go build -ldflags="-X github.com/dl-alexandre/gdrv/pkg/version.Version=${VERSION} -X github.com/dl-alexandre/gdrv/pkg/version.BuildTime=${DATE}" -o /tmp/${APP_NAME}-verify ./cmd/${APP_NAME}
+          /tmp/${APP_NAME}-verify version | grep -F "${VERSION}"
+
       - name: Create Arch Linux PKGBUILD
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}

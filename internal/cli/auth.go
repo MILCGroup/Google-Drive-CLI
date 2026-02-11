@@ -147,7 +147,7 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 	})
 
 	if err != nil {
-		return out.WriteError("auth.login", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+		return out.WriteError("auth.login", buildAuthFlowError(err, source, clientID, clientSecret).Build())
 	}
 
 	out.Log("Successfully authenticated!")
@@ -193,7 +193,7 @@ func runAuthDevice(cmd *cobra.Command, args []string) error {
 	creds, err := mgr.AuthenticateWithDeviceCode(ctx, flags.Profile)
 
 	if err != nil {
-		return out.WriteError("auth.device", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+		return out.WriteError("auth.device", buildAuthFlowError(err, source, clientID, clientSecret).Build())
 	}
 
 	out.Log("Successfully authenticated!")
@@ -459,17 +459,23 @@ func runAuthDiagnose(cmd *cobra.Command, args []string) error {
 	}
 
 	diagnostics := map[string]interface{}{
-		"profile":          flags.Profile,
-		"storageBackend":   mgr.GetStorageBackend(),
-		"tokenLocation":    location,
-		"clientIdHash":     clientHash,
-		"clientIdLast4":    clientFingerprint,
-		"scopes":           creds.Scopes,
-		"expiry":           creds.ExpiryDate.Format(time.RFC3339),
-		"refreshToken":     creds.RefreshToken != "",
-		"type":             creds.Type,
-		"serviceAccount":   creds.ServiceAccountEmail,
-		"impersonatedUser": creds.ImpersonatedUser,
+		"profile":                     flags.Profile,
+		"storageBackend":              mgr.GetStorageBackend(),
+		"oauthClientSource":           source,
+		"oauthClientSecretConfigured": strings.TrimSpace(clientSecret) != "",
+		"tokenLocation":               location,
+		"clientIdHash":                clientHash,
+		"clientIdLast4":               clientFingerprint,
+		"scopes":                      creds.Scopes,
+		"expiry":                      creds.ExpiryDate.Format(time.RFC3339),
+		"refreshToken":                creds.RefreshToken != "",
+		"type":                        creds.Type,
+		"serviceAccount":              creds.ServiceAccountEmail,
+		"impersonatedUser":            creds.ImpersonatedUser,
+	}
+
+	if hint := oauthClientSecretHint(source, clientSecret); hint != "" {
+		diagnostics["oauthClientSecretHint"] = hint
 	}
 
 	if authDiagnoseRefreshCheck && creds.Type == types.AuthTypeOAuth {
@@ -523,6 +529,45 @@ const (
 	oauthClientSourceConfig  oauthClientSource = "config"
 	oauthClientSourceBundled oauthClientSource = "bundled"
 )
+
+func buildAuthFlowError(err error, source oauthClientSource, resolvedClientID, resolvedClientSecret string) *utils.CLIErrorBuilder {
+	message := err.Error()
+	lower := strings.ToLower(message)
+
+	if strings.Contains(lower, "client_secret is missing") || strings.Contains(lower, "invalid_client") {
+		if hint := oauthClientSecretHint(source, resolvedClientSecret); hint != "" {
+			message = fmt.Sprintf("%s\n%s", message, hint)
+		}
+	}
+
+	builder := utils.NewCLIError(utils.ErrCodeAuthRequired, message)
+	if source != "" {
+		builder = builder.WithContext("oauthClientSource", string(source))
+	}
+	builder = builder.WithContext("clientIdConfigured", strings.TrimSpace(resolvedClientID) != "")
+	builder = builder.WithContext("clientSecretConfigured", strings.TrimSpace(resolvedClientSecret) != "")
+
+	return builder
+}
+
+func oauthClientSecretHint(source oauthClientSource, resolvedClientSecret string) string {
+	if strings.TrimSpace(resolvedClientSecret) != "" {
+		return ""
+	}
+
+	switch source {
+	case oauthClientSourceFlags:
+		return "The OAuth client set via flags does not include a client secret. If your client type is confidential, pass --client-secret."
+	case oauthClientSourceEnv:
+		return "The OAuth client set via environment variables does not include a client secret. If your client type is confidential, set GDRV_CLIENT_SECRET."
+	case oauthClientSourceConfig:
+		return "The OAuth client in config does not include a client secret. If your client type is confidential, set oauthClientSecret in config."
+	case oauthClientSourceBundled:
+		return "This build is using bundled OAuth credentials without a client secret. If Google requires a secret for this client ID, configure custom credentials with GDRV_CLIENT_ID and GDRV_CLIENT_SECRET or upgrade to a newer release."
+	default:
+		return ""
+	}
+}
 
 func resolveOAuthClient(cmd *cobra.Command, configDir string, allowMissing bool) (string, string, oauthClientSource, *utils.CLIErrorBuilder) {
 	requireCustom := isTruthyEnv("GDRV_REQUIRE_CUSTOM_OAUTH")

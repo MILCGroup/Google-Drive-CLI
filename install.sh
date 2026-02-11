@@ -8,6 +8,8 @@ VERSION="${GDRV_VERSION:-latest}"
 INSTALL_DIR="${GDRV_INSTALL_DIR:-$HOME/.local/bin}"
 REPO="dl-alexandre/Google-Drive-CLI"
 
+INSTALL_BINARY="gdrv"
+
 # Detect OS and architecture
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
@@ -41,6 +43,12 @@ case "$OS" in
         ;;
 esac
 
+ASSET_NAME="gdrv-${OS}-${ARCH}"
+if [ "$OS" = "windows" ]; then
+    ASSET_NAME="${ASSET_NAME}.exe"
+    INSTALL_BINARY="gdrv.exe"
+fi
+
 echo "Google Drive CLI Installer"
 echo "=========================="
 echo ""
@@ -66,7 +74,7 @@ if command -v go &> /dev/null; then
         cd -
         if [ -f "go.mod" ] && [ -f "cmd/gdrv/main.go" ]; then
             echo "Building from current directory..."
-            go build -o "$INSTALL_DIR/gdrv" ./cmd/gdrv
+            go build -o "$INSTALL_DIR/$INSTALL_BINARY" ./cmd/gdrv
         else
             echo "Error: Could not find source files"
             exit 1
@@ -76,7 +84,7 @@ if command -v go &> /dev/null; then
     if [ -d "$TEMP_DIR/gdrv" ]; then
         cd "$TEMP_DIR/gdrv"
         echo "Building..."
-        go build -o "$INSTALL_DIR/gdrv" ./cmd/gdrv
+        go build -o "$INSTALL_DIR/$INSTALL_BINARY" ./cmd/gdrv
         cd -
         rm -rf "$TEMP_DIR"
     fi
@@ -85,22 +93,22 @@ else
     
     # Construct download URL
     if [ "$VERSION" = "latest" ]; then
-        DOWNLOAD_URL="https://github.com/${REPO}/releases/latest/download/gdrv_${OS}_${ARCH}"
+        DOWNLOAD_URL="https://github.com/${REPO}/releases/latest/download/${ASSET_NAME}"
     else
-        DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/gdrv_${OS}_${ARCH}"
+        DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${ASSET_NAME}"
     fi
     
     # Download binary
     echo "Downloading from: $DOWNLOAD_URL"
     if command -v curl &> /dev/null; then
-        curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/gdrv" || {
+        curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/$INSTALL_BINARY" || {
             echo ""
             echo "Pre-built binary not available. Please install Go and run this script again."
             echo "Install Go from: https://go.dev/dl/"
             exit 1
         }
     elif command -v wget &> /dev/null; then
-        wget -q "$DOWNLOAD_URL" -O "$INSTALL_DIR/gdrv" || {
+        wget -q "$DOWNLOAD_URL" -O "$INSTALL_DIR/$INSTALL_BINARY" || {
             echo ""
             echo "Pre-built binary not available. Please install Go and run this script again."
             echo "Install Go from: https://go.dev/dl/"
@@ -113,14 +121,14 @@ else
 fi
 
 # Make executable
-chmod +x "$INSTALL_DIR/gdrv"
+chmod +x "$INSTALL_DIR/$INSTALL_BINARY"
 
 # Verify installation
-if [ -x "$INSTALL_DIR/gdrv" ]; then
+if [ -x "$INSTALL_DIR/$INSTALL_BINARY" ]; then
     echo ""
     echo "Installation successful!"
     echo ""
-    "$INSTALL_DIR/gdrv" version 2>/dev/null || echo "gdrv installed to $INSTALL_DIR/gdrv"
+    "$INSTALL_DIR/$INSTALL_BINARY" version 2>/dev/null || echo "gdrv installed to $INSTALL_DIR/$INSTALL_BINARY"
     echo ""
     
     # Check if install dir is in PATH
