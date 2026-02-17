@@ -151,10 +151,7 @@ func runSlidesList(cmd *cobra.Command, args []string) error {
 	if slidesListPaginate {
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
-				return out.WriteError("slides.list", appErr.CLIError)
-			}
-			return out.WriteError("slides.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+			return handleCLIError(out, "slides.list", err)
 		}
 		if flags.OutputFormat == types.OutputFormatTable {
 			return out.WriteSuccess("slides.list", allFiles)
@@ -166,10 +163,7 @@ func runSlidesList(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.List(ctx, reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("slides.list", appErr.CLIError)
-		}
-		return out.WriteError("slides.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "slides.list", err)
 	}
 
 	if flags.OutputFormat == types.OutputFormatTable {
@@ -200,10 +194,7 @@ func runSlidesGet(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.GetPresentation(ctx, reqCtx, presentationID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("slides.get", appErr.CLIError)
-		}
-		return out.WriteError("slides.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "slides.get", err)
 	}
 
 	return out.WriteSuccess("slides.get", result)
@@ -231,10 +222,7 @@ func runSlidesRead(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.ReadPresentation(ctx, reqCtx, presentationID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("slides.read", appErr.CLIError)
-		}
-		return out.WriteError("slides.read", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "slides.read", err)
 	}
 
 	return out.WriteSuccess("slides.read", result)
@@ -280,10 +268,7 @@ func runSlidesCreate(cmd *cobra.Command, args []string) error {
 		return call.Do()
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("slides.create", appErr.CLIError)
-		}
-		return out.WriteError("slides.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "slides.create", err)
 	}
 
 	if result.ResourceKey != "" {
@@ -320,10 +305,7 @@ func runSlidesUpdate(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.UpdatePresentation(ctx, reqCtx, presentationID, requests)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("slides.update", appErr.CLIError)
-		}
-		return out.WriteError("slides.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "slides.update", err)
 	}
 
 	return out.WriteSuccess("slides.update", result)
@@ -356,10 +338,7 @@ func runSlidesReplace(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.ReplaceAllText(ctx, reqCtx, presentationID, replacements)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("slides.replace", appErr.CLIError)
-		}
-		return out.WriteError("slides.replace", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "slides.replace", err)
 	}
 
 	return out.WriteSuccess("slides.replace", result)

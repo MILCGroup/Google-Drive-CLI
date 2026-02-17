@@ -108,13 +108,6 @@ func TestOAuthFlow_Close(t *testing.T) {
 	flow.Close()
 }
 
-func TestPickManualPort(t *testing.T) {
-	port := pickManualPort()
-	if port <= 0 {
-		t.Errorf("Expected positive port, got %d", port)
-	}
-}
-
 func testError(msg string) error {
 	return &testErr{msg: msg}
 }

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"os"
 
 	"github.com/dl-alexandre/gdrv/internal/api"
 	"github.com/dl-alexandre/gdrv/internal/auth"
@@ -118,10 +117,7 @@ func runFolderCreate(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getFolderManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("folder.create", appErr.CLIError)
-		}
-		return writer.WriteError("folder.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.create", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeMutation)
@@ -129,11 +125,7 @@ func runFolderCreate(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.Create(context.Background(), reqCtx, name, folderParentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("folder.create", appErr.CLIError)
-		}
-		return writer.WriteError("folder.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.create", err)
 	}
 
 	return writer.WriteSuccess("folder.create", result)
@@ -145,10 +137,7 @@ func runFolderList(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getFolderManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("folder.list", appErr.CLIError)
-		}
-		return writer.WriteError("folder.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.list", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeListOrSearch)
@@ -161,11 +150,7 @@ func runFolderList(cmd *cobra.Command, args []string) error {
 		for {
 			result, err := mgr.List(context.Background(), reqCtx, folderID, folderPageSize, pageToken)
 			if err != nil {
-				if appErr, ok := err.(*utils.AppError); ok {
-					os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-					return writer.WriteError("folder.list", appErr.CLIError)
-				}
-				return writer.WriteError("folder.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+				return handleCLIError(writer, "folder.list", err)
 			}
 			allFiles = append(allFiles, result.Files...)
 			if result.NextPageToken == "" {
@@ -180,11 +165,7 @@ func runFolderList(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.List(context.Background(), reqCtx, folderID, folderPageSize, folderPageToken)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("folder.list", appErr.CLIError)
-		}
-		return writer.WriteError("folder.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.list", err)
 	}
 
 	return writer.WriteSuccess("folder.list", result)
@@ -196,10 +177,7 @@ func runFolderDelete(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getFolderManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("folder.delete", appErr.CLIError)
-		}
-		return writer.WriteError("folder.delete", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.delete", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeMutation)
@@ -207,11 +185,7 @@ func runFolderDelete(cmd *cobra.Command, args []string) error {
 
 	err = mgr.Delete(context.Background(), reqCtx, folderID, folderRecursive)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("folder.delete", appErr.CLIError)
-		}
-		return writer.WriteError("folder.delete", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.delete", err)
 	}
 
 	return writer.WriteSuccess("folder.delete", map[string]interface{}{
@@ -227,10 +201,7 @@ func runFolderMove(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getFolderManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("folder.move", appErr.CLIError)
-		}
-		return writer.WriteError("folder.move", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.move", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeMutation)
@@ -239,11 +210,7 @@ func runFolderMove(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.Move(context.Background(), reqCtx, folderID, newParentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("folder.move", appErr.CLIError)
-		}
-		return writer.WriteError("folder.move", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.move", err)
 	}
 
 	return writer.WriteSuccess("folder.move", result)
@@ -255,10 +222,7 @@ func runFolderGet(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getFolderManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("folder.get", appErr.CLIError)
-		}
-		return writer.WriteError("folder.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.get", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeGetByID)
@@ -266,11 +230,7 @@ func runFolderGet(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.Get(context.Background(), reqCtx, folderID, folderFields)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("folder.get", appErr.CLIError)
-		}
-		return writer.WriteError("folder.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "folder.get", err)
 	}
 
 	return writer.WriteSuccess("folder.get", result)

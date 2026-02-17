@@ -138,10 +138,7 @@ func runDocsList(cmd *cobra.Command, args []string) error {
 	if docsListPaginate {
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
-				return out.WriteError("docs.list", appErr.CLIError)
-			}
-			return out.WriteError("docs.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+			return handleCLIError(out, "docs.list", err)
 		}
 		if flags.OutputFormat == types.OutputFormatTable {
 			return out.WriteSuccess("docs.list", allFiles)
@@ -153,10 +150,7 @@ func runDocsList(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.List(ctx, reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("docs.list", appErr.CLIError)
-		}
-		return out.WriteError("docs.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "docs.list", err)
 	}
 
 	if flags.OutputFormat == types.OutputFormatTable {
@@ -187,10 +181,7 @@ func runDocsGet(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.GetDocument(ctx, reqCtx, documentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("docs.get", appErr.CLIError)
-		}
-		return out.WriteError("docs.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "docs.get", err)
 	}
 
 	return out.WriteSuccess("docs.get", result)
@@ -218,10 +209,7 @@ func runDocsRead(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.ReadDocument(ctx, reqCtx, documentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("docs.read", appErr.CLIError)
-		}
-		return out.WriteError("docs.read", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "docs.read", err)
 	}
 
 	return out.WriteSuccess("docs.read", result)
@@ -267,10 +255,7 @@ func runDocsCreate(cmd *cobra.Command, args []string) error {
 		return call.Do()
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("docs.create", appErr.CLIError)
-		}
-		return out.WriteError("docs.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "docs.create", err)
 	}
 
 	if result.ResourceKey != "" {
@@ -307,10 +292,7 @@ func runDocsUpdate(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.UpdateDocument(ctx, reqCtx, documentID, requests)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("docs.update", appErr.CLIError)
-		}
-		return out.WriteError("docs.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "docs.update", err)
 	}
 
 	return out.WriteSuccess("docs.update", result)

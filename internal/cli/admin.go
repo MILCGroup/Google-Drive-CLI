@@ -277,10 +277,7 @@ func runAdminUsersList(cmd *cobra.Command, args []string) error {
 		Paginate:   adminUsersListPaginate,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.users.list", appErr.CLIError)
-		}
-		return out.WriteError("admin.users.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.users.list", err)
 	}
 
 	return out.WriteSuccess("admin.users.list", result)
@@ -301,10 +298,7 @@ func runAdminUsersGet(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.GetUser(ctx, reqCtx, userKey, adminUsersGetFields)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.users.get", appErr.CLIError)
-		}
-		return out.WriteError("admin.users.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.users.get", err)
 	}
 
 	return out.WriteSuccess("admin.users.get", result)
@@ -330,10 +324,7 @@ func runAdminUsersCreate(cmd *cobra.Command, args []string) error {
 		Password:   adminUsersCreatePass,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.users.create", appErr.CLIError)
-		}
-		return out.WriteError("admin.users.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.users.create", err)
 	}
 
 	return out.WriteSuccess("admin.users.create", result)
@@ -353,10 +344,7 @@ func runAdminUsersDelete(cmd *cobra.Command, args []string) error {
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 	if err := mgr.DeleteUser(ctx, reqCtx, userKey); err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.users.delete", appErr.CLIError)
-		}
-		return out.WriteError("admin.users.delete", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.users.delete", err)
 	}
 
 	return out.WriteSuccess("admin.users.delete", map[string]string{
@@ -400,10 +388,7 @@ func runAdminUsersUpdate(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.UpdateUser(ctx, reqCtx, userKey, req)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.users.update", appErr.CLIError)
-		}
-		return out.WriteError("admin.users.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.users.update", err)
 	}
 
 	return out.WriteSuccess("admin.users.update", result)
@@ -424,10 +409,7 @@ func runAdminUsersSuspend(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.SuspendUser(ctx, reqCtx, userKey)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.users.suspend", appErr.CLIError)
-		}
-		return out.WriteError("admin.users.suspend", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.users.suspend", err)
 	}
 
 	return out.WriteSuccess("admin.users.suspend", result)
@@ -448,10 +430,7 @@ func runAdminUsersUnsuspend(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.UnsuspendUser(ctx, reqCtx, userKey)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.users.unsuspend", appErr.CLIError)
-		}
-		return out.WriteError("admin.users.unsuspend", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.users.unsuspend", err)
 	}
 
 	return out.WriteSuccess("admin.users.unsuspend", result)
@@ -484,10 +463,7 @@ func runAdminGroupsList(cmd *cobra.Command, args []string) error {
 		Paginate:   adminGroupsListPaginate,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.list", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.list", err)
 	}
 
 	return out.WriteSuccess("admin.groups.list", result)
@@ -508,10 +484,7 @@ func runAdminGroupsGet(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.GetGroup(ctx, reqCtx, groupKey, &admin.GetGroupOptions{Fields: adminGroupsGetFields})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.get", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.get", err)
 	}
 
 	return out.WriteSuccess("admin.groups.get", result)
@@ -537,10 +510,7 @@ func runAdminGroupsCreate(cmd *cobra.Command, args []string) error {
 		Description: adminGroupsCreateDesc,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.create", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.create", err)
 	}
 
 	return out.WriteSuccess("admin.groups.create", result)
@@ -560,10 +530,7 @@ func runAdminGroupsDelete(cmd *cobra.Command, args []string) error {
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 	if err := mgr.DeleteGroup(ctx, reqCtx, groupKey); err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.delete", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.delete", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.delete", err)
 	}
 
 	return out.WriteSuccess("admin.groups.delete", map[string]string{
@@ -597,10 +564,7 @@ func runAdminGroupsUpdate(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.UpdateGroup(ctx, reqCtx, groupKey, req)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.update", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.update", err)
 	}
 
 	return out.WriteSuccess("admin.groups.update", result)
@@ -640,10 +604,7 @@ func runAdminMembersList(cmd *cobra.Command, args []string) error {
 		Paginate:   adminMembersListPaginate,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.members.list", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.members.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.members.list", err)
 	}
 
 	return out.WriteSuccess("admin.groups.members.list", result)
@@ -674,10 +635,7 @@ func runAdminMembersAdd(cmd *cobra.Command, args []string) error {
 		Role:  role,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.members.add", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.members.add", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.members.add", err)
 	}
 
 	return out.WriteSuccess("admin.groups.members.add", result)
@@ -699,10 +657,7 @@ func runAdminMembersRemove(cmd *cobra.Command, args []string) error {
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 	if err := mgr.RemoveMember(ctx, reqCtx, groupKey, memberKey); err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("admin.groups.members.remove", appErr.CLIError)
-		}
-		return out.WriteError("admin.groups.members.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "admin.groups.members.remove", err)
 	}
 
 	return out.WriteSuccess("admin.groups.members.remove", map[string]string{

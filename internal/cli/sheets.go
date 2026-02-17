@@ -157,10 +157,7 @@ func runSheetsGet(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.GetSpreadsheet(ctx, reqCtx, spreadsheetID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.get", appErr.CLIError)
-		}
-		return out.WriteError("sheets.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.get", err)
 	}
 
 	return out.WriteSuccess("sheets.get", result)
@@ -188,10 +185,7 @@ func runSheetsValuesGet(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	result, err := mgr.GetValues(ctx, reqCtx, spreadsheetID, args[1])
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.values.get", appErr.CLIError)
-		}
-		return out.WriteError("sheets.values.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.values.get", err)
 	}
 
 	return out.WriteSuccess("sheets.values.get", result)
@@ -224,10 +218,7 @@ func runSheetsValuesUpdate(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.UpdateValues(ctx, reqCtx, spreadsheetID, args[1], values, sheetsValueInputOption)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.values.update", appErr.CLIError)
-		}
-		return out.WriteError("sheets.values.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.values.update", err)
 	}
 
 	return out.WriteSuccess("sheets.values.update", result)
@@ -260,10 +251,7 @@ func runSheetsValuesAppend(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.AppendValues(ctx, reqCtx, spreadsheetID, args[1], values, sheetsValueInputOption)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.values.append", appErr.CLIError)
-		}
-		return out.WriteError("sheets.values.append", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.values.append", err)
 	}
 
 	return out.WriteSuccess("sheets.values.append", result)
@@ -295,10 +283,7 @@ func runSheetsValuesClear(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.ClearValues(ctx, reqCtx, spreadsheetID, args[1])
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.values.clear", appErr.CLIError)
-		}
-		return out.WriteError("sheets.values.clear", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.values.clear", err)
 	}
 
 	return out.WriteSuccess("sheets.values.clear", result)
@@ -331,10 +316,7 @@ func runSheetsBatchUpdate(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.BatchUpdate(ctx, reqCtx, spreadsheetID, requests)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.batch-update", appErr.CLIError)
-		}
-		return out.WriteError("sheets.batch-update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.batch-update", err)
 	}
 
 	return out.WriteSuccess("sheets.batch-update", result)
@@ -385,10 +367,7 @@ func runSheetsList(cmd *cobra.Command, args []string) error {
 	if sheetsListPaginate {
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
-				return out.WriteError("sheets.list", appErr.CLIError)
-			}
-			return out.WriteError("sheets.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+			return handleCLIError(out, "sheets.list", err)
 		}
 		if flags.OutputFormat == types.OutputFormatTable {
 			return out.WriteSuccess("sheets.list", allFiles)
@@ -400,10 +379,7 @@ func runSheetsList(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.List(ctx, reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.list", appErr.CLIError)
-		}
-		return out.WriteError("sheets.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.list", err)
 	}
 
 	if flags.OutputFormat == types.OutputFormatTable {
@@ -452,10 +428,7 @@ func runSheetsCreate(cmd *cobra.Command, args []string) error {
 		return call.Do()
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("sheets.create", appErr.CLIError)
-		}
-		return out.WriteError("sheets.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "sheets.create", err)
 	}
 
 	if result.ResourceKey != "" {

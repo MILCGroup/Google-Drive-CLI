@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"net"
@@ -274,47 +273,6 @@ func TestCallbackServerTimeout(t *testing.T) {
 	}
 }
 
-// TestManualFlowPortSelection validates manual flow uses ephemeral port for redirect
-func TestManualFlowPortSelection(t *testing.T) {
-	config := &oauth2.Config{
-		ClientID: "test-client-id",
-		Scopes:   []string{"https://www.googleapis.com/auth/drive.readonly"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-			TokenURL: "https://oauth2.googleapis.com/token",
-		},
-	}
-
-	flow, err := newManualFlow(config)
-	if err != nil {
-		t.Fatalf("Failed to create manual flow: %v", err)
-	}
-
-	// Manual flow has no listener
-	if flow.listener != nil {
-		t.Error("Manual flow should not have listener")
-	}
-
-	// Redirect URL should still be valid
-	if flow.redirectURL == "" {
-		t.Error("Manual flow missing redirect URL")
-	}
-
-	// Redirect URL should use 127.0.0.1 and valid port
-	parsedURL, err := url.Parse(flow.redirectURL)
-	if err != nil {
-		t.Fatalf("Failed to parse redirect URL: %v", err)
-	}
-
-	if parsedURL.Hostname() != "127.0.0.1" {
-		t.Errorf("Expected hostname 127.0.0.1, got %s", parsedURL.Hostname())
-	}
-
-	if parsedURL.Path != "/callback" {
-		t.Errorf("Expected path /callback, got %s", parsedURL.Path)
-	}
-}
-
 // TestIsHeadlessEnv validates headless environment detection
 func TestIsHeadlessEnv(t *testing.T) {
 	tests := []struct {
@@ -577,6 +535,241 @@ func TestOAuthFlow_StartCallbackServer_ContextCancel(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 }
 
+// Regression: --no-browser must not call openBrowser.
+func TestAuthenticate_NoBrowser_DoesNotOpenBrowser(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"access_token":"tok","refresh_token":"rtok","expires_in":3600,"token_type":"Bearer"}`)
+	}))
+	defer mockServer.Close()
+
+	tmpDir := t.TempDir()
+	mgr := NewManager(tmpDir)
+	mgr.oauthConfig = &oauth2.Config{
+		ClientID:     "test-client-id",
+		ClientSecret: "test-client-secret",
+		Scopes:       []string{"https://www.googleapis.com/auth/drive.readonly"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  mockServer.URL + "/auth",
+			TokenURL: mockServer.URL + "/token",
+		},
+	}
+
+	browserCalled := false
+	var capturedURL string
+	openBrowser := func(u string) error {
+		browserCalled = true
+		capturedURL = u
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	type authResult struct {
+		err error
+	}
+	ch := make(chan authResult, 1)
+	go func() {
+		_, err := mgr.Authenticate(ctx, "test-no-browser", openBrowser, OAuthAuthOptions{NoBrowser: true})
+		ch <- authResult{err: err}
+	}()
+
+	time.Sleep(200 * time.Millisecond)
+
+	if browserCalled {
+		t.Error("openBrowser should not be called when NoBrowser=true")
+	}
+	_ = capturedURL
+
+	cancel()
+	select {
+	case <-ch:
+	case <-time.After(6 * time.Second):
+		t.Fatal("Authenticate did not return after context cancel")
+	}
+}
+
+// Regression: --no-browser must bind a real listener that accepts connections.
+// The old code used newManualFlow which passed nil listener, causing a 404.
+func TestAuthenticate_NoBrowser_ListenerAcceptsConnections(t *testing.T) {
+	flow, err := newLoopbackFlow(&oauth2.Config{
+		ClientID: "test-client-id",
+		Scopes:   []string{"https://www.googleapis.com/auth/drive.readonly"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+	})
+	if err != nil {
+		t.Fatalf("newLoopbackFlow failed: %v", err)
+	}
+	defer flow.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	flow.StartCallbackServer(ctx)
+
+	if flow.listener == nil {
+		t.Fatal("Loopback flow must have a non-nil listener")
+	}
+
+	addr := flow.listener.Addr().(*net.TCPAddr)
+	callbackURL := fmt.Sprintf("http://127.0.0.1:%d/callback?state=%s&code=test",
+		addr.Port, url.QueryEscape(flow.state))
+
+	resp, err := http.Get(callbackURL)
+	if err != nil {
+		t.Fatalf("Connection to callback port refused (original bug): %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Callback returned %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestAuthenticate_BrowserOpens(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"access_token":"tok","refresh_token":"rtok","expires_in":3600,"token_type":"Bearer"}`)
+	}))
+	defer mockServer.Close()
+
+	tmpDir := t.TempDir()
+	mgr := NewManager(tmpDir)
+	mgr.oauthConfig = &oauth2.Config{
+		ClientID:     "test-client-id",
+		ClientSecret: "test-client-secret",
+		Scopes:       []string{"https://www.googleapis.com/auth/drive.readonly"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  mockServer.URL + "/auth",
+			TokenURL: mockServer.URL + "/token",
+		},
+	}
+
+	browserCalled := false
+	openBrowser := func(u string) error {
+		browserCalled = true
+		parsed, err := url.Parse(u)
+		if err != nil {
+			return err
+		}
+		state := parsed.Query().Get("state")
+		redirectURI := parsed.Query().Get("redirect_uri")
+		callbackURL := fmt.Sprintf("%s?state=%s&code=browser-code", redirectURI, url.QueryEscape(state))
+		resp, err := http.Get(callbackURL)
+		if err != nil {
+			return err
+		}
+		resp.Body.Close()
+		return nil
+	}
+
+	t.Setenv("DISPLAY", ":0")
+	for _, k := range []string{"CI", "GITHUB_ACTIONS", "SSH_CONNECTION", "SSH_TTY", "GDRV_NO_BROWSER"} {
+		t.Setenv(k, "")
+		os.Unsetenv(k)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	creds, err := mgr.Authenticate(ctx, "test-browser", openBrowser, OAuthAuthOptions{NoBrowser: false})
+	if err != nil {
+		t.Fatalf("Authenticate failed: %v", err)
+	}
+
+	if !browserCalled {
+		t.Error("openBrowser should be called when NoBrowser=false")
+	}
+	if creds.AccessToken != "tok" {
+		t.Errorf("Expected access_token 'tok', got %q", creds.AccessToken)
+	}
+}
+
+func TestAuthenticate_BrowserFailsStillWaitsForCallback(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"access_token":"tok2","refresh_token":"rtok2","expires_in":3600,"token_type":"Bearer"}`)
+	}))
+	defer mockServer.Close()
+
+	tmpDir := t.TempDir()
+	mgr := NewManager(tmpDir)
+	mgr.oauthConfig = &oauth2.Config{
+		ClientID:     "test-client-id",
+		ClientSecret: "test-client-secret",
+		Scopes:       []string{"https://www.googleapis.com/auth/drive.readonly"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  mockServer.URL + "/auth",
+			TokenURL: mockServer.URL + "/token",
+		},
+	}
+
+	urlCh := make(chan string, 1)
+	openBrowser := func(u string) error {
+		urlCh <- u
+		return fmt.Errorf("browser not available")
+	}
+
+	t.Setenv("DISPLAY", ":0")
+	for _, k := range []string{"CI", "GITHUB_ACTIONS", "SSH_CONNECTION", "SSH_TTY", "GDRV_NO_BROWSER"} {
+		t.Setenv(k, "")
+		os.Unsetenv(k)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	type authResult struct {
+		accessToken string
+		err         error
+	}
+	ch := make(chan authResult, 1)
+	go func() {
+		creds, err := mgr.Authenticate(ctx, "test-browser-fail", openBrowser, OAuthAuthOptions{NoBrowser: false})
+		if err != nil {
+			ch <- authResult{err: err}
+			return
+		}
+		ch <- authResult{accessToken: creds.AccessToken}
+	}()
+
+	var capturedURL string
+	select {
+	case capturedURL = <-urlCh:
+	case <-time.After(3 * time.Second):
+		t.Fatal("openBrowser was not called")
+	}
+
+	parsed, err := url.Parse(capturedURL)
+	if err != nil {
+		t.Fatalf("Failed to parse auth URL: %v", err)
+	}
+	state := parsed.Query().Get("state")
+	redirectURI := parsed.Query().Get("redirect_uri")
+	callbackURL := fmt.Sprintf("%s?state=%s&code=manual-code", redirectURI, url.QueryEscape(state))
+
+	resp, err := http.Get(callbackURL)
+	if err != nil {
+		t.Fatalf("Callback request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Callback returned status %d, want 200", resp.StatusCode)
+	}
+
+	res := <-ch
+	if res.err != nil {
+		t.Fatalf("Authenticate failed: %v", res.err)
+	}
+	if res.accessToken != "tok2" {
+		t.Errorf("Expected access_token 'tok2', got %q", res.accessToken)
+	}
+}
+
 func TestGenerateState_Uniqueness(t *testing.T) {
 	states := make(map[string]bool)
 
@@ -594,33 +787,5 @@ func TestGenerateState_Uniqueness(t *testing.T) {
 		if len(state) == 0 {
 			t.Error("Generated state is empty")
 		}
-	}
-}
-
-func TestPromptForAuthCode(t *testing.T) {
-	input := "test-auth-code\n"
-	reader := bufio.NewReader(strings.NewReader(input))
-
-	code, err := promptForAuthCode(reader)
-	if err != nil {
-		t.Fatalf("promptForAuthCode failed: %v", err)
-	}
-
-	if code != "test-auth-code" {
-		t.Errorf("Expected 'test-auth-code', got %q", code)
-	}
-}
-
-func TestPromptForAuthCode_WithWhitespace(t *testing.T) {
-	input := "  test-auth-code  \n"
-	reader := bufio.NewReader(strings.NewReader(input))
-
-	code, err := promptForAuthCode(reader)
-	if err != nil {
-		t.Fatalf("promptForAuthCode failed: %v", err)
-	}
-
-	if code != "test-auth-code" {
-		t.Errorf("Expected 'test-auth-code', got %q", code)
 	}
 }

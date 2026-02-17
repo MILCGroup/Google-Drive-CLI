@@ -121,10 +121,7 @@ func runActivityQuery(cmd *cobra.Command, args []string) error {
 
 	activities, err := mgr.Query(ctx, reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("activity.query", appErr.CLIError)
-		}
-		return out.WriteError("activity.query", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "activity.query", err)
 	}
 
 	result := &ActivityQueryResult{Activities: activities}

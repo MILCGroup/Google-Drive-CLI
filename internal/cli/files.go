@@ -260,10 +260,7 @@ func runFilesList(cmd *cobra.Command, args []string) error {
 	if filesPaginate {
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
-				return out.WriteError("files.list", appErr.CLIError)
-			}
-			return out.WriteError("files.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+			return handleCLIError(out, "files.list", err)
 		}
 		// Return result without nextPageToken (all pages fetched)
 		return out.WriteSuccess("files.list", map[string]interface{}{
@@ -273,10 +270,7 @@ func runFilesList(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.List(ctx, reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.list", appErr.CLIError)
-		}
-		return out.WriteError("files.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.list", err)
 	}
 
 	return out.WriteSuccess("files.list", result)
@@ -303,10 +297,7 @@ func runFilesGet(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	file, err := mgr.Get(ctx, reqCtx, fileID, filesGetFields)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.get", appErr.CLIError)
-		}
-		return out.WriteError("files.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.get", err)
 	}
 
 	return out.WriteSuccess("files.get", file)
@@ -341,10 +332,7 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 		MimeType: filesMimeType,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.upload", appErr.CLIError)
-		}
-		return out.WriteError("files.upload", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.upload", err)
 	}
 
 	out.Log("Uploaded: %s", file.Name)
@@ -380,10 +368,7 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 		MimeType:   mimeType,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.download", appErr.CLIError)
-		}
-		return out.WriteError("files.download", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.download", err)
 	}
 
 	out.Log("Downloaded to: %s", filesOutput)
@@ -411,10 +396,7 @@ func runFilesDelete(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	err = mgr.Delete(ctx, reqCtx, fileID, filesPermanent)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.delete", appErr.CLIError)
-		}
-		return out.WriteError("files.delete", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.delete", err)
 	}
 
 	action := "trashed"
@@ -459,10 +441,7 @@ func runFilesCopy(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	file, err := mgr.Copy(ctx, reqCtx, fileID, filesName, parentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.copy", appErr.CLIError)
-		}
-		return out.WriteError("files.copy", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.copy", err)
 	}
 
 	out.Log("Copied to: %s", file.Name)
@@ -499,10 +478,7 @@ func runFilesMove(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	file, err := mgr.Move(ctx, reqCtx, fileID, parentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.move", appErr.CLIError)
-		}
-		return out.WriteError("files.move", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.move", err)
 	}
 
 	out.Log("Moved: %s", file.Name)
@@ -530,10 +506,7 @@ func runFilesTrash(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	file, err := mgr.Trash(ctx, reqCtx, fileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.trash", appErr.CLIError)
-		}
-		return out.WriteError("files.trash", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.trash", err)
 	}
 
 	out.Log("Trashed: %s", file.Name)
@@ -561,10 +534,7 @@ func runFilesRestore(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeMutation
 	file, err := mgr.Restore(ctx, reqCtx, fileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.restore", appErr.CLIError)
-		}
-		return out.WriteError("files.restore", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.restore", err)
 	}
 
 	out.Log("Restored: %s", file.Name)
@@ -595,10 +565,7 @@ func runFilesRevisions(cmd *cobra.Command, args []string) error {
 
 	result, err := revMgr.List(ctx, reqCtx, fileID, revisions.ListOptions{})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.revisions", appErr.CLIError)
-		}
-		return out.WriteError("files.revisions", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.revisions", err)
 	}
 
 	return out.WriteSuccess("files.revisions", result)
@@ -632,10 +599,7 @@ func runFilesRevisionsDownload(cmd *cobra.Command, args []string) error {
 		OutputPath: filesRevisionOutput,
 	})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.revisions.download", appErr.CLIError)
-		}
-		return out.WriteError("files.revisions.download", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.revisions.download", err)
 	}
 
 	out.Log("Downloaded revision %s to: %s", revisionID, filesRevisionOutput)
@@ -668,10 +632,7 @@ func runFilesRevisionsRestore(cmd *cobra.Command, args []string) error {
 
 	file, err := revMgr.Restore(ctx, reqCtx, fileID, revisionID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.revisions.restore", appErr.CLIError)
-		}
-		return out.WriteError("files.revisions.restore", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.revisions.restore", err)
 	}
 
 	out.Log("Restored file to revision: %s", revisionID)
@@ -706,10 +667,7 @@ func runFilesListTrashed(cmd *cobra.Command, args []string) error {
 		}
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
-				return out.WriteError("files.list-trashed", appErr.CLIError)
-			}
-			return out.WriteError("files.list-trashed", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+			return handleCLIError(out, "files.list-trashed", err)
 		}
 		return out.WriteSuccess("files.list-trashed", map[string]interface{}{
 			"files": allFiles,
@@ -718,10 +676,7 @@ func runFilesListTrashed(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.ListTrashed(ctx, reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.list-trashed", appErr.CLIError)
-		}
-		return out.WriteError("files.list-trashed", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.list-trashed", err)
 	}
 
 	return out.WriteSuccess("files.list-trashed", result)
@@ -748,10 +703,7 @@ func runFilesExportFormats(cmd *cobra.Command, args []string) error {
 	reqCtx.RequestType = types.RequestTypeGetByID
 	file, err := mgr.Get(ctx, reqCtx, fileID, "mimeType,name")
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("files.export-formats", appErr.CLIError)
-		}
-		return out.WriteError("files.export-formats", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "files.export-formats", err)
 	}
 
 	formats, err := export.GetAvailableFormats(file.MimeType)

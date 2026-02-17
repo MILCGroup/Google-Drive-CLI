@@ -57,7 +57,7 @@ func runDrivesList(cmd *cobra.Command, args []string) error {
 	// Get authenticated client
 	client, err := getAPIClient(ctx, flags.Profile)
 	if err != nil {
-		return handleError(writer, "drives list", err)
+		return handleCLIError(writer, "drives list", err)
 	}
 
 	// Create drives manager
@@ -73,7 +73,7 @@ func runDrivesList(cmd *cobra.Command, args []string) error {
 		for {
 			result, err := manager.List(ctx, reqCtx, drivesListPageSize, pageToken)
 			if err != nil {
-				return handleError(writer, "drives list", err)
+				return handleCLIError(writer, "drives list", err)
 			}
 			allDrives = append(allDrives, result.Drives...)
 			if result.NextPageToken == "" {
@@ -89,7 +89,7 @@ func runDrivesList(cmd *cobra.Command, args []string) error {
 	// List drives
 	result, err := manager.List(ctx, reqCtx, drivesListPageSize, drivesListPageToken)
 	if err != nil {
-		return handleError(writer, "drives list", err)
+		return handleCLIError(writer, "drives list", err)
 	}
 
 	// Output result
@@ -106,7 +106,7 @@ func runDrivesGet(cmd *cobra.Command, args []string) error {
 	// Get authenticated client
 	client, err := getAPIClient(ctx, flags.Profile)
 	if err != nil {
-		return handleError(writer, "drives get", err)
+		return handleCLIError(writer, "drives get", err)
 	}
 
 	// Create drives manager
@@ -118,7 +118,7 @@ func runDrivesGet(cmd *cobra.Command, args []string) error {
 	// Get drive
 	result, err := manager.Get(ctx, reqCtx, driveID, "")
 	if err != nil {
-		return handleError(writer, "drives get", err)
+		return handleCLIError(writer, "drives get", err)
 	}
 
 	// Output result
@@ -148,12 +148,4 @@ func getAPIClient(ctx context.Context, profile string) (*api.Client, error) {
 
 	// Create API client
 	return api.NewClient(driveService, utils.DefaultMaxRetries, utils.DefaultRetryDelayMs, GetLogger()), nil
-}
-
-// handleError converts errors to CLI output
-func handleError(writer *OutputWriter, command string, err error) error {
-	if appErr, ok := err.(*utils.AppError); ok {
-		return writer.WriteError(command, appErr.CLIError)
-	}
-	return writer.WriteError(command, utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
 }

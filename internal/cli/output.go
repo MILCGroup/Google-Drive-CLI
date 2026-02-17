@@ -172,6 +172,17 @@ func (w *OutputWriter) writePermissionTable(perms []*types.Permission) error {
 	return nil
 }
 
+// handleCLIError converts an error into a structured CLI error output.
+// It checks whether the error is an AppError (with a structured CLIError)
+// and writes it directly; otherwise it wraps it as an unknown error.
+// This replaces the repeated 4-line error handling pattern across all CLI commands.
+func handleCLIError(w *OutputWriter, command string, err error) error {
+	if appErr, ok := err.(*utils.AppError); ok {
+		return w.WriteError(command, appErr.CLIError)
+	}
+	return w.WriteError(command, utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+}
+
 // Log writes to stderr if not quiet
 func (w *OutputWriter) Log(format string, args ...interface{}) {
 	if !w.quiet {

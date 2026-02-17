@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"os"
 
 	"github.com/dl-alexandre/gdrv/internal/api"
 	"github.com/dl-alexandre/gdrv/internal/auth"
@@ -294,10 +293,7 @@ func runPermList(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permission.list", appErr.CLIError)
-		}
-		return writer.WriteError("permission.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.list", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -305,11 +301,7 @@ func runPermList(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.List(context.Background(), reqCtx, fileID, permissions.ListOptions{})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permission.list", appErr.CLIError)
-		}
-		return writer.WriteError("permission.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.list", err)
 	}
 
 	return writer.WriteSuccess("permission.list", result)
@@ -347,10 +339,7 @@ func runPermCreate(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.create", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.create", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -369,11 +358,7 @@ func runPermCreate(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.Create(context.Background(), reqCtx, fileID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.create", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.create", err)
 	}
 
 	return writer.WriteSuccess("permissions.create", result)
@@ -392,10 +377,7 @@ func runPermUpdate(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permission.update", appErr.CLIError)
-		}
-		return writer.WriteError("permission.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.update", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -404,11 +386,7 @@ func runPermUpdate(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.Update(context.Background(), reqCtx, fileID, permissionID, permissions.UpdateOptions{Role: permRole})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permission.update", appErr.CLIError)
-		}
-		return writer.WriteError("permission.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.update", err)
 	}
 
 	return writer.WriteSuccess("permission.update", result)
@@ -420,10 +398,7 @@ func runPermRemove(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permission.remove", appErr.CLIError)
-		}
-		return writer.WriteError("permission.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.remove", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -432,11 +407,7 @@ func runPermRemove(cmd *cobra.Command, args []string) error {
 
 	err = mgr.Delete(context.Background(), reqCtx, fileID, permissionID, permissions.DeleteOptions{})
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permission.remove", appErr.CLIError)
-		}
-		return writer.WriteError("permission.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.remove", err)
 	}
 
 	return writer.WriteSuccess("permission.remove", map[string]interface{}{
@@ -458,10 +429,7 @@ func runPermCreateLink(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permission.create-link", appErr.CLIError)
-		}
-		return writer.WriteError("permission.create-link", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.create-link", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -469,11 +437,7 @@ func runPermCreateLink(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.CreatePublicLink(context.Background(), reqCtx, fileID, permRole, permAllowFileDiscovery)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permission.create-link", appErr.CLIError)
-		}
-		return writer.WriteError("permission.create-link", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permission.create-link", err)
 	}
 
 	return writer.WriteSuccess("permission.create-link", result)
@@ -485,10 +449,7 @@ func runPermAuditPublic(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.audit.public", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.public", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.public", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -500,11 +461,7 @@ func runPermAuditPublic(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.AuditPublic(context.Background(), reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.audit.public", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.public", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.public", err)
 	}
 
 	return writer.WriteSuccess("permissions.audit.public", result)
@@ -516,10 +473,7 @@ func runPermAuditExternal(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.audit.external", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.external", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.external", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -532,11 +486,7 @@ func runPermAuditExternal(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.AuditExternal(context.Background(), reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.audit.external", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.external", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.external", err)
 	}
 
 	return writer.WriteSuccess("permissions.audit.external", result)
@@ -548,10 +498,7 @@ func runPermAuditAnyoneWithLink(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.audit.anyone-with-link", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.anyone-with-link", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.anyone-with-link", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -563,11 +510,7 @@ func runPermAuditAnyoneWithLink(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.AuditAnyoneWithLink(context.Background(), reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.audit.anyone-with-link", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.anyone-with-link", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.anyone-with-link", err)
 	}
 
 	return writer.WriteSuccess("permissions.audit.anyone-with-link", result)
@@ -579,10 +522,7 @@ func runPermAuditUser(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.audit.user", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.user", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.user", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -595,11 +535,7 @@ func runPermAuditUser(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.AuditUser(context.Background(), reqCtx, email, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.audit.user", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.audit.user", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.audit.user", err)
 	}
 
 	return writer.WriteSuccess("permissions.audit.user", result)
@@ -611,10 +547,7 @@ func runPermAnalyze(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.analyze", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.analyze", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.analyze", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -628,11 +561,7 @@ func runPermAnalyze(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.AnalyzeFolder(context.Background(), reqCtx, folderID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.analyze", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.analyze", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.analyze", err)
 	}
 
 	return writer.WriteSuccess("permissions.analyze", result)
@@ -644,10 +573,7 @@ func runPermReport(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.report", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.report", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.report", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -655,11 +581,7 @@ func runPermReport(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.GenerateReport(context.Background(), reqCtx, fileID, analyzeInternalDomain)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.report", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.report", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.report", err)
 	}
 
 	return writer.WriteSuccess("permissions.report", result)
@@ -671,10 +593,7 @@ func runPermBulkRemovePublic(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.bulk.remove-public", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.bulk.remove-public", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.bulk.remove-public", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -688,11 +607,7 @@ func runPermBulkRemovePublic(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.BulkRemovePublic(context.Background(), reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.bulk.remove-public", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.bulk.remove-public", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.bulk.remove-public", err)
 	}
 
 	return writer.WriteSuccess("permissions.bulk.remove-public", result)
@@ -704,10 +619,7 @@ func runPermBulkUpdateRole(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.bulk.update-role", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.bulk.update-role", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.bulk.update-role", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -721,11 +633,7 @@ func runPermBulkUpdateRole(cmd *cobra.Command, args []string) error {
 
 	result, err := mgr.BulkUpdateRole(context.Background(), reqCtx, bulkFromRole, bulkToRole, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.bulk.update-role", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.bulk.update-role", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.bulk.update-role", err)
 	}
 
 	return writer.WriteSuccess("permissions.bulk.update-role", result)
@@ -742,10 +650,7 @@ func runPermSearch(cmd *cobra.Command, args []string) error {
 
 	mgr, err := getPermissionManager()
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return writer.WriteError("permissions.search", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.search", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.search", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
@@ -764,11 +669,7 @@ func runPermSearch(cmd *cobra.Command, args []string) error {
 	}
 
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			os.Exit(utils.GetExitCode(appErr.CLIError.Code))
-			return writer.WriteError("permissions.search", appErr.CLIError)
-		}
-		return writer.WriteError("permissions.search", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(writer, "permissions.search", err)
 	}
 
 	return writer.WriteSuccess("permissions.search", result)

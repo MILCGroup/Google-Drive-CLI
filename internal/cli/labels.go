@@ -270,10 +270,7 @@ func runLabelsList(cmd *cobra.Command, args []string) error {
 
 	labelsList, nextPageToken, err := mgr.List(ctx, reqCtx, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.list", appErr.CLIError)
-		}
-		return out.WriteError("labels.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.list", err)
 	}
 
 	result := &LabelsListResult{
@@ -301,10 +298,7 @@ func runLabelsGet(cmd *cobra.Command, args []string) error {
 
 	label, err := mgr.Get(ctx, reqCtx, labelID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.get", appErr.CLIError)
-		}
-		return out.WriteError("labels.get", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.get", err)
 	}
 
 	result := &LabelResult{Label: label}
@@ -335,10 +329,7 @@ func runLabelsCreate(cmd *cobra.Command, args []string) error {
 
 	createdLabel, err := mgr.CreateLabel(ctx, reqCtx, label, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.create", appErr.CLIError)
-		}
-		return out.WriteError("labels.create", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.create", err)
 	}
 
 	result := &LabelResult{Label: createdLabel}
@@ -361,10 +352,7 @@ func runLabelsPublish(cmd *cobra.Command, args []string) error {
 
 	publishedLabel, err := mgr.PublishLabel(ctx, reqCtx, labelID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.publish", appErr.CLIError)
-		}
-		return out.WriteError("labels.publish", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.publish", err)
 	}
 
 	result := &LabelResult{Label: publishedLabel}
@@ -394,10 +382,7 @@ func runLabelsDisable(cmd *cobra.Command, args []string) error {
 
 	disabledLabel, err := mgr.DisableLabel(ctx, reqCtx, labelID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.disable", appErr.CLIError)
-		}
-		return out.WriteError("labels.disable", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.disable", err)
 	}
 
 	result := &LabelResult{Label: disabledLabel}
@@ -421,10 +406,7 @@ func runLabelsFileList(cmd *cobra.Command, args []string) error {
 
 	fileLabels, err := mgr.ListFileLabels(ctx, reqCtx, fileID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.file.list", appErr.CLIError)
-		}
-		return out.WriteError("labels.file.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.file.list", err)
 	}
 
 	result := &FileLabelsListResult{FileLabels: fileLabels}
@@ -455,10 +437,7 @@ func runLabelsFileApply(cmd *cobra.Command, args []string) error {
 
 	fileLabel, err := mgr.ApplyLabel(ctx, reqCtx, fileID, labelID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.file.apply", appErr.CLIError)
-		}
-		return out.WriteError("labels.file.apply", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.file.apply", err)
 	}
 
 	result := &FileLabelResult{FileLabel: fileLabel}
@@ -489,10 +468,7 @@ func runLabelsFileUpdate(cmd *cobra.Command, args []string) error {
 
 	fileLabel, err := mgr.UpdateLabel(ctx, reqCtx, fileID, labelID, opts)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.file.update", appErr.CLIError)
-		}
-		return out.WriteError("labels.file.update", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.file.update", err)
 	}
 
 	result := &FileLabelResult{FileLabel: fileLabel}
@@ -512,10 +488,7 @@ func runLabelsFileRemove(cmd *cobra.Command, args []string) error {
 
 	err = mgr.RemoveLabel(ctx, reqCtx, fileID, labelID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
-			return out.WriteError("labels.file.remove", appErr.CLIError)
-		}
-		return out.WriteError("labels.file.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+		return handleCLIError(out, "labels.file.remove", err)
 	}
 
 	result := &SuccessResult{Message: fmt.Sprintf("Label %s removed from file %s", labelID, fileID)}

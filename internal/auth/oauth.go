@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"bufio"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -11,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/dl-alexandre/gdrv/internal/types"
@@ -125,6 +123,20 @@ func (f *OAuthFlow) WaitForCode(timeout time.Duration) (string, error) {
 	}
 }
 
+// WaitForCodeWithContext waits for the authorization code, respecting context cancellation.
+func (f *OAuthFlow) WaitForCodeWithContext(ctx context.Context, timeout time.Duration) (string, error) {
+	select {
+	case code := <-f.codeChan:
+		return code, nil
+	case err := <-f.errChan:
+		return "", err
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-time.After(timeout):
+		return "", fmt.Errorf("authentication timed out")
+	}
+}
+
 // ExchangeCode exchanges auth code for tokens
 func (f *OAuthFlow) ExchangeCode(ctx context.Context, code string) (*types.Credentials, error) {
 	token, err := f.config.Exchange(
@@ -173,80 +185,36 @@ func codeChallengeS256(verifier string) string {
 	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
-func promptForAuthCode(reader *bufio.Reader) (string, error) {
-	fmt.Print("Paste the authorization code from the redirected URL: ")
-	code, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(code), nil
-}
-
 // Authenticate performs the full OAuth flow
 func (m *Manager) Authenticate(ctx context.Context, profile string, openBrowser func(string) error, opts OAuthAuthOptions) (*types.Credentials, error) {
 	if m.oauthConfig == nil {
 		return nil, fmt.Errorf("OAuth config not set")
 	}
 
-	var flow *OAuthFlow
-	manualFallback := opts.NoBrowser || isHeadlessEnv()
-	if !manualFallback {
-		var err error
-		flow, err = newLoopbackFlow(m.oauthConfig)
-		if err != nil {
-			manualFallback = true
-		}
+	flow, err := newLoopbackFlow(m.oauthConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start local server: %w", err)
 	}
+	defer flow.Close()
 
-	if flow != nil && !manualFallback {
-		defer flow.Close()
-	}
-
-	var authURL string
-	if flow != nil {
-		authURL = flow.GetAuthURL()
-	}
-
-	if manualFallback {
-		if flow != nil {
-			flow.Close()
-		}
-		flow, err := newManualFlow(m.oauthConfig)
-		if err != nil {
-			return nil, err
-		}
-		authURL = flow.GetAuthURL()
-		fmt.Printf("Manual authentication required.\n")
-		fmt.Printf("Open this URL in a browser and approve access:\n%s\n", authURL)
-		fmt.Printf("After approval, you will be redirected to a localhost URL.\n")
-		fmt.Printf("Copy the `code` parameter from the address bar and paste it here.\n")
-		code, err := promptForAuthCode(bufio.NewReader(os.Stdin))
-		if err != nil {
-			return nil, err
-		}
-		creds, err := flow.ExchangeCode(ctx, code)
-		if err != nil {
-			return nil, err
-		}
-		if err := m.SaveCredentials(profile, creds); err != nil {
-			return nil, fmt.Errorf("failed to save credentials: %w", err)
-		}
-		return creds, nil
-	}
-
-	fmt.Printf("Opening browser for authentication...\n")
-	fmt.Printf("If browser doesn't open, visit: %s\n", authURL)
-
+	authURL := flow.GetAuthURL()
 	flow.StartCallbackServer(ctx)
 
-	if err := openBrowser(authURL); err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
-		fmt.Printf("Switching to manual authentication.\n")
-		opts.NoBrowser = true
-		return m.Authenticate(ctx, profile, openBrowser, opts)
+	noBrowser := opts.NoBrowser || isHeadlessEnv()
+	if noBrowser {
+		fmt.Printf("Manual authentication required.\n")
+		fmt.Printf("Open this URL in a browser and approve access:\n%s\n", authURL)
+		fmt.Printf("Waiting for authentication callback...\n")
+	} else {
+		fmt.Printf("Opening browser for authentication...\n")
+		fmt.Printf("If browser doesn't open, visit: %s\n", authURL)
+		if err := openBrowser(authURL); err != nil {
+			fmt.Printf("Failed to open browser: %v\n", err)
+			fmt.Printf("Open this URL manually in a browser:\n%s\n", authURL)
+		}
 	}
 
-	code, err := flow.WaitForCode(5 * time.Minute)
+	code, err := flow.WaitForCodeWithContext(ctx, 5*time.Minute)
 	if err != nil {
 		return nil, err
 	}
@@ -276,22 +244,6 @@ func newLoopbackFlow(config *oauth2.Config) (*OAuthFlow, error) {
 	addr := listener.Addr().(*net.TCPAddr)
 	redirectURL := fmt.Sprintf("http://127.0.0.1:%d/callback", addr.Port)
 	return NewOAuthFlow(config, listener, redirectURL)
-}
-
-func newManualFlow(config *oauth2.Config) (*OAuthFlow, error) {
-	port := pickManualPort()
-	redirectURL := fmt.Sprintf("http://127.0.0.1:%d/callback", port)
-	return NewOAuthFlow(config, nil, redirectURL)
-}
-
-func pickManualPort() int {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err == nil {
-		addr := listener.Addr().(*net.TCPAddr)
-		_ = listener.Close()
-		return addr.Port
-	}
-	return 8765
 }
 
 func isHeadlessEnv() bool {

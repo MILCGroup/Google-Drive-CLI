@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	serviceName        = "gdrv-cli"
-	tokenRefreshBuffer = 5 * time.Minute
+	serviceName            = "gdrv-cli"
+	tokenRefreshBuffer     = 5 * time.Minute
 	credentialKeySeparator = "--"
 	metadataSuffix         = ".meta.json"
 )
@@ -127,7 +127,8 @@ func (m *Manager) LoadCredentials(profile string) (*types.Credentials, error) {
 
 	expiryDate, err := time.Parse(time.RFC3339, stored.ExpiryDate)
 	if err != nil {
-		return nil, fmt.Errorf("invalid expiry date: %w", err)
+		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
+			fmt.Sprintf("invalid expiry date in stored credentials: %s. Run 'gdrv auth login' to re-authenticate.", err)).Build())
 	}
 
 	return &types.Credentials{
@@ -164,7 +165,8 @@ func (m *Manager) SaveCredentials(profile string, creds *types.Credentials) erro
 
 	data, err := json.Marshal(stored)
 	if err != nil {
-		return fmt.Errorf("failed to marshal credentials: %w", err)
+		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeInternalError,
+			fmt.Sprintf("failed to marshal credentials: %s", err)).Build())
 	}
 
 	if err := m.storage.Save(key, data); err != nil {
@@ -216,10 +218,12 @@ func (m *Manager) NeedsRefresh(creds *types.Credentials) bool {
 // RefreshCredentials refreshes OAuth2 tokens
 func (m *Manager) RefreshCredentials(ctx context.Context, creds *types.Credentials) (*types.Credentials, error) {
 	if creds.Type != types.AuthTypeOAuth {
-		return nil, fmt.Errorf("refresh only supported for OAuth credentials")
+		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
+			"token refresh is only supported for OAuth credentials").Build())
 	}
 	if m.oauthConfig == nil {
-		return nil, fmt.Errorf("OAuth config not set")
+		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
+			"OAuth config not set. Run 'gdrv auth login' first.").Build())
 	}
 
 	token := &oauth2.Token{
@@ -267,7 +271,8 @@ func (m *Manager) GetValidCredentials(ctx context.Context, profile string) (*typ
 				"Token refresh failed. Run 'gdrv auth login' to re-authenticate.").Build())
 		}
 		if err := m.SaveCredentials(profile, newCreds); err != nil {
-			return nil, fmt.Errorf("failed to save refreshed credentials: %w", err)
+			return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInternalError,
+				fmt.Sprintf("failed to save refreshed credentials: %s", err)).Build())
 		}
 		return newCreds, nil
 	}
@@ -317,7 +322,8 @@ func (m *Manager) loadStoredCredentials(profile string) (*types.StoredCredential
 
 	var stored types.StoredCredentials
 	if err := json.Unmarshal(data, &stored); err != nil {
-		return nil, fmt.Errorf("failed to parse credentials: %w", err)
+		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
+			fmt.Sprintf("failed to parse stored credentials: %s. Run 'gdrv auth login' to re-authenticate.", err)).Build())
 	}
 
 	return &stored, nil
@@ -464,8 +470,6 @@ func credentialKey(profile, hash string) string {
 	}
 	return profile + credentialKeySeparator + hash
 }
-
-
 
 // ValidateScopes checks if credentials have required scopes
 func (m *Manager) ValidateScopes(creds *types.Credentials, required []string) error {
