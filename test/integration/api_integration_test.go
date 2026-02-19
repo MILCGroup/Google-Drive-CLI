@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
 )

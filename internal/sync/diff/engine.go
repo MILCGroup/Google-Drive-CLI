@@ -3,8 +3,8 @@ package diff
 import (
 	"sort"
 
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
-	"github.com/dl-alexandre/gdrv/internal/sync/scanner"
+	"github.com/milcgroup/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/sync/scanner"
 )
 
 type Snapshot struct {

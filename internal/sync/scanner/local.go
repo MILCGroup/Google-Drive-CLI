@@ -10,8 +10,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/dl-alexandre/gdrv/internal/sync/exclude"
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/sync/exclude"
+	"github.com/milcgroup/gdrv/internal/sync/index"
 )
 
 func ScanLocal(ctx context.Context, root string, matcher *exclude.Matcher, prev map[string]index.SyncEntry) (map[string]LocalEntry, error) {

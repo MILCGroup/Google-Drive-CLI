@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"github.com/google/uuid"
 	"github.com/olekukonko/tablewriter"
 )

@@ -7,10 +7,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/logging"
-	"github.com/dl-alexandre/gdrv/internal/resolver"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/logging"
+	"github.com/milcgroup/gdrv/internal/resolver"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 func TestResolveIntegration(t *testing.T) {

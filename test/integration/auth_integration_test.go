@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/auth"
 )
 
 // Integration Test: Auth Flow Validation

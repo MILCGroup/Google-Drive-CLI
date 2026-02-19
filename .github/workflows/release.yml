@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write  # Required for keyless cosign (OIDC)
 
 jobs:
   release:
@@ -14,12 +15,7 @@ jobs:
     runs-on: macos-latest
     env:
       APP_NAME: gdrv
-      REPO_NAME: dl-alexandre/Google-Drive-CLI
-      REPO_URL: https://github.com/dl-alexandre/Google-Drive-CLI
-      PKG_NAME: gdrv-bin
-      PKG_DESC: Google Drive CLI with full read/write support
-      FORMULA_NAME: gdrv
-      FORMULA_CLASS: Gdrv
+      REPO_NAME: MILCGroup/Google-Drive-CLI
 
     steps:
       - name: Checkout code
@@ -38,6 +34,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Import Code Signing Certificate
+        if: env.APPLE_CERTIFICATE != ''
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -50,23 +47,43 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k temp_password build.keychain
           rm certificate.p12
 
-      - name: Build binaries
+      - name: Build official binaries
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
           COMMIT: ${{ github.sha }}
           DATE: ${{ github.event.head_commit.timestamp }}
-          OAUTH_CLIENT_ID: ${{ secrets.GDRV_BUNDLED_OAUTH_CLIENT_ID }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.GDRV_BUNDLED_OAUTH_CLIENT_SECRET }}
+          OAUTH_CLIENT_ID: ${{ secrets.GDRV_CLIENT_ID }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.GDRV_CLIENT_SECRET }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         run: |
           mkdir -p dist
 
-          LDFLAGS="-s -w -X github.com/dl-alexandre/gdrv/pkg/version.Version=${VERSION} -X github.com/dl-alexandre/gdrv/pkg/version.GitCommit=${COMMIT} -X github.com/dl-alexandre/gdrv/pkg/version.BuildTime=${DATE} -X github.com/dl-alexandre/gdrv/internal/auth.BundledOAuthClientID=${OAUTH_CLIENT_ID} -X github.com/dl-alexandre/gdrv/internal/auth.BundledOAuthClientSecret=${OAUTH_CLIENT_SECRET}"
+          LDFLAGS="-s -w \
+            -X github.com/milcgroup/gdrv/pkg/version.Version=${VERSION} \
+            -X github.com/milcgroup/gdrv/pkg/version.GitCommit=${COMMIT} \
+            -X github.com/milcgroup/gdrv/pkg/version.BuildTime=${DATE} \
+            -X github.com/milcgroup/gdrv/internal/auth.BundledBuildSource=official"
+
+          if [ -n "$OAUTH_CLIENT_ID" ]; then
+            LDFLAGS="${LDFLAGS} -X github.com/milcgroup/gdrv/internal/auth.BundledOAuthClientID=${OAUTH_CLIENT_ID}"
+          fi
+          if [ -n "$OAUTH_CLIENT_SECRET" ]; then
+            LDFLAGS="${LDFLAGS} -X github.com/milcgroup/gdrv/internal/auth.BundledOAuthClientSecret=${OAUTH_CLIENT_SECRET}"
+          fi
+
+          echo "Building official release with OAuth credentials..."
 
           GOOS=darwin GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o dist/${APP_NAME}-darwin-arm64 ./cmd/${APP_NAME}
-          codesign --sign - --timestamp --options runtime dist/${APP_NAME}-darwin-arm64
-
           GOOS=darwin GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o dist/${APP_NAME}-darwin-amd64 ./cmd/${APP_NAME}
-          codesign --sign - --timestamp --options runtime dist/${APP_NAME}-darwin-amd64
+
+          # Sign with Developer ID if cert is available, otherwise ad-hoc
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            SIGN_IDENTITY="Developer ID Application"
+          else
+            SIGN_IDENTITY="-"
+          fi
+          codesign --sign "$SIGN_IDENTITY" --timestamp --options runtime dist/${APP_NAME}-darwin-arm64
+          codesign --sign "$SIGN_IDENTITY" --timestamp --options runtime dist/${APP_NAME}-darwin-amd64
 
           GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o dist/${APP_NAME}-linux-amd64 ./cmd/${APP_NAME}
 
@@ -81,119 +98,99 @@ jobs:
           VERSION: ${{ steps.version.outputs.VERSION }}
           DATE: ${{ github.event.head_commit.timestamp }}
         run: |
-          go build -ldflags="-X github.com/dl-alexandre/gdrv/pkg/version.Version=${VERSION} -X github.com/dl-alexandre/gdrv/pkg/version.BuildTime=${DATE}" -o /tmp/${APP_NAME}-verify ./cmd/${APP_NAME}
+          go build -ldflags="-X github.com/milcgroup/gdrv/pkg/version.Version=${VERSION} -X github.com/milcgroup/gdrv/pkg/version.BuildTime=${DATE}" -o /tmp/${APP_NAME}-verify ./cmd/${APP_NAME}
           /tmp/${APP_NAME}-verify version | grep -F "${VERSION}"
 
       - name: Create Arch Linux PKGBUILD
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
+          REPO_URL: https://github.com/${{ env.REPO_NAME }}
         run: |
           cat > dist/PKGBUILD << PKGBUILD_EOF
-          pkgname=${PKG_NAME}
+          pkgname=gdrv-bin
           pkgver=${VERSION}
           pkgrel=1
-          pkgdesc="${PKG_DESC}"
+          pkgdesc="Company Google Drive CLI with pre-bundled OAuth credentials"
           arch=('x86_64' 'aarch64')
           url="${REPO_URL}"
           license=('MIT')
-          provides=("${FORMULA_NAME}")
-          conflicts=("${FORMULA_NAME}")
+          provides=("gdrv")
+          conflicts=("gdrv")
 
-          source_x86_64=("${REPO_URL}/releases/download/${VERSION}/${APP_NAME}-linux-amd64")
-          source_aarch64=("${REPO_URL}/releases/download/${VERSION}/${APP_NAME}-linux-arm64")
+          source_x86_64=("${REPO_URL}/releases/download/${VERSION}/gdrv-linux-amd64")
+          source_aarch64=("${REPO_URL}/releases/download/${VERSION}/gdrv-linux-arm64")
 
           sha256sums_x86_64=('SKIP')
           sha256sums_aarch64=('SKIP')
 
           package() {
-            cd "${srcdir}"
-            install -Dm755 ${APP_NAME}-linux-* "${pkgdir}/usr/bin/${APP_NAME}"
+            cd "\${srcdir}"
+            install -Dm755 gdrv-linux-* "\${pkgdir}/usr/bin/gdrv"
           }
           PKGBUILD_EOF
 
-          AMD64_SHA=$(shasum -a 256 dist/${APP_NAME}-linux-amd64 | awk '{print $1}')
-          ARM64_SHA=$(shasum -a 256 dist/${APP_NAME}-linux-arm64 | awk '{print $1}')
+          AMD64_SHA=$(shasum -a 256 dist/gdrv-linux-amd64 | awk '{print $1}')
+          ARM64_SHA=$(shasum -a 256 dist/gdrv-linux-arm64 | awk '{print $1}')
           sed -i "" "s/sha256sums_x86_64=('SKIP')/sha256sums_x86_64=('${AMD64_SHA}')/" dist/PKGBUILD
           sed -i "" "s/sha256sums_aarch64=('SKIP')/sha256sums_aarch64=('${ARM64_SHA}')/" dist/PKGBUILD
 
       - name: Generate checksums
         run: |
           cd dist
-          shasum -a 256 ${APP_NAME}-* PKGBUILD > checksums.txt
+          shasum -a 256 gdrv-* PKGBUILD > checksums.txt
+
+      - name: Sign binaries with cosign (key-based)
+        if: env.COSIGN_PRIVATE_KEY != ''
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          go install github.com/sigstore/cosign/v2/cmd/cosign@latest
+          for file in dist/gdrv-*; do
+            cosign sign-blob --key env://COSIGN_PRIVATE_KEY \
+              --output-signature "${file}.sig" \
+              --output-certificate "${file}.pem" \
+              "$file"
+          done
+
+      - name: Sign binaries with cosign (keyless OIDC)
+        if: env.COSIGN_PRIVATE_KEY == ''
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        run: |
+          go install github.com/sigstore/cosign/v2/cmd/cosign@latest
+          for file in dist/gdrv-*; do
+            cosign sign-blob --yes \
+              --output-signature "${file}.sig" \
+              --output-certificate "${file}.pem" \
+              "$file"
+          done
+
+      - name: Sign checksums with GPG
+        if: env.GPG_PRIVATE_KEY != ''
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "$GPG_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 \
+            --detach-sign --armor dist/checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/${{ env.APP_NAME }}-darwin-arm64
-            dist/${{ env.APP_NAME }}-darwin-amd64
-            dist/${{ env.APP_NAME }}-linux-amd64
-            dist/${{ env.APP_NAME }}-linux-arm64
-            dist/${{ env.APP_NAME }}-windows-amd64.exe
-            dist/${{ env.APP_NAME }}-windows-arm64.exe
+            dist/gdrv-darwin-arm64
+            dist/gdrv-darwin-amd64
+            dist/gdrv-linux-amd64
+            dist/gdrv-linux-arm64
+            dist/gdrv-windows-amd64.exe
+            dist/gdrv-windows-arm64.exe
             dist/PKGBUILD
             dist/checksums.txt
+            dist/*.sig
+            dist/*.pem
+            dist/checksums.txt.asc
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update Homebrew Tap
-        env:
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          SHA256=$(shasum -a 256 dist/${APP_NAME}-darwin-arm64 | awk '{print $1}')
-          SHA256_AMD64=$(shasum -a 256 dist/${APP_NAME}-darwin-amd64 | awk '{print $1}')
-          SHA256_LINUX_ARM64=$(shasum -a 256 dist/${APP_NAME}-linux-arm64 | awk '{print $1}')
-          SHA256_LINUX_AMD64=$(shasum -a 256 dist/${APP_NAME}-linux-amd64 | awk '{print $1}')
-
-          git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/dl-alexandre/tap.git tap-repo
-          cd tap-repo
-
-          cat > Formula/${FORMULA_NAME}.rb << EOF
-          class ${FORMULA_CLASS} < Formula
-            desc "${PKG_DESC}"
-            homepage "${REPO_URL}"
-            version "${VERSION}"
-            license "MIT"
-
-            on_macos do
-              if Hardware::CPU.arm?
-                url "${REPO_URL}/releases/download/${VERSION}/${APP_NAME}-darwin-arm64"
-                sha256 "${SHA256}"
-              end
-              if Hardware::CPU.intel?
-                url "${REPO_URL}/releases/download/${VERSION}/${APP_NAME}-darwin-amd64"
-                sha256 "${SHA256_AMD64}"
-              end
-            end
-
-            on_linux do
-              if Hardware::CPU.arm?
-                url "${REPO_URL}/releases/download/${VERSION}/${APP_NAME}-linux-arm64"
-                sha256 "${SHA256_LINUX_ARM64}"
-              end
-              if Hardware::CPU.intel?
-                url "${REPO_URL}/releases/download/${VERSION}/${APP_NAME}-linux-amd64"
-                sha256 "${SHA256_LINUX_AMD64}"
-              end
-            end
-
-            def install
-              bin.install "${APP_NAME}-darwin-arm64" => "${APP_NAME}" if OS.mac? && Hardware::CPU.arm?
-              bin.install "${APP_NAME}-darwin-amd64" => "${APP_NAME}" if OS.mac? && Hardware::CPU.intel?
-              bin.install "${APP_NAME}-linux-arm64" => "${APP_NAME}" if OS.linux? && Hardware::CPU.arm?
-              bin.install "${APP_NAME}-linux-amd64" => "${APP_NAME}" if OS.linux? && Hardware::CPU.intel?
-            end
-
-            test do
-              system "#{bin}/${APP_NAME}", "version"
-            end
-          end
-          EOF
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/${FORMULA_NAME}.rb
-          git commit -m "Update ${FORMULA_NAME} to ${VERSION}"
-          git push

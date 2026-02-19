@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/admin"
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/admin"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 	adminapi "google.golang.org/api/admin/directory/v1"
 )

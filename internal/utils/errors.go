@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // Exit codes

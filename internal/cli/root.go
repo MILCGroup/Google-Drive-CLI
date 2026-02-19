@@ -6,11 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/logging"
-	"github.com/dl-alexandre/gdrv/internal/resolver"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/pkg/version"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/logging"
+	"github.com/milcgroup/gdrv/internal/resolver"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -61,10 +62,12 @@ All commands support JSON output for automation and scripting.`,
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version number",
-	Long:  "Print the version number of gdrv",
+	Short: "Print version and build information",
+	Long:  "Print the version, commit, build time, and build type (official/source) of gdrv",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(version.Version)
+		v := version.Get()
+		buildSource := auth.GetBuildInfo()
+		fmt.Printf("%s [%s build]\n", v.String(), buildSource)
 	},
 }
 

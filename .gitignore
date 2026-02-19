@@ -1,14 +1,21 @@
-# Binary
+# Binaries
 /gdrv
 cmd/gdrv/gdrv
 bin/
+dist/
 
-# Environment
+# Environment / secrets
 .env
 .env.*
+*.p12
+cosign.key
+cosign.pub
+*.gpg
+*.asc
 
 # OS
 .DS_Store
+Thumbs.db
 
 # Logs
 *.log
@@ -17,7 +24,12 @@ bin/
 *.tmp
 .artifacts/
 
+# Test output
+*.test
+coverage.out
+
 # IDE
 .idea/
 .vscode/
 *.swp
+*.swo

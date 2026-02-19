@@ -17,6 +17,7 @@ type Info struct {
 	BuildTime string `json:"buildTime"`
 	GoVersion string `json:"goVersion"`
 	Platform  string `json:"platform"`
+	BuildType string `json:"buildType"`
 }
 
 func Get() *Info {

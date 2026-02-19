@@ -8,9 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/drives"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/drives"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // Integration Test: Shared Drives Operations

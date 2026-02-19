@@ -3,13 +3,13 @@ package cli
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/export"
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/revisions"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/export"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/revisions"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 )
 

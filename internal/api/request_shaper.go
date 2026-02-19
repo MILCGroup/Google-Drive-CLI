@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 )
 

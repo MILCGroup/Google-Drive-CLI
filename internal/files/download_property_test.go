@@ -3,7 +3,7 @@ package files
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 // Property 2: API Method Selection by File Type

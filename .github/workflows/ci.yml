@@ -13,8 +13,7 @@ jobs:
   test:
     name: Test
     runs-on: ${{ matrix.os }}
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: Source builds require GDRV_CLIENT_ID/GDRV_CLIENT_SECRET env vars
     strategy:
       fail-fast: false
       matrix:
@@ -79,7 +78,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GDRV_CLIENT_ID: ${{ secrets.GDRV_CLIENT_ID }}
+      GDRV_CLIENT_SECRET: ${{ secrets.GDRV_CLIENT_SECRET }}
 
     steps:
       - name: Checkout code
@@ -97,10 +97,12 @@ jobs:
       - name: Verify version metadata
         run: |
           make build
-          VERSION="$(./bin/gdrv version)"
-          test -n "$VERSION"
-          test "$VERSION" != "dev"
-          echo "$VERSION"
+          VERSION_OUT="$(./bin/gdrv version)"
+          echo "$VERSION_OUT"
+          # Ensure ldflags were applied (version != default "dev" placeholder)
+          echo "$VERSION_OUT" | grep -qvE "^gdrv dev "
+          # Ensure build type label is present
+          echo "$VERSION_OUT" | grep -qE "\[(official|source) build\]$"
 
       - name: Generate checksums
         run: make checksums
@@ -117,8 +119,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: Source builds require GDRV_CLIENT_ID/GDRV_CLIENT_SECRET env vars
 
     steps:
       - name: Checkout code
@@ -140,8 +141,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: Source builds require GDRV_CLIENT_ID/GDRV_CLIENT_SECRET env vars
 
     steps:
       - name: Checkout code

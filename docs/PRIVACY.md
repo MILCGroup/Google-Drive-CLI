@@ -16,8 +16,8 @@ OAuth tokens are stored encrypted on your device using AES-256. They are only tr
 
 ## Open Source
 
-Fully open source: https://github.com/dl-alexandre/Google-Drive-CLI
+This is a company-specific fork of the open-source gdrv project. Source code is available through your company's repository.
 
 ## Contact
 
-dalexandre32@gmail.com
+Contact your IT department for support.

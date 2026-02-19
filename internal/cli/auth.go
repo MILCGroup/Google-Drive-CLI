@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/config"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/config"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -614,6 +614,10 @@ func resolveOAuthClient(cmd *cobra.Command, configDir string, allowMissing bool)
 		if requireCustom {
 			return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientMissing, configDir,
 				"Custom OAuth client required. Set GDRV_CLIENT_ID (and GDRV_CLIENT_SECRET if required) or configure the client in the config file. Default credentials are disabled by GDRV_REQUIRE_CUSTOM_OAUTH.")
+		}
+		if !auth.IsOfficialBuild() {
+			return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientMissing, configDir,
+				"Bundled OAuth credentials require official release build. Download from https://github.com/milcgroup/gdrv/releases or build with OFFICIAL_BUILD=true")
 		}
 		return bundledID, bundledSecret, oauthClientSourceBundled, nil
 	}

@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/drives"
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/folders"
-	"github.com/dl-alexandre/gdrv/internal/resolver"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/drives"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/folders"
+	"github.com/milcgroup/gdrv/internal/resolver"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // TestIntegration_SharedDrives_Enumeration tests listing Shared Drives

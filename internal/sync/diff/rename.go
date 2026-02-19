@@ -1,7 +1,7 @@
 package diff
 
 import (
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/sync/index"
 )
 
 func ApplyRenames(result Result, snapshot Snapshot) Result {
