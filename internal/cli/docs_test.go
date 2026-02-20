@@ -5,26 +5,14 @@ import (
 	"testing"
 )
 
-func TestReadDocsRequests_EmptyInput(t *testing.T) {
-	t.Cleanup(func() {
-		docsUpdateRequests = ""
-		docsUpdateFile = ""
-	})
-	docsUpdateRequests = ""
-	docsUpdateFile = ""
-	if _, err := readDocsRequests(); err == nil {
+func TestParseDocsRequests_EmptyInput(t *testing.T) {
+	if _, err := parseDocsRequests("", ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestReadDocsRequests_FromJSON(t *testing.T) {
-	t.Cleanup(func() {
-		docsUpdateRequests = ""
-		docsUpdateFile = ""
-	})
-	docsUpdateRequests = `[{"insertText":{"location":{"index":1},"text":"Hello"}}]`
-	docsUpdateFile = ""
-	requests, err := readDocsRequests()
+func TestParseDocsRequests_FromJSON(t *testing.T) {
+	requests, err := parseDocsRequests(`[{"insertText":{"location":{"index":1},"text":"Hello"}}]`, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -33,11 +21,7 @@ func TestReadDocsRequests_FromJSON(t *testing.T) {
 	}
 }
 
-func TestReadDocsRequests_FromFile(t *testing.T) {
-	t.Cleanup(func() {
-		docsUpdateRequests = ""
-		docsUpdateFile = ""
-	})
+func TestParseDocsRequests_FromFile(t *testing.T) {
 	tmp, err := os.CreateTemp("", "requests-*.json")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
@@ -51,9 +35,7 @@ func TestReadDocsRequests_FromFile(t *testing.T) {
 	if err := tmp.Close(); err != nil {
 		t.Fatalf("failed to close temp file: %v", err)
 	}
-	docsUpdateRequests = ""
-	docsUpdateFile = tmp.Name()
-	requests, err := readDocsRequests()
+	requests, err := parseDocsRequests("", tmp.Name())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -62,26 +44,14 @@ func TestReadDocsRequests_FromFile(t *testing.T) {
 	}
 }
 
-func TestReadDocsRequests_InvalidJSON(t *testing.T) {
-	t.Cleanup(func() {
-		docsUpdateRequests = ""
-		docsUpdateFile = ""
-	})
-	docsUpdateRequests = `invalid`
-	docsUpdateFile = ""
-	if _, err := readDocsRequests(); err == nil {
+func TestParseDocsRequests_InvalidJSON(t *testing.T) {
+	if _, err := parseDocsRequests(`invalid`, ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestReadDocsRequests_FileNotFound(t *testing.T) {
-	t.Cleanup(func() {
-		docsUpdateRequests = ""
-		docsUpdateFile = ""
-	})
-	docsUpdateRequests = ""
-	docsUpdateFile = "/nonexistent/file.json"
-	if _, err := readDocsRequests(); err == nil {
+func TestParseDocsRequests_FileNotFound(t *testing.T) {
+	if _, err := parseDocsRequests("", "/nonexistent/file.json"); err == nil {
 		t.Fatalf("expected error")
 	}
 }

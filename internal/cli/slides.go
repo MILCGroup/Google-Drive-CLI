@@ -12,101 +12,56 @@ import (
 	slidesmgr "github.com/dl-alexandre/gdrv/internal/slides"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 	"google.golang.org/api/drive/v3"
 	slidesapi "google.golang.org/api/slides/v1"
 )
 
-var slidesCmd = &cobra.Command{
-	Use:   "slides",
-	Short: "Google Slides operations",
-	Long:  "Commands for managing Google Slides files",
+type SlidesCmd struct {
+	List    SlidesListCmd    `cmd:"" help:"List presentations"`
+	Get     SlidesGetCmd     `cmd:"" help:"Get presentation metadata"`
+	Read    SlidesReadCmd    `cmd:"" help:"Extract text from all slides"`
+	Create  SlidesCreateCmd  `cmd:"" help:"Create a presentation"`
+	Update  SlidesUpdateCmd  `cmd:"" help:"Batch update presentation"`
+	Replace SlidesReplaceCmd `cmd:"" help:"Replace text placeholders"`
 }
 
-var slidesListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List Google Slides files",
-	Long:  "List Google Slides files using Drive API with MIME type filter",
-	RunE:  runSlidesList,
+type SlidesListCmd struct {
+	Parent    string `help:"Parent folder ID" name:"parent"`
+	Query     string `help:"Additional search query" name:"query"`
+	Limit     int    `help:"Maximum files to return per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	OrderBy   string `help:"Sort order" name:"order-by"`
+	Fields    string `help:"Fields to return" name:"fields"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var slidesGetCmd = &cobra.Command{
-	Use:   "get <presentation-id>",
-	Short: "Get presentation metadata",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSlidesGet,
+type SlidesGetCmd struct {
+	PresentationID string `arg:"" name:"presentation-id" help:"Presentation ID or path"`
 }
 
-var slidesReadCmd = &cobra.Command{
-	Use:   "read <presentation-id>",
-	Short: "Read presentation content",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSlidesRead,
+type SlidesReadCmd struct {
+	PresentationID string `arg:"" name:"presentation-id" help:"Presentation ID or path"`
 }
 
-var slidesCreateCmd = &cobra.Command{
-	Use:   "create <name>",
-	Short: "Create a new presentation",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSlidesCreate,
+type SlidesCreateCmd struct {
+	Name   string `arg:"" name:"name" help:"Presentation name"`
+	Parent string `help:"Parent folder ID" name:"parent"`
 }
 
-var slidesUpdateCmd = &cobra.Command{
-	Use:   "update <presentation-id>",
-	Short: "Update presentation content",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSlidesUpdate,
+type SlidesUpdateCmd struct {
+	PresentationID string `arg:"" name:"presentation-id" help:"Presentation ID or path"`
+	Requests       string `help:"Batch update requests JSON" name:"requests"`
+	RequestsFile   string `help:"Path to JSON file with batch update requests" name:"requests-file"`
 }
 
-var slidesReplaceCmd = &cobra.Command{
-	Use:   "replace <presentation-id>",
-	Short: "Replace text placeholders",
-	Long:  "Replace text placeholders with values using ReplaceAllText requests",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSlidesReplace,
+type SlidesReplaceCmd struct {
+	PresentationID string `arg:"" name:"presentation-id" help:"Presentation ID or path"`
+	Data           string `help:"JSON string with replacements map" name:"data"`
+	File           string `help:"Path to JSON file with replacements map" name:"file"`
 }
 
-var (
-	slidesListParentID   string
-	slidesListQuery      string
-	slidesListLimit      int
-	slidesListPageToken  string
-	slidesListOrderBy    string
-	slidesListFields     string
-	slidesListPaginate   bool
-	slidesCreateParentID string
-	slidesUpdateRequests string
-	slidesUpdateFile     string
-	slidesReplaceData    string
-	slidesReplaceFile    string
-)
-
-func init() {
-	slidesListCmd.Flags().StringVar(&slidesListParentID, "parent", "", "Parent folder ID")
-	slidesListCmd.Flags().StringVar(&slidesListQuery, "query", "", "Additional search query")
-	slidesListCmd.Flags().IntVar(&slidesListLimit, "limit", 100, "Maximum files to return per page")
-	slidesListCmd.Flags().StringVar(&slidesListPageToken, "page-token", "", "Page token for pagination")
-	slidesListCmd.Flags().StringVar(&slidesListOrderBy, "order-by", "", "Sort order")
-	slidesListCmd.Flags().StringVar(&slidesListFields, "fields", "", "Fields to return")
-	slidesListCmd.Flags().BoolVar(&slidesListPaginate, "paginate", false, "Automatically fetch all pages")
-
-	slidesCreateCmd.Flags().StringVar(&slidesCreateParentID, "parent", "", "Parent folder ID")
-	slidesUpdateCmd.Flags().StringVar(&slidesUpdateRequests, "requests", "", "Batch update requests JSON")
-	slidesUpdateCmd.Flags().StringVar(&slidesUpdateFile, "requests-file", "", "Path to JSON file with batch update requests")
-	slidesReplaceCmd.Flags().StringVar(&slidesReplaceData, "data", "", "JSON string with replacements map")
-	slidesReplaceCmd.Flags().StringVar(&slidesReplaceFile, "file", "", "Path to JSON file with replacements map")
-
-	slidesCmd.AddCommand(slidesListCmd)
-	slidesCmd.AddCommand(slidesGetCmd)
-	slidesCmd.AddCommand(slidesReadCmd)
-	slidesCmd.AddCommand(slidesCreateCmd)
-	slidesCmd.AddCommand(slidesUpdateCmd)
-	slidesCmd.AddCommand(slidesReplaceCmd)
-	rootCmd.AddCommand(slidesCmd)
-}
-
-func runSlidesList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *SlidesListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -115,7 +70,7 @@ func runSlidesList(cmd *cobra.Command, args []string) error {
 		return out.WriteError("slides.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	parentID := slidesListParentID
+	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
@@ -131,24 +86,24 @@ func runSlidesList(cmd *cobra.Command, args []string) error {
 	if parentID != "" {
 		query = fmt.Sprintf("'%s' in parents and %s", parentID, query)
 	}
-	if slidesListQuery != "" {
-		query = fmt.Sprintf("%s and (%s)", query, slidesListQuery)
+	if cmd.Query != "" {
+		query = fmt.Sprintf("%s and (%s)", query, cmd.Query)
 	}
 
 	opts := files.ListOptions{
 		ParentID:       parentID,
 		Query:          query,
-		PageSize:       slidesListLimit,
-		PageToken:      slidesListPageToken,
-		OrderBy:        slidesListOrderBy,
+		PageSize:       cmd.Limit,
+		PageToken:      cmd.PageToken,
+		OrderBy:        cmd.OrderBy,
 		IncludeTrashed: false,
-		Fields:         slidesListFields,
+		Fields:         cmd.Fields,
 	}
 
 	mgr := files.NewManager(client)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
-	if slidesListPaginate {
+	if cmd.Paginate {
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
 			return handleCLIError(out, "slides.list", err)
@@ -172,8 +127,8 @@ func runSlidesList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("slides.list", result)
 }
 
-func runSlidesGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *SlidesGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -182,7 +137,7 @@ func runSlidesGet(cmd *cobra.Command, args []string) error {
 		return out.WriteError("slides.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	presentationID, err := ResolveFileID(ctx, client, flags, args[0])
+	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("slides.get", appErr.CLIError)
@@ -200,8 +155,8 @@ func runSlidesGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("slides.get", result)
 }
 
-func runSlidesRead(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *SlidesReadCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -210,7 +165,7 @@ func runSlidesRead(cmd *cobra.Command, args []string) error {
 		return out.WriteError("slides.read", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	presentationID, err := ResolveFileID(ctx, client, flags, args[0])
+	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("slides.read", appErr.CLIError)
@@ -228,8 +183,8 @@ func runSlidesRead(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("slides.read", result)
 }
 
-func runSlidesCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *SlidesCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -238,7 +193,7 @@ func runSlidesCreate(cmd *cobra.Command, args []string) error {
 		return out.WriteError("slides.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	parentID := slidesCreateParentID
+	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
@@ -252,7 +207,7 @@ func runSlidesCreate(cmd *cobra.Command, args []string) error {
 
 	reqCtx.RequestType = types.RequestTypeMutation
 	metadata := &drive.File{
-		Name:     args[0],
+		Name:     cmd.Name,
 		MimeType: utils.MimeTypePresentation,
 	}
 	if parentID != "" {
@@ -278,8 +233,8 @@ func runSlidesCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("slides.create", convertDriveFile(result))
 }
 
-func runSlidesUpdate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *SlidesUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -288,12 +243,12 @@ func runSlidesUpdate(cmd *cobra.Command, args []string) error {
 		return out.WriteError("slides.update", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	requests, err := readSlidesRequests()
+	requests, err := parseSlidesRequests(cmd.Requests, cmd.RequestsFile)
 	if err != nil {
 		return out.WriteError("slides.update", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
 	}
 
-	presentationID, err := ResolveFileID(ctx, client, flags, args[0])
+	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("slides.update", appErr.CLIError)
@@ -311,8 +266,8 @@ func runSlidesUpdate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("slides.update", result)
 }
 
-func runSlidesReplace(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *SlidesReplaceCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -321,12 +276,12 @@ func runSlidesReplace(cmd *cobra.Command, args []string) error {
 		return out.WriteError("slides.replace", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	replacements, err := readSlidesReplacements()
+	replacements, err := parseSlidesReplacements(cmd.Data, cmd.File)
 	if err != nil {
 		return out.WriteError("slides.replace", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
 	}
 
-	presentationID, err := ResolveFileID(ctx, client, flags, args[0])
+	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("slides.replace", appErr.CLIError)
@@ -372,20 +327,20 @@ func getSlidesService(ctx context.Context, flags types.GlobalFlags) (*slidesapi.
 	return svc, client, reqCtx, nil
 }
 
-func readSlidesRequests() ([]*slidesapi.Request, error) {
-	if slidesUpdateRequests == "" && slidesUpdateFile == "" {
+func parseSlidesRequests(requestsJSON, requestsFile string) ([]*slidesapi.Request, error) {
+	if requestsJSON == "" && requestsFile == "" {
 		return nil, fmt.Errorf("requests required via --requests or --requests-file")
 	}
 
 	var raw []byte
-	if slidesUpdateFile != "" {
-		data, err := os.ReadFile(slidesUpdateFile)
+	if requestsFile != "" {
+		data, err := os.ReadFile(requestsFile)
 		if err != nil {
 			return nil, err
 		}
 		raw = data
 	} else {
-		raw = []byte(slidesUpdateRequests)
+		raw = []byte(requestsJSON)
 	}
 
 	var requests []*slidesapi.Request
@@ -398,20 +353,20 @@ func readSlidesRequests() ([]*slidesapi.Request, error) {
 	return requests, nil
 }
 
-func readSlidesReplacements() (map[string]string, error) {
-	if slidesReplaceData == "" && slidesReplaceFile == "" {
+func parseSlidesReplacements(data, file string) (map[string]string, error) {
+	if data == "" && file == "" {
 		return nil, fmt.Errorf("replacements required via --data or --file")
 	}
 
 	var raw []byte
-	if slidesReplaceFile != "" {
-		data, err := os.ReadFile(slidesReplaceFile)
+	if file != "" {
+		fileData, err := os.ReadFile(file)
 		if err != nil {
 			return nil, err
 		}
-		raw = data
+		raw = fileData
 	} else {
-		raw = []byte(slidesReplaceData)
+		raw = []byte(data)
 	}
 
 	var replacements map[string]string
@@ -423,4 +378,3 @@ func readSlidesReplacements() (map[string]string, error) {
 	}
 	return replacements, nil
 }
-

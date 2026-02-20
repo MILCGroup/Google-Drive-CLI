@@ -5,26 +5,14 @@ import (
 	"testing"
 )
 
-func TestReadSlidesRequests_EmptyInput(t *testing.T) {
-	t.Cleanup(func() {
-		slidesUpdateRequests = ""
-		slidesUpdateFile = ""
-	})
-	slidesUpdateRequests = ""
-	slidesUpdateFile = ""
-	if _, err := readSlidesRequests(); err == nil {
+func TestParseSlidesRequests_EmptyInput(t *testing.T) {
+	if _, err := parseSlidesRequests("", ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestReadSlidesRequests_FromJSON(t *testing.T) {
-	t.Cleanup(func() {
-		slidesUpdateRequests = ""
-		slidesUpdateFile = ""
-	})
-	slidesUpdateRequests = `[{"insertText":{"objectId":"slide1","insertionIndex":0,"text":"Hello"}}]`
-	slidesUpdateFile = ""
-	requests, err := readSlidesRequests()
+func TestParseSlidesRequests_FromJSON(t *testing.T) {
+	requests, err := parseSlidesRequests(`[{"insertText":{"objectId":"slide1","insertionIndex":0,"text":"Hello"}}]`, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -33,11 +21,7 @@ func TestReadSlidesRequests_FromJSON(t *testing.T) {
 	}
 }
 
-func TestReadSlidesRequests_FromFile(t *testing.T) {
-	t.Cleanup(func() {
-		slidesUpdateRequests = ""
-		slidesUpdateFile = ""
-	})
+func TestParseSlidesRequests_FromFile(t *testing.T) {
 	tmp, err := os.CreateTemp("", "slides-requests-*.json")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
@@ -51,9 +35,7 @@ func TestReadSlidesRequests_FromFile(t *testing.T) {
 	if err := tmp.Close(); err != nil {
 		t.Fatalf("failed to close temp file: %v", err)
 	}
-	slidesUpdateRequests = ""
-	slidesUpdateFile = tmp.Name()
-	requests, err := readSlidesRequests()
+	requests, err := parseSlidesRequests("", tmp.Name())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -62,50 +44,26 @@ func TestReadSlidesRequests_FromFile(t *testing.T) {
 	}
 }
 
-func TestReadSlidesRequests_InvalidJSON(t *testing.T) {
-	t.Cleanup(func() {
-		slidesUpdateRequests = ""
-		slidesUpdateFile = ""
-	})
-	slidesUpdateRequests = `invalid`
-	slidesUpdateFile = ""
-	if _, err := readSlidesRequests(); err == nil {
+func TestParseSlidesRequests_InvalidJSON(t *testing.T) {
+	if _, err := parseSlidesRequests(`invalid`, ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestReadSlidesRequests_FileNotFound(t *testing.T) {
-	t.Cleanup(func() {
-		slidesUpdateRequests = ""
-		slidesUpdateFile = ""
-	})
-	slidesUpdateRequests = ""
-	slidesUpdateFile = "/nonexistent/file.json"
-	if _, err := readSlidesRequests(); err == nil {
+func TestParseSlidesRequests_FileNotFound(t *testing.T) {
+	if _, err := parseSlidesRequests("", "/nonexistent/file.json"); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestReadSlidesReplacements_EmptyInput(t *testing.T) {
-	t.Cleanup(func() {
-		slidesReplaceData = ""
-		slidesReplaceFile = ""
-	})
-	slidesReplaceData = ""
-	slidesReplaceFile = ""
-	if _, err := readSlidesReplacements(); err == nil {
+func TestParseSlidesReplacements_EmptyInput(t *testing.T) {
+	if _, err := parseSlidesReplacements("", ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestReadSlidesReplacements_FromJSON(t *testing.T) {
-	t.Cleanup(func() {
-		slidesReplaceData = ""
-		slidesReplaceFile = ""
-	})
-	slidesReplaceData = `{"{{name}}":"John","{{date}}":"2024-01-01"}`
-	slidesReplaceFile = ""
-	replacements, err := readSlidesReplacements()
+func TestParseSlidesReplacements_FromJSON(t *testing.T) {
+	replacements, err := parseSlidesReplacements(`{"{{name}}":"John","{{date}}":"2024-01-01"}`, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,11 +72,7 @@ func TestReadSlidesReplacements_FromJSON(t *testing.T) {
 	}
 }
 
-func TestReadSlidesReplacements_FromFile(t *testing.T) {
-	t.Cleanup(func() {
-		slidesReplaceData = ""
-		slidesReplaceFile = ""
-	})
+func TestParseSlidesReplacements_FromFile(t *testing.T) {
 	tmp, err := os.CreateTemp("", "slides-replacements-*.json")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
@@ -132,9 +86,7 @@ func TestReadSlidesReplacements_FromFile(t *testing.T) {
 	if err := tmp.Close(); err != nil {
 		t.Fatalf("failed to close temp file: %v", err)
 	}
-	slidesReplaceData = ""
-	slidesReplaceFile = tmp.Name()
-	replacements, err := readSlidesReplacements()
+	replacements, err := parseSlidesReplacements("", tmp.Name())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -143,26 +95,14 @@ func TestReadSlidesReplacements_FromFile(t *testing.T) {
 	}
 }
 
-func TestReadSlidesReplacements_InvalidJSON(t *testing.T) {
-	t.Cleanup(func() {
-		slidesReplaceData = ""
-		slidesReplaceFile = ""
-	})
-	slidesReplaceData = `invalid`
-	slidesReplaceFile = ""
-	if _, err := readSlidesReplacements(); err == nil {
+func TestParseSlidesReplacements_InvalidJSON(t *testing.T) {
+	if _, err := parseSlidesReplacements(`invalid`, ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestReadSlidesReplacements_FileNotFound(t *testing.T) {
-	t.Cleanup(func() {
-		slidesReplaceData = ""
-		slidesReplaceFile = ""
-	})
-	slidesReplaceData = ""
-	slidesReplaceFile = "/nonexistent/file.json"
-	if _, err := readSlidesReplacements(); err == nil {
+func TestParseSlidesReplacements_FileNotFound(t *testing.T) {
+	if _, err := parseSlidesReplacements("", "/nonexistent/file.json"); err == nil {
 		t.Fatalf("expected error")
 	}
 }
