@@ -8,195 +8,120 @@ import (
 	chatmgr "github.com/dl-alexandre/gdrv/internal/chat"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 	chatapi "google.golang.org/api/chat/v1"
 )
 
-var chatCmd = &cobra.Command{
-	Use:   "chat",
-	Short: "Google Chat operations",
-	Long:  "Commands for managing Google Chat spaces, messages, and members",
+type ChatCmd struct {
+	Spaces   ChatSpacesCmd   `cmd:"" help:"Manage Google Chat spaces"`
+	Messages ChatMessagesCmd `cmd:"" help:"Manage Google Chat messages"`
+	Members  ChatMembersCmd  `cmd:"" help:"Manage Google Chat members"`
 }
 
-// Spaces commands
-var chatSpacesCmd = &cobra.Command{
-	Use:   "spaces",
-	Short: "Manage Chat spaces",
+type ChatSpacesCmd struct {
+	List   ChatSpacesListCmd   `cmd:"" help:"List all spaces"`
+	Get    ChatSpacesGetCmd    `cmd:"" help:"Get details about a specific space"`
+	Create ChatSpacesCreateCmd `cmd:"" help:"Create a new space"`
+	Delete ChatSpacesDeleteCmd `cmd:"" help:"Delete a space"`
 }
 
-var chatSpacesListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List Chat spaces",
-	RunE:  runChatSpacesList,
+type ChatMessagesCmd struct {
+	List   ChatMessagesListCmd   `cmd:"" help:"List messages in a space"`
+	Get    ChatMessagesGetCmd    `cmd:"" help:"Get a specific message"`
+	Create ChatMessagesCreateCmd `cmd:"" help:"Create a message in a space"`
+	Update ChatMessagesUpdateCmd `cmd:"" help:"Update a message"`
+	Delete ChatMessagesDeleteCmd `cmd:"" help:"Delete a message"`
 }
 
-var chatSpacesGetCmd = &cobra.Command{
-	Use:   "get <space-id>",
-	Short: "Get space details",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runChatSpacesGet,
+type ChatMembersCmd struct {
+	List   ChatMembersListCmd   `cmd:"" help:"List members of a space"`
+	Get    ChatMembersGetCmd    `cmd:"" help:"Get member details"`
+	Create ChatMembersCreateCmd `cmd:"" help:"Add a member to a space"`
+	Delete ChatMembersDeleteCmd `cmd:"" help:"Remove a member from a space"`
 }
 
-var chatSpacesCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a new space",
-	RunE:  runChatSpacesCreate,
+// Spaces command structs
+
+type ChatSpacesListCmd struct {
+	Limit     int    `help:"Maximum results per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var chatSpacesDeleteCmd = &cobra.Command{
-	Use:   "delete <space-id>",
-	Short: "Delete a space",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runChatSpacesDelete,
+type ChatSpacesGetCmd struct {
+	SpaceID string `arg:"" name:"space-id" help:"Space ID"`
 }
 
-// Messages commands
-var chatMessagesCmd = &cobra.Command{
-	Use:   "messages",
-	Short: "Manage Chat messages",
+type ChatSpacesCreateCmd struct {
+	DisplayName   string `help:"Display name for the space" name:"display-name"`
+	Type          string `help:"Space type (SPACE or GROUP_CHAT)" default:"SPACE" name:"type"`
+	ExternalUsers bool   `help:"Allow external users" name:"external-users"`
 }
 
-var chatMessagesListCmd = &cobra.Command{
-	Use:   "list <space-id>",
-	Short: "List messages in a space",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runChatMessagesList,
+type ChatSpacesDeleteCmd struct {
+	SpaceID string `arg:"" name:"space-id" help:"Space ID"`
 }
 
-var chatMessagesGetCmd = &cobra.Command{
-	Use:   "get <space-id> <message-id>",
-	Short: "Get a specific message",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runChatMessagesGet,
+// Messages command structs
+
+type ChatMessagesListCmd struct {
+	SpaceID   string `arg:"" name:"space-id" help:"Space ID"`
+	Limit     int    `help:"Maximum results per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Filter    string `help:"Filter for messages" name:"filter"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var chatMessagesCreateCmd = &cobra.Command{
-	Use:   "create <space-id>",
-	Short: "Create a message in a space",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runChatMessagesCreate,
+type ChatMessagesGetCmd struct {
+	SpaceID   string `arg:"" name:"space-id" help:"Space ID"`
+	MessageID string `arg:"" name:"message-id" help:"Message ID"`
 }
 
-var chatMessagesUpdateCmd = &cobra.Command{
-	Use:   "update <space-id> <message-id>",
-	Short: "Update a message",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runChatMessagesUpdate,
+type ChatMessagesCreateCmd struct {
+	SpaceID  string `arg:"" name:"space-id" help:"Space ID"`
+	Text     string `help:"Message text (required)" name:"text"`
+	ThreadID string `help:"Thread ID to reply in" name:"thread"`
 }
 
-var chatMessagesDeleteCmd = &cobra.Command{
-	Use:   "delete <space-id> <message-id>",
-	Short: "Delete a message",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runChatMessagesDelete,
+type ChatMessagesUpdateCmd struct {
+	SpaceID   string `arg:"" name:"space-id" help:"Space ID"`
+	MessageID string `arg:"" name:"message-id" help:"Message ID"`
+	Text      string `help:"New message text (required)" name:"text"`
 }
 
-// Members commands
-var chatMembersCmd = &cobra.Command{
-	Use:   "members",
-	Short: "Manage Chat space members",
+type ChatMessagesDeleteCmd struct {
+	SpaceID   string `arg:"" name:"space-id" help:"Space ID"`
+	MessageID string `arg:"" name:"message-id" help:"Message ID"`
 }
 
-var chatMembersListCmd = &cobra.Command{
-	Use:   "list <space-id>",
-	Short: "List members of a space",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runChatMembersList,
+// Members command structs
+
+type ChatMembersListCmd struct {
+	SpaceID   string `arg:"" name:"space-id" help:"Space ID"`
+	Limit     int    `help:"Maximum results per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var chatMembersGetCmd = &cobra.Command{
-	Use:   "get <space-id> <member-id>",
-	Short: "Get member details",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runChatMembersGet,
+type ChatMembersGetCmd struct {
+	SpaceID  string `arg:"" name:"space-id" help:"Space ID"`
+	MemberID string `arg:"" name:"member-id" help:"Member ID"`
 }
 
-var chatMembersCreateCmd = &cobra.Command{
-	Use:   "create <space-id>",
-	Short: "Add a member to a space",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runChatMembersCreate,
+type ChatMembersCreateCmd struct {
+	SpaceID string `arg:"" name:"space-id" help:"Space ID"`
+	Email   string `help:"Member email (required)" name:"email"`
+	Role    string `help:"Member role (MEMBER or MANAGER)" default:"MEMBER" name:"role"`
 }
 
-var chatMembersDeleteCmd = &cobra.Command{
-	Use:   "delete <space-id> <member-id>",
-	Short: "Remove a member from a space",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runChatMembersDelete,
+type ChatMembersDeleteCmd struct {
+	SpaceID  string `arg:"" name:"space-id" help:"Space ID"`
+	MemberID string `arg:"" name:"member-id" help:"Member ID"`
 }
 
-// Flags
-var (
-	chatSpaceType          string
-	chatSpaceDisplayName   string
-	chatSpaceExternalUsers bool
-	chatMessageText        string
-	chatMessageThreadID    string
-	chatMessageFilter      string
-	chatMemberEmail        string
-	chatMemberRole         string
-	chatListLimit          int
-	chatListPageToken      string
-	chatListPaginate       bool
-)
+// Run methods for Spaces
 
-func init() {
-	// Spaces flags
-	chatSpacesListCmd.Flags().IntVar(&chatListLimit, "limit", 100, "Maximum results per page")
-	chatSpacesListCmd.Flags().StringVar(&chatListPageToken, "page-token", "", "Page token for pagination")
-	chatSpacesListCmd.Flags().BoolVar(&chatListPaginate, "paginate", false, "Automatically fetch all pages")
-
-	chatSpacesCreateCmd.Flags().StringVar(&chatSpaceDisplayName, "display-name", "", "Display name for the space")
-	chatSpacesCreateCmd.Flags().StringVar(&chatSpaceType, "type", "SPACE", "Space type (SPACE or GROUP_CHAT)")
-	chatSpacesCreateCmd.Flags().BoolVar(&chatSpaceExternalUsers, "external-users", false, "Allow external users")
-
-	// Messages flags
-	chatMessagesListCmd.Flags().IntVar(&chatListLimit, "limit", 100, "Maximum results per page")
-	chatMessagesListCmd.Flags().StringVar(&chatListPageToken, "page-token", "", "Page token for pagination")
-	chatMessagesListCmd.Flags().StringVar(&chatMessageFilter, "filter", "", "Filter for messages")
-	chatMessagesListCmd.Flags().BoolVar(&chatListPaginate, "paginate", false, "Automatically fetch all pages")
-
-	chatMessagesCreateCmd.Flags().StringVar(&chatMessageText, "text", "", "Message text (required)")
-	chatMessagesCreateCmd.Flags().StringVar(&chatMessageThreadID, "thread", "", "Thread ID to reply in")
-
-	chatMessagesUpdateCmd.Flags().StringVar(&chatMessageText, "text", "", "New message text (required)")
-
-	// Members flags
-	chatMembersListCmd.Flags().IntVar(&chatListLimit, "limit", 100, "Maximum results per page")
-	chatMembersListCmd.Flags().StringVar(&chatListPageToken, "page-token", "", "Page token for pagination")
-	chatMembersListCmd.Flags().BoolVar(&chatListPaginate, "paginate", false, "Automatically fetch all pages")
-
-	chatMembersCreateCmd.Flags().StringVar(&chatMemberEmail, "email", "", "Member email (required)")
-	chatMembersCreateCmd.Flags().StringVar(&chatMemberRole, "role", "MEMBER", "Member role (MEMBER or MANAGER)")
-
-	// Add subcommands
-	chatSpacesCmd.AddCommand(chatSpacesListCmd)
-	chatSpacesCmd.AddCommand(chatSpacesGetCmd)
-	chatSpacesCmd.AddCommand(chatSpacesCreateCmd)
-	chatSpacesCmd.AddCommand(chatSpacesDeleteCmd)
-
-	chatMessagesCmd.AddCommand(chatMessagesListCmd)
-	chatMessagesCmd.AddCommand(chatMessagesGetCmd)
-	chatMessagesCmd.AddCommand(chatMessagesCreateCmd)
-	chatMessagesCmd.AddCommand(chatMessagesUpdateCmd)
-	chatMessagesCmd.AddCommand(chatMessagesDeleteCmd)
-
-	chatMembersCmd.AddCommand(chatMembersListCmd)
-	chatMembersCmd.AddCommand(chatMembersGetCmd)
-	chatMembersCmd.AddCommand(chatMembersCreateCmd)
-	chatMembersCmd.AddCommand(chatMembersDeleteCmd)
-
-	chatCmd.AddCommand(chatSpacesCmd)
-	chatCmd.AddCommand(chatMessagesCmd)
-	chatCmd.AddCommand(chatMembersCmd)
-
-	rootCmd.AddCommand(chatCmd)
-}
-
-// Spaces handlers
-
-func runChatSpacesList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatSpacesListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -208,11 +133,11 @@ func runChatSpacesList(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
-	if chatListPaginate {
+	if cmd.Paginate {
 		var allSpaces []types.ChatSpace
 		pageToken := ""
 		for {
-			result, err := mgr.ListSpaces(ctx, reqCtx, chatListLimit, pageToken)
+			result, err := mgr.ListSpaces(ctx, reqCtx, cmd.Limit, pageToken)
 			if err != nil {
 				return handleCLIError(out, "chat.spaces.list", err)
 			}
@@ -230,7 +155,7 @@ func runChatSpacesList(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	result, err := mgr.ListSpaces(ctx, reqCtx, chatListLimit, chatListPageToken)
+	result, err := mgr.ListSpaces(ctx, reqCtx, cmd.Limit, cmd.PageToken)
 	if err != nil {
 		return handleCLIError(out, "chat.spaces.list", err)
 	}
@@ -241,8 +166,8 @@ func runChatSpacesList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.spaces.list", result)
 }
 
-func runChatSpacesGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatSpacesGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -254,7 +179,7 @@ func runChatSpacesGet(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeGetByID
 
-	result, err := mgr.GetSpace(ctx, reqCtx, args[0])
+	result, err := mgr.GetSpace(ctx, reqCtx, cmd.SpaceID)
 	if err != nil {
 		return handleCLIError(out, "chat.spaces.get", err)
 	}
@@ -262,12 +187,12 @@ func runChatSpacesGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.spaces.get", result)
 }
 
-func runChatSpacesCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatSpacesCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
-	if chatSpaceDisplayName == "" {
+	if cmd.DisplayName == "" {
 		return out.WriteError("chat.spaces.create", utils.NewCLIError(utils.ErrCodeInvalidArgument, "--display-name is required").Build())
 	}
 
@@ -279,7 +204,7 @@ func runChatSpacesCreate(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	result, err := mgr.CreateSpace(ctx, reqCtx, chatSpaceDisplayName, chatSpaceType, chatSpaceExternalUsers)
+	result, err := mgr.CreateSpace(ctx, reqCtx, cmd.DisplayName, cmd.Type, cmd.ExternalUsers)
 	if err != nil {
 		return handleCLIError(out, "chat.spaces.create", err)
 	}
@@ -287,8 +212,8 @@ func runChatSpacesCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.spaces.create", result)
 }
 
-func runChatSpacesDelete(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatSpacesDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -300,20 +225,20 @@ func runChatSpacesDelete(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	if err := mgr.DeleteSpace(ctx, reqCtx, args[0]); err != nil {
+	if err := mgr.DeleteSpace(ctx, reqCtx, cmd.SpaceID); err != nil {
 		return handleCLIError(out, "chat.spaces.delete", err)
 	}
 
 	return out.WriteSuccess("chat.spaces.delete", map[string]string{
-		"spaceId": args[0],
+		"spaceId": cmd.SpaceID,
 		"status":  "deleted",
 	})
 }
 
-// Messages handlers
+// Run methods for Messages
 
-func runChatMessagesList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMessagesListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -325,11 +250,11 @@ func runChatMessagesList(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
-	if chatListPaginate {
+	if cmd.Paginate {
 		var allMessages []types.ChatMessage
 		pageToken := ""
 		for {
-			result, err := mgr.ListMessages(ctx, reqCtx, args[0], chatListLimit, pageToken, chatMessageFilter)
+			result, err := mgr.ListMessages(ctx, reqCtx, cmd.SpaceID, cmd.Limit, pageToken, cmd.Filter)
 			if err != nil {
 				return handleCLIError(out, "chat.messages.list", err)
 			}
@@ -347,7 +272,7 @@ func runChatMessagesList(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	result, err := mgr.ListMessages(ctx, reqCtx, args[0], chatListLimit, chatListPageToken, chatMessageFilter)
+	result, err := mgr.ListMessages(ctx, reqCtx, cmd.SpaceID, cmd.Limit, cmd.PageToken, cmd.Filter)
 	if err != nil {
 		return handleCLIError(out, "chat.messages.list", err)
 	}
@@ -358,8 +283,8 @@ func runChatMessagesList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.messages.list", result)
 }
 
-func runChatMessagesGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMessagesGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -371,7 +296,7 @@ func runChatMessagesGet(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeGetByID
 
-	result, err := mgr.GetMessage(ctx, reqCtx, args[0], args[1])
+	result, err := mgr.GetMessage(ctx, reqCtx, cmd.SpaceID, cmd.MessageID)
 	if err != nil {
 		return handleCLIError(out, "chat.messages.get", err)
 	}
@@ -379,12 +304,12 @@ func runChatMessagesGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.messages.get", result)
 }
 
-func runChatMessagesCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMessagesCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
-	if chatMessageText == "" {
+	if cmd.Text == "" {
 		return out.WriteError("chat.messages.create", utils.NewCLIError(utils.ErrCodeInvalidArgument, "--text is required").Build())
 	}
 
@@ -396,7 +321,7 @@ func runChatMessagesCreate(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	result, err := mgr.CreateMessage(ctx, reqCtx, args[0], chatMessageText, chatMessageThreadID)
+	result, err := mgr.CreateMessage(ctx, reqCtx, cmd.SpaceID, cmd.Text, cmd.ThreadID)
 	if err != nil {
 		return handleCLIError(out, "chat.messages.create", err)
 	}
@@ -404,12 +329,12 @@ func runChatMessagesCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.messages.create", result)
 }
 
-func runChatMessagesUpdate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMessagesUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
-	if chatMessageText == "" {
+	if cmd.Text == "" {
 		return out.WriteError("chat.messages.update", utils.NewCLIError(utils.ErrCodeInvalidArgument, "--text is required").Build())
 	}
 
@@ -421,7 +346,7 @@ func runChatMessagesUpdate(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	result, err := mgr.UpdateMessage(ctx, reqCtx, args[0], args[1], chatMessageText)
+	result, err := mgr.UpdateMessage(ctx, reqCtx, cmd.SpaceID, cmd.MessageID, cmd.Text)
 	if err != nil {
 		return handleCLIError(out, "chat.messages.update", err)
 	}
@@ -429,8 +354,8 @@ func runChatMessagesUpdate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.messages.update", result)
 }
 
-func runChatMessagesDelete(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMessagesDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -442,21 +367,21 @@ func runChatMessagesDelete(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	if err := mgr.DeleteMessage(ctx, reqCtx, args[0], args[1]); err != nil {
+	if err := mgr.DeleteMessage(ctx, reqCtx, cmd.SpaceID, cmd.MessageID); err != nil {
 		return handleCLIError(out, "chat.messages.delete", err)
 	}
 
 	return out.WriteSuccess("chat.messages.delete", map[string]string{
-		"spaceId":   args[0],
-		"messageId": args[1],
+		"spaceId":   cmd.SpaceID,
+		"messageId": cmd.MessageID,
 		"status":    "deleted",
 	})
 }
 
-// Members handlers
+// Run methods for Members
 
-func runChatMembersList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMembersListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -468,11 +393,11 @@ func runChatMembersList(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
-	if chatListPaginate {
+	if cmd.Paginate {
 		var allMembers []types.ChatMember
 		pageToken := ""
 		for {
-			result, err := mgr.ListMembers(ctx, reqCtx, args[0], chatListLimit, pageToken)
+			result, err := mgr.ListMembers(ctx, reqCtx, cmd.SpaceID, cmd.Limit, pageToken)
 			if err != nil {
 				return handleCLIError(out, "chat.members.list", err)
 			}
@@ -490,7 +415,7 @@ func runChatMembersList(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	result, err := mgr.ListMembers(ctx, reqCtx, args[0], chatListLimit, chatListPageToken)
+	result, err := mgr.ListMembers(ctx, reqCtx, cmd.SpaceID, cmd.Limit, cmd.PageToken)
 	if err != nil {
 		return handleCLIError(out, "chat.members.list", err)
 	}
@@ -501,8 +426,8 @@ func runChatMembersList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.members.list", result)
 }
 
-func runChatMembersGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMembersGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -514,7 +439,7 @@ func runChatMembersGet(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeGetByID
 
-	result, err := mgr.GetMember(ctx, reqCtx, args[0], args[1])
+	result, err := mgr.GetMember(ctx, reqCtx, cmd.SpaceID, cmd.MemberID)
 	if err != nil {
 		return handleCLIError(out, "chat.members.get", err)
 	}
@@ -522,12 +447,12 @@ func runChatMembersGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.members.get", result)
 }
 
-func runChatMembersCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMembersCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
-	if chatMemberEmail == "" {
+	if cmd.Email == "" {
 		return out.WriteError("chat.members.create", utils.NewCLIError(utils.ErrCodeInvalidArgument, "--email is required").Build())
 	}
 
@@ -539,7 +464,7 @@ func runChatMembersCreate(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	result, err := mgr.CreateMember(ctx, reqCtx, args[0], chatMemberEmail, chatMemberRole)
+	result, err := mgr.CreateMember(ctx, reqCtx, cmd.SpaceID, cmd.Email, cmd.Role)
 	if err != nil {
 		return handleCLIError(out, "chat.members.create", err)
 	}
@@ -547,8 +472,8 @@ func runChatMembersCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("chat.members.create", result)
 }
 
-func runChatMembersDelete(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ChatMembersDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -560,13 +485,13 @@ func runChatMembersDelete(cmd *cobra.Command, args []string) error {
 	mgr := chatmgr.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	if err := mgr.DeleteMember(ctx, reqCtx, args[0], args[1]); err != nil {
+	if err := mgr.DeleteMember(ctx, reqCtx, cmd.SpaceID, cmd.MemberID); err != nil {
 		return handleCLIError(out, "chat.members.delete", err)
 	}
 
 	return out.WriteSuccess("chat.members.delete", map[string]string{
-		"spaceId":  args[0],
-		"memberId": args[1],
+		"spaceId":  cmd.SpaceID,
+		"memberId": cmd.MemberID,
 		"status":   "removed",
 	})
 }
