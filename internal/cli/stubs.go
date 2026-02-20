@@ -40,12 +40,6 @@ func (c *ChangesCmd) Run(globals *Globals) error {
 	return fmt.Errorf("changes command not yet migrated to kong")
 }
 
-type LabelsCmd struct{}
-
-func (c *LabelsCmd) Run(globals *Globals) error {
-	return fmt.Errorf("labels command not yet migrated to kong")
-}
-
 type ActivityCmd struct{}
 
 func (c *ActivityCmd) Run(globals *Globals) error {

@@ -10,221 +10,80 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/labels"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var labelsCmd = &cobra.Command{
-	Use:   "labels",
-	Short: "Drive Labels API operations",
-	Long:  "Manage Drive labels and apply labels to files",
+type LabelsCmd struct {
+	List    LabelsListCmd    `cmd:"" help:"List available labels"`
+	Get     LabelsGetCmd     `cmd:"" help:"Get label schema"`
+	Create  LabelsCreateCmd  `cmd:"" help:"Create a label (admin only)"`
+	Publish LabelsPublishCmd `cmd:"" help:"Publish a label (admin only)"`
+	Disable LabelsDisableCmd `cmd:"" help:"Disable a label (admin only)"`
+	File    LabelsFileCmd    `cmd:"" help:"File label operations"`
 }
 
-var labelsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List available labels",
-	Long: `List available Drive labels.
-
-Examples:
-  # List all labels
-  gdrv labels list --json
-
-  # List labels with full details
-  gdrv labels list --view LABEL_VIEW_FULL --json
-
-  # List labels for a specific customer (admin)
-  gdrv labels list --customer C01234567 --json
-
-  # List only published labels
-  gdrv labels list --published-only --json`,
-	RunE: runLabelsList,
+type LabelsFileCmd struct {
+	List   LabelsFileListCmd   `cmd:"" help:"List labels applied to a file"`
+	Apply  LabelsFileApplyCmd  `cmd:"" help:"Apply a label to a file"`
+	Update LabelsFileUpdateCmd `cmd:"" help:"Update label fields on a file"`
+	Remove LabelsFileRemoveCmd `cmd:"" help:"Remove a label from a file"`
 }
 
-var labelsGetCmd = &cobra.Command{
-	Use:   "get <label-id>",
-	Short: "Get label schema",
-	Long: `Get the schema for a specific label.
-
-Examples:
-  # Get label details
-  gdrv labels get labels/abc123 --json
-
-  # Get label with full details
-  gdrv labels get labels/abc123 --view LABEL_VIEW_FULL --json
-
-  # Get label with admin access
-  gdrv labels get labels/abc123 --use-admin-access --json`,
-	Args: cobra.ExactArgs(1),
-	RunE: runLabelsGet,
+type LabelsListCmd struct {
+	Customer      string `help:"Customer ID (for admin operations)" name:"customer"`
+	View          string `help:"View mode (LABEL_VIEW_BASIC, LABEL_VIEW_FULL)" name:"view"`
+	MinimumRole   string `help:"Minimum role (READER, APPLIER, ORGANIZER, EDITOR)" name:"minimum-role"`
+	PublishedOnly bool   `help:"Only return published labels" name:"published-only"`
+	Limit         int    `help:"Maximum results per page" default:"100" name:"limit"`
+	PageToken     string `help:"Pagination token" name:"page-token"`
+	Fields        string `help:"Fields to return" name:"fields"`
 }
 
-var labelsCreateCmd = &cobra.Command{
-	Use:   "create <name>",
-	Short: "Create a new label (admin)",
-	Long: `Create a new Drive label (requires admin access).
-
-Examples:
-  # Create a simple label
-  gdrv labels create "Document Type" --json
-
-  # Create a label with admin access
-  gdrv labels create "Project Status" --use-admin-access --json
-
-  # Create a label with language code
-  gdrv labels create "Status" --language-code en --json`,
-	Args: cobra.ExactArgs(1),
-	RunE: runLabelsCreate,
+type LabelsGetCmd struct {
+	LabelID        string `arg:"" name:"label-id" help:"Label ID"`
+	View           string `help:"View mode (LABEL_VIEW_BASIC, LABEL_VIEW_FULL)" name:"view"`
+	UseAdminAccess bool   `help:"Use admin access" name:"use-admin-access"`
+	Fields         string `help:"Fields to return" name:"fields"`
 }
 
-var labelsPublishCmd = &cobra.Command{
-	Use:   "publish <label-id>",
-	Short: "Publish a label (admin)",
-	Long: `Publish a label to make it available for use.
-
-Examples:
-  # Publish a label
-  gdrv labels publish labels/abc123 --json
-
-  # Publish with admin access
-  gdrv labels publish labels/abc123 --use-admin-access --json`,
-	Args: cobra.ExactArgs(1),
-	RunE: runLabelsPublish,
+type LabelsCreateCmd struct {
+	Name           string `arg:"" name:"name" help:"Label name"`
+	UseAdminAccess bool   `help:"Use admin access" name:"use-admin-access"`
+	LanguageCode   string `help:"Language code (e.g., en)" name:"language-code"`
 }
 
-var labelsDisableCmd = &cobra.Command{
-	Use:   "disable <label-id>",
-	Short: "Disable a label (admin)",
-	Long: `Disable a label to prevent it from being applied to new files.
-
-Examples:
-  # Disable a label
-  gdrv labels disable labels/abc123 --json
-
-  # Disable with admin access
-  gdrv labels disable labels/abc123 --use-admin-access --json
-
-  # Disable and hide in search
-  gdrv labels disable labels/abc123 --hide-in-search --json`,
-	Args: cobra.ExactArgs(1),
-	RunE: runLabelsDisable,
+type LabelsPublishCmd struct {
+	LabelID        string `arg:"" name:"label-id" help:"Label ID"`
+	UseAdminAccess bool   `help:"Use admin access" name:"use-admin-access"`
 }
 
-var labelsFileCmd = &cobra.Command{
-	Use:   "file",
-	Short: "File label operations",
-	Long:  "Manage labels on files",
+type LabelsDisableCmd struct {
+	LabelID        string `arg:"" name:"label-id" help:"Label ID"`
+	UseAdminAccess bool   `help:"Use admin access" name:"use-admin-access"`
+	HideInSearch   bool   `help:"Hide in search" name:"hide-in-search"`
+	ShowInApply    bool   `help:"Show in apply" name:"show-in-apply"`
 }
 
-var labelsFileListCmd = &cobra.Command{
-	Use:   "list <file-id>",
-	Short: "List labels on a file",
-	Long: `List all labels applied to a file.
-
-Examples:
-  # List labels on a file
-  gdrv labels file list 1abc123... --json
-
-  # List with full details
-  gdrv labels file list 1abc123... --view LABEL_VIEW_FULL --json`,
-	Args: cobra.ExactArgs(1),
-	RunE: runLabelsFileList,
+type LabelsFileListCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID"`
+	View   string `help:"View mode (LABEL_VIEW_BASIC, LABEL_VIEW_FULL)" name:"view"`
+	Fields string `help:"Fields to return" name:"fields"`
 }
 
-var labelsFileApplyCmd = &cobra.Command{
-	Use:   "apply <file-id> <label-id>",
-	Short: "Apply a label to a file",
-	Long: `Apply a label to a file with optional field values.
-
-Examples:
-  # Apply a label without field values
-  gdrv labels file apply 1abc123... labels/abc123 --json
-
-  # Apply a label with field values
-  gdrv labels file apply 1abc123... labels/abc123 --fields '{"field1":{"valueType":"text","text":["value1"]}}' --json`,
-	Args: cobra.ExactArgs(2),
-	RunE: runLabelsFileApply,
+type LabelsFileApplyCmd struct {
+	FileID  string `arg:"" name:"file-id" help:"File ID"`
+	LabelID string `arg:"" name:"label-id" help:"Label ID"`
+	Fields  string `help:"JSON object of field values" name:"fields"`
 }
 
-var labelsFileUpdateCmd = &cobra.Command{
-	Use:   "update <file-id> <label-id>",
-	Short: "Update label fields on a file",
-	Long: `Update the field values of a label applied to a file.
-
-Examples:
-  # Update label field values
-  gdrv labels file update 1abc123... labels/abc123 --fields '{"field1":{"valueType":"text","text":["new value"]}}' --json`,
-	Args: cobra.ExactArgs(2),
-	RunE: runLabelsFileUpdate,
+type LabelsFileUpdateCmd struct {
+	FileID  string `arg:"" name:"file-id" help:"File ID"`
+	LabelID string `arg:"" name:"label-id" help:"Label ID"`
+	Fields  string `help:"JSON object of field values" name:"fields"`
 }
 
-var labelsFileRemoveCmd = &cobra.Command{
-	Use:   "remove <file-id> <label-id>",
-	Short: "Remove a label from a file",
-	Long: `Remove a label from a file.
-
-Examples:
-  # Remove a label from a file
-  gdrv labels file remove 1abc123... labels/abc123`,
-	Args: cobra.ExactArgs(2),
-	RunE: runLabelsFileRemove,
-}
-
-var (
-	labelsCustomer       string
-	labelsView           string
-	labelsMinimumRole    string
-	labelsPublishedOnly  bool
-	labelsLimit          int
-	labelsPageToken      string
-	labelsFields         string
-	labelsUseAdminAccess bool
-	labelsLanguageCode   string
-	labelsHideInSearch   bool
-	labelsShowInApply    bool
-	labelsFieldValues    string
-)
-
-func init() {
-	labelsListCmd.Flags().StringVar(&labelsCustomer, "customer", "", "Customer ID (for admin operations)")
-	labelsListCmd.Flags().StringVar(&labelsView, "view", "", "View mode (LABEL_VIEW_BASIC, LABEL_VIEW_FULL)")
-	labelsListCmd.Flags().StringVar(&labelsMinimumRole, "minimum-role", "", "Minimum role (READER, APPLIER, ORGANIZER, EDITOR)")
-	labelsListCmd.Flags().BoolVar(&labelsPublishedOnly, "published-only", false, "Only return published labels")
-	labelsListCmd.Flags().IntVar(&labelsLimit, "limit", 100, "Maximum results per page")
-	labelsListCmd.Flags().StringVar(&labelsPageToken, "page-token", "", "Pagination token")
-	labelsListCmd.Flags().StringVar(&labelsFields, "fields", "", "Fields to return")
-
-	labelsGetCmd.Flags().StringVar(&labelsView, "view", "", "View mode (LABEL_VIEW_BASIC, LABEL_VIEW_FULL)")
-	labelsGetCmd.Flags().BoolVar(&labelsUseAdminAccess, "use-admin-access", false, "Use admin access")
-	labelsGetCmd.Flags().StringVar(&labelsFields, "fields", "", "Fields to return")
-
-	labelsCreateCmd.Flags().BoolVar(&labelsUseAdminAccess, "use-admin-access", false, "Use admin access")
-	labelsCreateCmd.Flags().StringVar(&labelsLanguageCode, "language-code", "", "Language code (e.g., en)")
-
-	labelsPublishCmd.Flags().BoolVar(&labelsUseAdminAccess, "use-admin-access", false, "Use admin access")
-
-	labelsDisableCmd.Flags().BoolVar(&labelsUseAdminAccess, "use-admin-access", false, "Use admin access")
-	labelsDisableCmd.Flags().BoolVar(&labelsHideInSearch, "hide-in-search", false, "Hide in search")
-	labelsDisableCmd.Flags().BoolVar(&labelsShowInApply, "show-in-apply", false, "Show in apply")
-
-	labelsFileListCmd.Flags().StringVar(&labelsView, "view", "", "View mode (LABEL_VIEW_BASIC, LABEL_VIEW_FULL)")
-	labelsFileListCmd.Flags().StringVar(&labelsFields, "fields", "", "Fields to return")
-
-	labelsFileApplyCmd.Flags().StringVar(&labelsFieldValues, "fields", "", "Field values as JSON")
-
-	labelsFileUpdateCmd.Flags().StringVar(&labelsFieldValues, "fields", "", "Field values as JSON")
-
-	labelsFileCmd.AddCommand(labelsFileListCmd)
-	labelsFileCmd.AddCommand(labelsFileApplyCmd)
-	labelsFileCmd.AddCommand(labelsFileUpdateCmd)
-	labelsFileCmd.AddCommand(labelsFileRemoveCmd)
-
-	labelsCmd.AddCommand(labelsListCmd)
-	labelsCmd.AddCommand(labelsGetCmd)
-	labelsCmd.AddCommand(labelsCreateCmd)
-	labelsCmd.AddCommand(labelsPublishCmd)
-	labelsCmd.AddCommand(labelsDisableCmd)
-	labelsCmd.AddCommand(labelsFileCmd)
-
-	rootCmd.AddCommand(labelsCmd)
+type LabelsFileRemoveCmd struct {
+	FileID  string `arg:"" name:"file-id" help:"File ID"`
+	LabelID string `arg:"" name:"label-id" help:"Label ID"`
 }
 
 func getLabelsManager(ctx context.Context, flags types.GlobalFlags) (*labels.Manager, *api.Client, *types.RequestContext, *OutputWriter, error) {
@@ -249,8 +108,8 @@ func getLabelsManager(ctx context.Context, flags types.GlobalFlags) (*labels.Man
 	return mgr, client, reqCtx, out, nil
 }
 
-func runLabelsList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
@@ -259,13 +118,13 @@ func runLabelsList(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := types.LabelListOptions{
-		Customer:      labelsCustomer,
-		View:          labelsView,
-		MinimumRole:   labelsMinimumRole,
-		PublishedOnly: labelsPublishedOnly,
-		Limit:         labelsLimit,
-		PageToken:     labelsPageToken,
-		Fields:        labelsFields,
+		Customer:      cmd.Customer,
+		View:          cmd.View,
+		MinimumRole:   cmd.MinimumRole,
+		PublishedOnly: cmd.PublishedOnly,
+		Limit:         cmd.Limit,
+		PageToken:     cmd.PageToken,
+		Fields:        cmd.Fields,
 	}
 
 	labelsList, nextPageToken, err := mgr.List(ctx, reqCtx, opts)
@@ -280,10 +139,9 @@ func runLabelsList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.list", result)
 }
 
-func runLabelsGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	labelID := args[0]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
@@ -291,12 +149,12 @@ func runLabelsGet(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := types.LabelGetOptions{
-		View:           labelsView,
-		UseAdminAccess: labelsUseAdminAccess,
-		Fields:         labelsFields,
+		View:           cmd.View,
+		UseAdminAccess: cmd.UseAdminAccess,
+		Fields:         cmd.Fields,
 	}
 
-	label, err := mgr.Get(ctx, reqCtx, labelID, opts)
+	label, err := mgr.Get(ctx, reqCtx, cmd.LabelID, opts)
 	if err != nil {
 		return handleCLIError(out, "labels.get", err)
 	}
@@ -305,10 +163,9 @@ func runLabelsGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.get", result)
 }
 
-func runLabelsCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	name := args[0]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
@@ -318,13 +175,13 @@ func runLabelsCreate(cmd *cobra.Command, args []string) error {
 	label := &types.Label{
 		LabelType: types.LabelTypeShared,
 		Properties: &types.LabelProperties{
-			Title: name,
+			Title: cmd.Name,
 		},
 	}
 
 	opts := types.LabelCreateOptions{
-		UseAdminAccess: labelsUseAdminAccess,
-		LanguageCode:   labelsLanguageCode,
+		UseAdminAccess: cmd.UseAdminAccess,
+		LanguageCode:   cmd.LanguageCode,
 	}
 
 	createdLabel, err := mgr.CreateLabel(ctx, reqCtx, label, opts)
@@ -336,10 +193,9 @@ func runLabelsCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.create", result)
 }
 
-func runLabelsPublish(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsPublishCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	labelID := args[0]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
@@ -347,10 +203,10 @@ func runLabelsPublish(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := types.LabelPublishOptions{
-		UseAdminAccess: labelsUseAdminAccess,
+		UseAdminAccess: cmd.UseAdminAccess,
 	}
 
-	publishedLabel, err := mgr.PublishLabel(ctx, reqCtx, labelID, opts)
+	publishedLabel, err := mgr.PublishLabel(ctx, reqCtx, cmd.LabelID, opts)
 	if err != nil {
 		return handleCLIError(out, "labels.publish", err)
 	}
@@ -359,10 +215,9 @@ func runLabelsPublish(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.publish", result)
 }
 
-func runLabelsDisable(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsDisableCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	labelID := args[0]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
@@ -370,17 +225,17 @@ func runLabelsDisable(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := types.LabelDisableOptions{
-		UseAdminAccess: labelsUseAdminAccess,
+		UseAdminAccess: cmd.UseAdminAccess,
 	}
 
-	if labelsHideInSearch || labelsShowInApply {
+	if cmd.HideInSearch || cmd.ShowInApply {
 		opts.DisabledPolicy = &types.LabelDisabledPolicy{
-			HideInSearch: labelsHideInSearch,
-			ShowInApply:  labelsShowInApply,
+			HideInSearch: cmd.HideInSearch,
+			ShowInApply:  cmd.ShowInApply,
 		}
 	}
 
-	disabledLabel, err := mgr.DisableLabel(ctx, reqCtx, labelID, opts)
+	disabledLabel, err := mgr.DisableLabel(ctx, reqCtx, cmd.LabelID, opts)
 	if err != nil {
 		return handleCLIError(out, "labels.disable", err)
 	}
@@ -389,10 +244,9 @@ func runLabelsDisable(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.disable", result)
 }
 
-func runLabelsFileList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsFileListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	fileID := args[0]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
@@ -400,11 +254,11 @@ func runLabelsFileList(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := types.FileLabelListOptions{
-		View:   labelsView,
-		Fields: labelsFields,
+		View:   cmd.View,
+		Fields: cmd.Fields,
 	}
 
-	fileLabels, err := mgr.ListFileLabels(ctx, reqCtx, fileID, opts)
+	fileLabels, err := mgr.ListFileLabels(ctx, reqCtx, cmd.FileID, opts)
 	if err != nil {
 		return handleCLIError(out, "labels.file.list", err)
 	}
@@ -413,11 +267,9 @@ func runLabelsFileList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.file.list", result)
 }
 
-func runLabelsFileApply(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsFileApplyCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	fileID := args[0]
-	labelID := args[1]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
@@ -428,14 +280,14 @@ func runLabelsFileApply(cmd *cobra.Command, args []string) error {
 		Fields: make(map[string]*types.LabelFieldValue),
 	}
 
-	if labelsFieldValues != "" {
-		if err := json.Unmarshal([]byte(labelsFieldValues), &opts.Fields); err != nil {
+	if cmd.Fields != "" {
+		if err := json.Unmarshal([]byte(cmd.Fields), &opts.Fields); err != nil {
 			return out.WriteError("labels.file.apply", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				fmt.Sprintf("Invalid field values JSON: %s", err)).Build())
 		}
 	}
 
-	fileLabel, err := mgr.ApplyLabel(ctx, reqCtx, fileID, labelID, opts)
+	fileLabel, err := mgr.ApplyLabel(ctx, reqCtx, cmd.FileID, cmd.LabelID, opts)
 	if err != nil {
 		return handleCLIError(out, "labels.file.apply", err)
 	}
@@ -444,11 +296,9 @@ func runLabelsFileApply(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.file.apply", result)
 }
 
-func runLabelsFileUpdate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsFileUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	fileID := args[0]
-	labelID := args[1]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
@@ -459,14 +309,14 @@ func runLabelsFileUpdate(cmd *cobra.Command, args []string) error {
 		Fields: make(map[string]*types.LabelFieldValue),
 	}
 
-	if labelsFieldValues != "" {
-		if err := json.Unmarshal([]byte(labelsFieldValues), &opts.Fields); err != nil {
+	if cmd.Fields != "" {
+		if err := json.Unmarshal([]byte(cmd.Fields), &opts.Fields); err != nil {
 			return out.WriteError("labels.file.update", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				fmt.Sprintf("Invalid field values JSON: %s", err)).Build())
 		}
 	}
 
-	fileLabel, err := mgr.UpdateLabel(ctx, reqCtx, fileID, labelID, opts)
+	fileLabel, err := mgr.UpdateLabel(ctx, reqCtx, cmd.FileID, cmd.LabelID, opts)
 	if err != nil {
 		return handleCLIError(out, "labels.file.update", err)
 	}
@@ -475,23 +325,21 @@ func runLabelsFileUpdate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("labels.file.update", result)
 }
 
-func runLabelsFileRemove(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *LabelsFileRemoveCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	fileID := args[0]
-	labelID := args[1]
 
 	mgr, _, reqCtx, out, err := getLabelsManager(ctx, flags)
 	if err != nil {
 		return out.WriteError("labels.file.remove", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	err = mgr.RemoveLabel(ctx, reqCtx, fileID, labelID)
+	err = mgr.RemoveLabel(ctx, reqCtx, cmd.FileID, cmd.LabelID)
 	if err != nil {
 		return handleCLIError(out, "labels.file.remove", err)
 	}
 
-	result := &SuccessResult{Message: fmt.Sprintf("Label %s removed from file %s", labelID, fileID)}
+	result := &SuccessResult{Message: fmt.Sprintf("Label %s removed from file %s", cmd.LabelID, cmd.FileID)}
 	return out.WriteSuccess("labels.file.remove", result)
 }
 
