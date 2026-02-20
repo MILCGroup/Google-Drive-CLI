@@ -19,6 +19,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/chat/v1"
 	"google.golang.org/api/docs/v1"
 	"google.golang.org/api/sheets/v4"
 	"google.golang.org/api/slides/v1"
@@ -590,6 +591,10 @@ func (m *Manager) GetAdminService(ctx context.Context, creds *types.Credentials)
 	return m.GetServiceFactory().CreateAdminService(ctx, creds)
 }
 
+func (m *Manager) GetChatService(ctx context.Context, creds *types.Credentials) (*chat.Service, error) {
+	return m.GetServiceFactory().CreateChatService(ctx, creds)
+}
+
 func RequiredScopesForService(svcType ServiceType) []string {
 	switch svcType {
 	case ServiceDrive:
@@ -602,6 +607,8 @@ func RequiredScopesForService(svcType ServiceType) []string {
 		return []string{utils.ScopeSlides}
 	case ServiceAdminDir:
 		return []string{utils.ScopeAdminDirectoryUser, utils.ScopeAdminDirectoryGroup}
+	case ServiceChat:
+		return []string{utils.ScopeChat}
 	default:
 		return nil
 	}

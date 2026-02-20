@@ -4,12 +4,6 @@ import "fmt"
 
 // TODO: remove this file as each domain command migrates to kong.
 
-type AboutCmd struct{}
-
-func (c *AboutCmd) Run(globals *Globals) error {
-	return fmt.Errorf("about command not yet migrated to kong")
-}
-
 type FilesCmd struct{}
 
 func (c *FilesCmd) Run(globals *Globals) error {

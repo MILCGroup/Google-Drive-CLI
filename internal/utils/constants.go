@@ -33,6 +33,8 @@ const (
 	ScopeAdminLabelsReadonly         = "https://www.googleapis.com/auth/drive.admin.labels.readonly"
 	ScopeActivity                    = "https://www.googleapis.com/auth/drive.activity"
 	ScopeActivityReadonly            = "https://www.googleapis.com/auth/drive.activity.readonly"
+	ScopeChat                        = "https://www.googleapis.com/auth/chat"
+	ScopeChatReadonly                = "https://www.googleapis.com/auth/chat.readonly"
 )
 
 var (

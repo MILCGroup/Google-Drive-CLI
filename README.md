@@ -851,6 +851,108 @@ gdrv slides update 1abc123... \
   --requests-file examples/slides/batch-update.json
 ```
 
+### Google Chat API Operations
+
+Manage Google Chat spaces, messages, and members through the Google Chat API.
+
+**Required OAuth Scopes:**
+- Read operations: `https://www.googleapis.com/auth/chat.readonly`
+- Write operations: `https://www.googleapis.com/auth/chat`
+- Use preset: `workspace-chat` (when available) or custom scopes
+
+**API Documentation:** [Google Chat API](https://developers.google.com/workspace/chat/api/reference/rest)
+
+#### Spaces Management
+
+```bash
+# List all spaces you have access to
+gdrv chat spaces list --json
+gdrv chat spaces list --paginate --json
+
+# Get details about a specific space
+gdrv chat spaces get <space-id> --json
+
+# Create a new space
+gdrv chat spaces create --display-name "Team Chat" --type SPACE --json
+gdrv chat spaces create --display-name "Project Group" --type GROUP_CHAT --external-users --json
+
+# Delete a space
+gdrv chat spaces delete <space-id>
+```
+
+**Spaces Command Flags:**
+
+- **List flags:** `--limit`, `--page-token`, `--paginate`
+- **Create flags:** `--display-name` (required), `--type` (SPACE or GROUP_CHAT), `--external-users`
+
+#### Messages Management
+
+```bash
+# List messages in a space
+gdrv chat messages list <space-id> --json
+gdrv chat messages list <space-id> --limit 50 --paginate --json
+
+# Get a specific message
+gdrv chat messages get <space-id> <message-id> --json
+
+# Create a message in a space
+gdrv chat messages create <space-id> --text "Hello everyone!" --json
+gdrv chat messages create <space-id> --text "Reply in thread" --thread <thread-id> --json
+
+# Update a message
+gdrv chat messages update <space-id> <message-id> --text "Updated message text" --json
+
+# Delete a message
+gdrv chat messages delete <space-id> <message-id>
+```
+
+**Messages Command Flags:**
+
+- **List flags:** `--limit`, `--page-token`, `--filter`, `--paginate`
+- **Create flags:** `--text` (required), `--thread`
+- **Update flags:** `--text` (required)
+
+#### Members Management
+
+```bash
+# List members of a space
+gdrv chat members list <space-id> --json
+gdrv chat members list <space-id> --paginate --json
+
+# Get member details
+gdrv chat members get <space-id> <member-id> --json
+
+# Add a member to a space
+gdrv chat members create <space-id> --email user@example.com --role MEMBER --json
+gdrv chat members create <space-id> --email manager@example.com --role MANAGER --json
+
+# Remove a member from a space
+gdrv chat members delete <space-id> <member-id>
+```
+
+**Members Command Flags:**
+
+- **List flags:** `--limit`, `--page-token`, `--paginate`
+- **Create flags:** `--email` (required), `--role` (MEMBER or MANAGER, default: MEMBER)
+
+**Examples:**
+
+```bash
+# List all spaces with pagination
+gdrv chat spaces list --paginate --json
+
+# Create a space and send a welcome message
+gdrv chat spaces create --display-name "Engineering Team" --type SPACE --json
+gdrv chat messages create <space-id> --text "Welcome to the Engineering Team space!" --json
+
+# Add multiple members to a space
+gdrv chat members create <space-id> --email alice@example.com --role MANAGER --json
+gdrv chat members create <space-id> --email bob@example.com --role MEMBER --json
+
+# List recent messages in a space
+gdrv chat messages list <space-id> --limit 20 --json
+```
+
 ### Shared Drives
 ```bash
 gdrv drives list                 # List Shared Drives

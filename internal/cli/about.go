@@ -5,25 +5,15 @@ import (
 
 	"github.com/dl-alexandre/gdrv/internal/config"
 	"github.com/dl-alexandre/gdrv/pkg/version"
-	"github.com/spf13/cobra"
 )
 
-var aboutCmd = &cobra.Command{
-	Use:   "about",
-	Short: "Display Drive account information and API capabilities",
-	Long:  "Retrieve and display information about the authenticated Drive account and supported API capabilities",
-	RunE:  runAbout,
+// AboutCmd implements the `gdrv about` command.
+type AboutCmd struct {
+	Fields string `help:"Fields to retrieve" default:"*" name:"fields"`
 }
 
-var aboutFields string
-
-func init() {
-	aboutCmd.Flags().StringVar(&aboutFields, "fields", "*", "Fields to retrieve")
-	rootCmd.AddCommand(aboutCmd)
-}
-
-func runAbout(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AboutCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	configDir := getConfigDir()

@@ -6,6 +6,7 @@ import (
 
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/chat/v1"
 	"google.golang.org/api/docs/v1"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
@@ -21,6 +22,7 @@ const (
 	ServiceDocs     ServiceType = "docs"
 	ServiceSlides   ServiceType = "slides"
 	ServiceAdminDir ServiceType = "admin_directory"
+	ServiceChat     ServiceType = "chat"
 )
 
 type ServiceFactory struct {
@@ -43,6 +45,8 @@ func (f *ServiceFactory) CreateService(ctx context.Context, creds *types.Credent
 		return f.CreateSlidesService(ctx, creds)
 	case ServiceAdminDir:
 		return f.CreateAdminService(ctx, creds)
+	case ServiceChat:
+		return f.CreateChatService(ctx, creds)
 	default:
 		return nil, fmt.Errorf("unknown service type: %s", svcType)
 	}
@@ -71,4 +75,9 @@ func (f *ServiceFactory) CreateSlidesService(ctx context.Context, creds *types.C
 func (f *ServiceFactory) CreateAdminService(ctx context.Context, creds *types.Credentials) (*admin.Service, error) {
 	client := f.manager.GetHTTPClient(ctx, creds)
 	return admin.NewService(ctx, option.WithHTTPClient(client))
+}
+
+func (f *ServiceFactory) CreateChatService(ctx context.Context, creds *types.Credentials) (*chat.Service, error) {
+	client := f.manager.GetHTTPClient(ctx, creds)
+	return chat.NewService(ctx, option.WithHTTPClient(client))
 }
