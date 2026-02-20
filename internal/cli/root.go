@@ -14,11 +14,136 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ============================================================
+// KONG FOUNDATION - new CLI architecture
+// ============================================================
+
+// Globals holds all persistent flags inherited by every command.
+// AfterApply runs before any command Run method.
+type Globals struct {
+	Profile             string         `help:"Authentication profile to use" default:"default" name:"profile"`
+	DriveID             string         `help:"Shared Drive ID to operate in" name:"drive-id"`
+	Output              string         `help:"Output format (json, table)" default:"json" name:"output"`
+	Quiet               bool           `help:"Suppress non-essential output" short:"q" name:"quiet"`
+	Verbose             bool           `help:"Enable verbose logging" short:"v" name:"verbose"`
+	Debug               bool           `help:"Enable debug output" name:"debug"`
+	Strict              bool           `help:"Convert warnings to errors" name:"strict"`
+	NoCache             bool           `help:"Bypass path resolution cache" name:"no-cache"`
+	CacheTTL            int            `help:"Path cache TTL in seconds" default:"300" name:"cache-ttl"`
+	IncludeSharedWithMe bool           `help:"Include shared-with-me items" name:"include-shared-with-me"`
+	Config              string         `help:"Path to configuration file" name:"config"`
+	LogFile             string         `help:"Path to log file" name:"log-file"`
+	DryRun              bool           `help:"Show what would be done without making changes" name:"dry-run"`
+	Force               bool           `help:"Force operation without confirmation" short:"f" name:"force"`
+	Yes                 bool           `help:"Answer yes to all prompts" short:"y" name:"yes"`
+	JSON                bool           `help:"Output in JSON format (alias for --output json)" name:"json"`
+	Logger              logging.Logger `kong:"-"`
+}
+
+// AfterApply replaces cobra PersistentPreRunE for kong commands.
+func (g *Globals) AfterApply() error {
+	if g.JSON {
+		g.Output = "json"
+	}
+
+	if g.Output != string(types.OutputFormatJSON) && g.Output != string(types.OutputFormatTable) {
+		return fmt.Errorf("invalid output format: %s (must be json or table)", g.Output)
+	}
+
+	logConfig := logging.LogConfig{
+		Level:           logging.INFO,
+		OutputFile:      g.LogFile,
+		EnableConsole:   !g.Quiet,
+		EnableDebug:     g.Debug,
+		RedactSensitive: true,
+		EnableColor:     true,
+		EnableTimestamp: true,
+	}
+	if g.Verbose {
+		logConfig.Level = logging.DEBUG
+	}
+	if g.Output == string(types.OutputFormatJSON) && !g.Verbose && !g.Debug {
+		logConfig.EnableConsole = false
+	}
+
+	var err error
+	g.Logger, err = logging.NewLogger(logConfig)
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	globalFlags = g.ToGlobalFlags()
+	logger = g.Logger
+
+	return nil
+}
+
+// ToGlobalFlags converts kong globals to legacy manager-compatible flags.
+func (g *Globals) ToGlobalFlags() types.GlobalFlags {
+	outputFormat := types.OutputFormatJSON
+	if g.Output == string(types.OutputFormatTable) {
+		outputFormat = types.OutputFormatTable
+	}
+
+	return types.GlobalFlags{
+		Profile:             g.Profile,
+		DriveID:             g.DriveID,
+		OutputFormat:        outputFormat,
+		Quiet:               g.Quiet,
+		Verbose:             g.Verbose,
+		Debug:               g.Debug,
+		Strict:              g.Strict,
+		NoCache:             g.NoCache,
+		CacheTTL:            g.CacheTTL,
+		IncludeSharedWithMe: g.IncludeSharedWithMe,
+		Config:              g.Config,
+		LogFile:             g.LogFile,
+		DryRun:              g.DryRun,
+		Force:               g.Force,
+		Yes:                 g.Yes,
+		JSON:                g.JSON,
+	}
+}
+
+// CLI is the kong root command tree.
+type CLI struct {
+	Globals
+
+	Version     VersionCmd     `cmd:"" help:"Print the version number"`
+	About       AboutCmd       `cmd:"" help:"Display Drive account information and API capabilities"`
+	Files       FilesCmd       `cmd:"" help:"File operations"`
+	Folders     FoldersCmd     `cmd:"" help:"Folder operations"`
+	Auth        AuthCmd        `cmd:"" help:"Authentication commands"`
+	Permissions PermissionsCmd `cmd:"" aliases:"perm" help:"Permission operations"`
+	Drives      DrivesCmd      `cmd:"" help:"Manage Shared Drives"`
+	Sheets      SheetsCmd      `cmd:"" help:"Google Sheets operations"`
+	Docs        DocsCmd        `cmd:"" help:"Google Docs operations"`
+	Slides      SlidesCmd      `cmd:"" help:"Google Slides operations"`
+	Admin       AdminCmd       `cmd:"" help:"Google Workspace Admin SDK operations"`
+	Changes     ChangesCmd     `cmd:"" help:"Drive Changes API operations"`
+	Labels      LabelsCmd      `cmd:"" help:"Drive Labels API operations"`
+	Activity    ActivityCmd    `cmd:"" help:"Drive Activity API operations"`
+	Chat        ChatCmd        `cmd:"" help:"Google Chat operations"`
+	Sync        SyncCmd        `cmd:"" help:"Sync local folders with Drive"`
+	Config      ConfigCmd      `cmd:"" help:"Configuration management"`
+	Completion  CompletionCmd  `cmd:"" help:"Generate shell completion scripts" hidden:""`
+}
+
+// VersionCmd prints the version.
+type VersionCmd struct{}
+
+func (v *VersionCmd) Run() error {
+	fmt.Println(version.Version)
+	return nil
+}
+
+// TODO: remove after full migration
 var (
 	globalFlags types.GlobalFlags
 	logger      logging.Logger
 )
 
+// TODO: remove after full migration
 var rootCmd = &cobra.Command{
 	Use:   "gdrv",
 	Short: "Google Drive CLI - Command line interface for Google Drive",
@@ -59,6 +184,7 @@ All commands support JSON output for automation and scripting.`,
 	},
 }
 
+// TODO: remove after full migration
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
@@ -68,6 +194,7 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+// TODO: remove after full migration
 func init() {
 	rootCmd.PersistentFlags().StringVar(&globalFlags.Profile, "profile", "default", "Authentication profile to use")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.DriveID, "drive-id", "", "Shared Drive ID to operate in")
@@ -90,6 +217,7 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 }
 
+// TODO: remove after full migration
 func validateGlobalFlags() error {
 	// Handle --json flag as alias for --output json
 	if globalFlags.JSON {
@@ -102,17 +230,20 @@ func validateGlobalFlags() error {
 	return nil
 }
 
-// Execute runs the root command
+// TODO: remove after full migration
+// Execute runs the cobra root command.
 func Execute() error {
 	return rootCmd.Execute()
 }
 
-// GetGlobalFlags returns the global flags
+// TODO: remove after full migration
+// GetGlobalFlags returns the current global flags.
 func GetGlobalFlags() types.GlobalFlags {
 	return globalFlags
 }
 
-// GetLogger returns the global logger
+// TODO: remove after full migration
+// GetLogger returns the current logger.
 func GetLogger() logging.Logger {
 	return logger
 }
