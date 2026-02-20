@@ -6,25 +6,13 @@ import (
 )
 
 func TestReadSheetValues_EmptyInput(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsValuesJSON = ""
-		sheetsValuesFile = ""
-	})
-	sheetsValuesJSON = ""
-	sheetsValuesFile = ""
-	if _, err := readSheetValues(); err == nil {
+	if _, err := readSheetValuesFrom("", ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
 func TestReadSheetValues_FromJSON(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsValuesJSON = ""
-		sheetsValuesFile = ""
-	})
-	sheetsValuesJSON = `[[1,2],[3,4]]`
-	sheetsValuesFile = ""
-	values, err := readSheetValues()
+	values, err := readSheetValuesFrom(`[[1,2],[3,4]]`, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -34,10 +22,6 @@ func TestReadSheetValues_FromJSON(t *testing.T) {
 }
 
 func TestReadSheetValues_FromFile(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsValuesJSON = ""
-		sheetsValuesFile = ""
-	})
 	tmp, err := os.CreateTemp("", "values-*.json")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
@@ -51,9 +35,7 @@ func TestReadSheetValues_FromFile(t *testing.T) {
 	if err := tmp.Close(); err != nil {
 		t.Fatalf("failed to close temp file: %v", err)
 	}
-	sheetsValuesJSON = ""
-	sheetsValuesFile = tmp.Name()
-	values, err := readSheetValues()
+	values, err := readSheetValuesFrom("", tmp.Name())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -63,49 +45,25 @@ func TestReadSheetValues_FromFile(t *testing.T) {
 }
 
 func TestReadSheetValues_InvalidJSON(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsValuesJSON = ""
-		sheetsValuesFile = ""
-	})
-	sheetsValuesJSON = `invalid`
-	sheetsValuesFile = ""
-	if _, err := readSheetValues(); err == nil {
+	if _, err := readSheetValuesFrom(`invalid`, ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
 func TestReadSheetValues_FileNotFound(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsValuesJSON = ""
-		sheetsValuesFile = ""
-	})
-	sheetsValuesJSON = ""
-	sheetsValuesFile = "/nonexistent/file.json"
-	if _, err := readSheetValues(); err == nil {
+	if _, err := readSheetValuesFrom("", "/nonexistent/file.json"); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
 func TestReadSheetsBatchRequests_EmptyInput(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsBatchUpdateJSON = ""
-		sheetsBatchUpdateFile = ""
-	})
-	sheetsBatchUpdateJSON = ""
-	sheetsBatchUpdateFile = ""
-	if _, err := readSheetsBatchRequests(); err == nil {
+	if _, err := readSheetsBatchRequestsFrom("", ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
 func TestReadSheetsBatchRequests_FromJSON(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsBatchUpdateJSON = ""
-		sheetsBatchUpdateFile = ""
-	})
-	sheetsBatchUpdateJSON = `[{"updateSpreadsheetProperties":{"properties":{"title":"New Title"},"fields":"title"}}]`
-	sheetsBatchUpdateFile = ""
-	requests, err := readSheetsBatchRequests()
+	requests, err := readSheetsBatchRequestsFrom(`[{"updateSpreadsheetProperties":{"properties":{"title":"New Title"},"fields":"title"}}]`, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -115,10 +73,6 @@ func TestReadSheetsBatchRequests_FromJSON(t *testing.T) {
 }
 
 func TestReadSheetsBatchRequests_FromFile(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsBatchUpdateJSON = ""
-		sheetsBatchUpdateFile = ""
-	})
 	tmp, err := os.CreateTemp("", "batch-requests-*.json")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
@@ -132,9 +86,7 @@ func TestReadSheetsBatchRequests_FromFile(t *testing.T) {
 	if err := tmp.Close(); err != nil {
 		t.Fatalf("failed to close temp file: %v", err)
 	}
-	sheetsBatchUpdateJSON = ""
-	sheetsBatchUpdateFile = tmp.Name()
-	requests, err := readSheetsBatchRequests()
+	requests, err := readSheetsBatchRequestsFrom("", tmp.Name())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -144,25 +96,13 @@ func TestReadSheetsBatchRequests_FromFile(t *testing.T) {
 }
 
 func TestReadSheetsBatchRequests_InvalidJSON(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsBatchUpdateJSON = ""
-		sheetsBatchUpdateFile = ""
-	})
-	sheetsBatchUpdateJSON = `invalid`
-	sheetsBatchUpdateFile = ""
-	if _, err := readSheetsBatchRequests(); err == nil {
+	if _, err := readSheetsBatchRequestsFrom(`invalid`, ""); err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
 func TestReadSheetsBatchRequests_FileNotFound(t *testing.T) {
-	t.Cleanup(func() {
-		sheetsBatchUpdateJSON = ""
-		sheetsBatchUpdateFile = ""
-	})
-	sheetsBatchUpdateJSON = ""
-	sheetsBatchUpdateFile = "/nonexistent/file.json"
-	if _, err := readSheetsBatchRequests(); err == nil {
+	if _, err := readSheetsBatchRequestsFrom("", "/nonexistent/file.json"); err == nil {
 		t.Fatalf("expected error")
 	}
 }
