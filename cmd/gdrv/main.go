@@ -1,12 +1,18 @@
 package main
 
 import (
+	"os"
+
 	"github.com/alecthomas/kong"
 	"github.com/dl-alexandre/gdrv/internal/cli"
 	"github.com/dl-alexandre/gdrv/pkg/version"
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	var c cli.CLI
 	ctx := kong.Parse(
 		&c,
@@ -20,5 +26,8 @@ All commands support JSON output for automation and scripting.`),
 	)
 
 	err := ctx.Run(&c.Globals)
-	ctx.FatalIfErrorf(err)
+	if err != nil {
+		ctx.Fatalf("error: %v", err)
+	}
+	return 0
 }
