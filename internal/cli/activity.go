@@ -8,71 +8,23 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var activityCmd = &cobra.Command{
-	Use:   "activity",
-	Short: "Drive Activity API operations",
-	Long:  "Query and monitor file and folder activity across Google Drive",
+type ActivityCmd struct {
+	Query ActivityQueryCmd `cmd:"" help:"Query Drive activity"`
 }
 
-var activityQueryCmd = &cobra.Command{
-	Use:   "query",
-	Short: "Query Drive activity",
-	Long: `Query Drive activity events with filtering options.
-
-Examples:
-  # Query recent activity for all accessible files
-  gdrv activity query --json
-
-  # Query activity for a specific file
-  gdrv activity query --file-id 1abc123... --json
-
-  # Query activity within a time range
-  gdrv activity query --start-time "2026-01-01T00:00:00Z" --end-time "2026-01-31T23:59:59Z" --json
-
-  # Query activity for a folder (including descendants)
-  gdrv activity query --folder-id 0ABC123... --json
-
-  # Filter by activity types
-  gdrv activity query --action-types "edit,share,permission_change" --json
-
-  # Get activity for a specific user
-  gdrv activity query --user user@example.com --json
-
-  # Paginate through activity results
-  gdrv activity query --limit 100 --page-token "TOKEN" --json`,
-	RunE: runActivityQuery,
-}
-
-var (
-	activityFileID      string
-	activityFolderID    string
-	activityAncestor    string
-	activityStartTime   string
-	activityEndTime     string
-	activityActionTypes string
-	activityUser        string
-	activityLimit       int
-	activityPageToken   string
-	activityFields      string
-)
-
-func init() {
-	activityQueryCmd.Flags().StringVar(&activityFileID, "file-id", "", "Filter by specific file ID")
-	activityQueryCmd.Flags().StringVar(&activityFolderID, "folder-id", "", "Filter by folder ID (includes descendants)")
-	activityQueryCmd.Flags().StringVar(&activityAncestor, "ancestor-name", "", "Filter by ancestor folder (e.g., folders/123)")
-	activityQueryCmd.Flags().StringVar(&activityStartTime, "start-time", "", "Start of time range (RFC3339 format)")
-	activityQueryCmd.Flags().StringVar(&activityEndTime, "end-time", "", "End of time range (RFC3339 format)")
-	activityQueryCmd.Flags().StringVar(&activityActionTypes, "action-types", "", "Comma-separated action types (edit,comment,share,permission_change,move,delete,restore,create,rename)")
-	activityQueryCmd.Flags().StringVar(&activityUser, "user", "", "Filter by user email")
-	activityQueryCmd.Flags().IntVar(&activityLimit, "limit", 100, "Maximum results per page")
-	activityQueryCmd.Flags().StringVar(&activityPageToken, "page-token", "", "Pagination token")
-	activityQueryCmd.Flags().StringVar(&activityFields, "fields", "", "Fields to return")
-
-	activityCmd.AddCommand(activityQueryCmd)
-	rootCmd.AddCommand(activityCmd)
+type ActivityQueryCmd struct {
+	FileID       string `help:"Filter by specific file ID" name:"file-id"`
+	FolderID     string `help:"Filter by folder ID (includes descendants)" name:"folder-id"`
+	AncestorName string `help:"Filter by ancestor folder (e.g., folders/123)" name:"ancestor-name"`
+	StartTime    string `help:"Start of time range (RFC3339 format)" name:"start-time"`
+	EndTime      string `help:"End of time range (RFC3339 format)" name:"end-time"`
+	ActionTypes  string `help:"Comma-separated action types (edit,comment,share,permission_change,move,delete,restore,create,rename)" name:"action-types"`
+	User         string `help:"Filter by user email" name:"user"`
+	Limit        int    `help:"Maximum results per page" default:"100" name:"limit"`
+	PageToken    string `help:"Pagination token" name:"page-token"`
+	Fields       string `help:"Fields to return" name:"fields"`
 }
 
 func getActivityManager(ctx context.Context, flags types.GlobalFlags) (*activity.Manager, *api.Client, *types.RequestContext, *OutputWriter, error) {
@@ -97,8 +49,8 @@ func getActivityManager(ctx context.Context, flags types.GlobalFlags) (*activity
 	return mgr, client, reqCtx, out, nil
 }
 
-func runActivityQuery(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ActivityQueryCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, _, reqCtx, out, err := getActivityManager(ctx, flags)
@@ -107,16 +59,16 @@ func runActivityQuery(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := types.QueryOptions{
-		FileID:       activityFileID,
-		FolderID:     activityFolderID,
-		AncestorName: activityAncestor,
-		StartTime:    activityStartTime,
-		EndTime:      activityEndTime,
-		ActionTypes:  activityActionTypes,
-		User:         activityUser,
-		Limit:        activityLimit,
-		PageToken:    activityPageToken,
-		Fields:       activityFields,
+		FileID:       cmd.FileID,
+		FolderID:     cmd.FolderID,
+		AncestorName: cmd.AncestorName,
+		StartTime:    cmd.StartTime,
+		EndTime:      cmd.EndTime,
+		ActionTypes:  cmd.ActionTypes,
+		User:         cmd.User,
+		Limit:        cmd.Limit,
+		PageToken:    cmd.PageToken,
+		Fields:       cmd.Fields,
 	}
 
 	activities, err := mgr.Query(ctx, reqCtx, opts)

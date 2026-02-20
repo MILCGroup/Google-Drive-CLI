@@ -28,24 +28,6 @@ func (c *SlidesCmd) Run(globals *Globals) error {
 	return fmt.Errorf("slides command not yet migrated to kong")
 }
 
-type ChangesCmd struct{}
-
-func (c *ChangesCmd) Run(globals *Globals) error {
-	return fmt.Errorf("changes command not yet migrated to kong")
-}
-
-type ActivityCmd struct{}
-
-func (c *ActivityCmd) Run(globals *Globals) error {
-	return fmt.Errorf("activity command not yet migrated to kong")
-}
-
-type ConfigCmd struct{}
-
-func (c *ConfigCmd) Run(globals *Globals) error {
-	return fmt.Errorf("config command not yet migrated to kong")
-}
-
 type CompletionCmd struct{}
 
 func (c *CompletionCmd) Run(globals *Globals) error {

@@ -9,146 +9,49 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/changes"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var changesCmd = &cobra.Command{
-	Use:   "changes",
-	Short: "Drive Changes API operations",
-	Long:  "Track changes to files and folders for real-time synchronization and automation",
+type ChangesCmd struct {
+	StartPageToken ChangesStartPageTokenCmd `cmd:"start-page-token" help:"Get the starting page token"`
+	List           ChangesListCmd           `cmd:"" help:"List changes since a page token"`
+	Watch          ChangesWatchCmd          `cmd:"" help:"Watch for changes (webhook setup)"`
+	Stop           ChangesStopCmd           `cmd:"" help:"Stop watching for changes"`
 }
 
-var changesStartPageTokenCmd = &cobra.Command{
-	Use:   "start-page-token",
-	Short: "Get the starting page token",
-	Long: `Get the starting page token for listing changes.
-
-This token represents the current state of the Drive and can be used
-to track all future changes.
-
-Examples:
-  # Get the starting page token
-  gdrv changes start-page-token --json
-
-  # Get the starting page token for a Shared Drive
-  gdrv changes start-page-token --drive-id <drive-id> --json`,
-	RunE: runChangesStartPageToken,
+type ChangesStartPageTokenCmd struct {
 }
 
-var changesListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List changes since a page token",
-	Long: `List changes to files and folders since a given page token.
-
-Use the page token from start-page-token or from a previous list response
-to track incremental changes.
-
-Examples:
-  # List changes since a page token
-  gdrv changes list --page-token "12345" --json
-
-  # List changes with auto-pagination
-  gdrv changes list --page-token "12345" --paginate --json
-
-  # List changes for a specific Shared Drive
-  gdrv changes list --page-token "12345" --drive-id <drive-id> --json
-
-  # List changes including removed files
-  gdrv changes list --page-token "12345" --include-removed --json
-
-  # List changes with specific fields
-  gdrv changes list --page-token "12345" --fields "nextPageToken,newStartPageToken,changes(fileId,time,removed,file(name,mimeType))" --json`,
-	RunE: runChangesList,
+type ChangesListCmd struct {
+	PageToken                 string `help:"Page token to list changes from (required)" name:"page-token" required:""`
+	IncludeCorpusRemovals     bool   `help:"Include changes outside target corpus" name:"include-corpus-removals"`
+	IncludeItemsFromAllDrives bool   `help:"Include items from all drives" name:"include-items-from-all-drives"`
+	IncludePermissionsForView string `help:"Include permissions with published view" name:"include-permissions-for-view"`
+	IncludeRemoved            bool   `help:"Include removed items" name:"include-removed"`
+	RestrictToMyDrive         bool   `help:"Restrict to My Drive only" name:"restrict-to-my-drive"`
+	SupportsAllDrives         bool   `help:"Support all drives" default:"true" name:"supports-all-drives"`
+	Limit                     int    `help:"Maximum results per page" default:"100" name:"limit"`
+	Fields                    string `help:"Fields to return" name:"fields"`
+	Spaces                    string `help:"Comma-separated list of spaces (drive, appDataFolder, photos)" name:"spaces"`
+	Paginate                  bool   `help:"Auto-paginate through all changes" name:"paginate"`
 }
 
-var changesWatchCmd = &cobra.Command{
-	Use:   "watch",
-	Short: "Watch for changes via webhook",
-	Long: `Set up a webhook to receive notifications when changes occur.
-
-The webhook URL must be accessible from the internet and must use HTTPS.
-Google will send POST requests to this URL when changes occur.
-
-Examples:
-  # Watch for changes
-  gdrv changes watch --page-token "12345" --webhook-url "https://example.com/webhook" --json
-
-  # Watch with custom expiration (Unix timestamp in milliseconds)
-  gdrv changes watch --page-token "12345" --webhook-url "https://example.com/webhook" --expiration 1706745600000 --json
-
-  # Watch with a token for verification
-  gdrv changes watch --page-token "12345" --webhook-url "https://example.com/webhook" --token "my-secret-token" --json`,
-	RunE: runChangesWatch,
+type ChangesWatchCmd struct {
+	PageToken                 string `help:"Page token to watch from (required)" name:"page-token" required:""`
+	WebhookURL                string `help:"Webhook URL for notifications (required)" name:"webhook-url" required:""`
+	IncludeCorpusRemovals     bool   `help:"Include changes outside target corpus" name:"include-corpus-removals"`
+	IncludeItemsFromAllDrives bool   `help:"Include items from all drives" name:"include-items-from-all-drives"`
+	IncludePermissionsForView string `help:"Include permissions with published view" name:"include-permissions-for-view"`
+	IncludeRemoved            bool   `help:"Include removed items" name:"include-removed"`
+	RestrictToMyDrive         bool   `help:"Restrict to My Drive only" name:"restrict-to-my-drive"`
+	SupportsAllDrives         bool   `help:"Support all drives" default:"true" name:"supports-all-drives"`
+	Spaces                    string `help:"Comma-separated list of spaces (drive, appDataFolder, photos)" name:"spaces"`
+	Expiration                int64  `help:"Webhook expiration time (Unix timestamp in milliseconds)" name:"expiration"`
+	Token                     string `help:"Arbitrary token for webhook verification" name:"token"`
 }
 
-var changesStopCmd = &cobra.Command{
-	Use:   "stop <channel-id> <resource-id>",
-	Short: "Stop watching for changes",
-	Long: `Stop a notification channel created by the watch command.
-
-The channel-id and resource-id are returned by the watch command.
-
-Examples:
-  # Stop watching for changes
-  gdrv changes stop <channel-id> <resource-id>`,
-	Args: cobra.ExactArgs(2),
-	RunE: runChangesStop,
-}
-
-var (
-	changesPageToken                 string
-	changesIncludeCorpusRemovals     bool
-	changesIncludeItemsFromAllDrives bool
-	changesIncludePermissionsForView string
-	changesIncludeRemoved            bool
-	changesRestrictToMyDrive         bool
-	changesSupportsAllDrives         bool
-	changesLimit                     int
-	changesFields                    string
-	changesSpaces                    string
-	changesPaginate                  bool
-	changesWebhookURL                string
-	changesExpiration                int64
-	changesToken                     string
-)
-
-func init() {
-	changesStartPageTokenCmd.Flags().StringVar(&globalFlags.DriveID, "drive-id", "", "Shared Drive ID")
-
-	changesListCmd.Flags().StringVar(&changesPageToken, "page-token", "", "Page token to list changes from (required)")
-	changesListCmd.Flags().StringVar(&globalFlags.DriveID, "drive-id", "", "Shared Drive ID")
-	changesListCmd.Flags().BoolVar(&changesIncludeCorpusRemovals, "include-corpus-removals", false, "Include changes outside target corpus")
-	changesListCmd.Flags().BoolVar(&changesIncludeItemsFromAllDrives, "include-items-from-all-drives", false, "Include items from all drives")
-	changesListCmd.Flags().StringVar(&changesIncludePermissionsForView, "include-permissions-for-view", "", "Include permissions with published view")
-	changesListCmd.Flags().BoolVar(&changesIncludeRemoved, "include-removed", false, "Include removed items")
-	changesListCmd.Flags().BoolVar(&changesRestrictToMyDrive, "restrict-to-my-drive", false, "Restrict to My Drive only")
-	changesListCmd.Flags().BoolVar(&changesSupportsAllDrives, "supports-all-drives", true, "Support all drives")
-	changesListCmd.Flags().IntVar(&changesLimit, "limit", 100, "Maximum results per page")
-	changesListCmd.Flags().StringVar(&changesFields, "fields", "", "Fields to return")
-	changesListCmd.Flags().StringVar(&changesSpaces, "spaces", "", "Comma-separated list of spaces (drive, appDataFolder, photos)")
-	changesListCmd.Flags().BoolVar(&changesPaginate, "paginate", false, "Auto-paginate through all changes")
-	changesListCmd.MarkFlagRequired("page-token")
-
-	changesWatchCmd.Flags().StringVar(&changesPageToken, "page-token", "", "Page token to watch from (required)")
-	changesWatchCmd.Flags().StringVar(&changesWebhookURL, "webhook-url", "", "Webhook URL for notifications (required)")
-	changesWatchCmd.Flags().StringVar(&globalFlags.DriveID, "drive-id", "", "Shared Drive ID")
-	changesWatchCmd.Flags().BoolVar(&changesIncludeCorpusRemovals, "include-corpus-removals", false, "Include changes outside target corpus")
-	changesWatchCmd.Flags().BoolVar(&changesIncludeItemsFromAllDrives, "include-items-from-all-drives", false, "Include items from all drives")
-	changesWatchCmd.Flags().StringVar(&changesIncludePermissionsForView, "include-permissions-for-view", "", "Include permissions with published view")
-	changesWatchCmd.Flags().BoolVar(&changesIncludeRemoved, "include-removed", false, "Include removed items")
-	changesWatchCmd.Flags().BoolVar(&changesRestrictToMyDrive, "restrict-to-my-drive", false, "Restrict to My Drive only")
-	changesWatchCmd.Flags().BoolVar(&changesSupportsAllDrives, "supports-all-drives", true, "Support all drives")
-	changesWatchCmd.Flags().StringVar(&changesSpaces, "spaces", "", "Comma-separated list of spaces (drive, appDataFolder, photos)")
-	changesWatchCmd.Flags().Int64Var(&changesExpiration, "expiration", 0, "Webhook expiration time (Unix timestamp in milliseconds)")
-	changesWatchCmd.Flags().StringVar(&changesToken, "token", "", "Arbitrary token for webhook verification")
-	changesWatchCmd.MarkFlagRequired("page-token")
-	changesWatchCmd.MarkFlagRequired("webhook-url")
-
-	changesCmd.AddCommand(changesStartPageTokenCmd)
-	changesCmd.AddCommand(changesListCmd)
-	changesCmd.AddCommand(changesWatchCmd)
-	changesCmd.AddCommand(changesStopCmd)
-	rootCmd.AddCommand(changesCmd)
+type ChangesStopCmd struct {
+	ChannelID  string `arg:"" name:"channel-id" help:"Channel ID from watch command"`
+	ResourceID string `arg:"" name:"resource-id" help:"Resource ID from watch command"`
 }
 
 func getChangesManager(ctx context.Context, flags types.GlobalFlags) (*changes.Manager, *api.Client, *types.RequestContext, *OutputWriter, error) {
@@ -173,19 +76,20 @@ func getChangesManager(ctx context.Context, flags types.GlobalFlags) (*changes.M
 	return mgr, client, reqCtx, out, nil
 }
 
-func runChangesStartPageToken(cmd *cobra.Command, args []string) error {
+func (cmd *ChangesStartPageTokenCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	mgr, _, reqCtx, out, err := getChangesManager(ctx, globalFlags)
+	mgr, _, reqCtx, out, err := getChangesManager(ctx, flags)
 	if err != nil {
 		return err
 	}
 
-	token, err := mgr.GetStartPageToken(ctx, reqCtx, globalFlags.DriveID)
+	token, err := mgr.GetStartPageToken(ctx, reqCtx, flags.DriveID)
 	if err != nil {
 		return err
 	}
 
-	if globalFlags.OutputFormat == types.OutputFormatJSON {
+	if flags.OutputFormat == types.OutputFormatJSON {
 		return out.WriteSuccess("changes start-page-token", map[string]string{"startPageToken": token})
 	}
 
@@ -193,28 +97,29 @@ func runChangesStartPageToken(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runChangesList(cmd *cobra.Command, args []string) error {
+func (cmd *ChangesListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	mgr, _, reqCtx, out, err := getChangesManager(ctx, globalFlags)
+	mgr, _, reqCtx, out, err := getChangesManager(ctx, flags)
 	if err != nil {
 		return err
 	}
 
 	opts := types.ListOptions{
-		PageToken:                 changesPageToken,
-		DriveID:                   globalFlags.DriveID,
-		IncludeCorpusRemovals:     changesIncludeCorpusRemovals,
-		IncludeItemsFromAllDrives: changesIncludeItemsFromAllDrives,
-		IncludePermissionsForView: changesIncludePermissionsForView,
-		IncludeRemoved:            changesIncludeRemoved,
-		RestrictToMyDrive:         changesRestrictToMyDrive,
-		SupportsAllDrives:         changesSupportsAllDrives,
-		Limit:                     changesLimit,
-		Fields:                    changesFields,
-		Spaces:                    changesSpaces,
+		PageToken:                 cmd.PageToken,
+		DriveID:                   flags.DriveID,
+		IncludeCorpusRemovals:     cmd.IncludeCorpusRemovals,
+		IncludeItemsFromAllDrives: cmd.IncludeItemsFromAllDrives,
+		IncludePermissionsForView: cmd.IncludePermissionsForView,
+		IncludeRemoved:            cmd.IncludeRemoved,
+		RestrictToMyDrive:         cmd.RestrictToMyDrive,
+		SupportsAllDrives:         cmd.SupportsAllDrives,
+		Limit:                     cmd.Limit,
+		Fields:                    cmd.Fields,
+		Spaces:                    cmd.Spaces,
 	}
 
-	if changesPaginate {
+	if cmd.Paginate {
 		return paginateChanges(ctx, mgr, reqCtx, out, opts)
 	}
 
@@ -223,7 +128,7 @@ func runChangesList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if globalFlags.OutputFormat == types.OutputFormatJSON {
+	if flags.OutputFormat == types.OutputFormatJSON {
 		return out.WriteSuccess("changes list", result)
 	}
 
@@ -279,7 +184,8 @@ func paginateChanges(ctx context.Context, mgr *changes.Manager, reqCtx *types.Re
 		pageToken = result.NextPageToken
 	}
 
-	if globalFlags.OutputFormat == types.OutputFormatJSON {
+	flags := globalFlags
+	if flags.OutputFormat == types.OutputFormatJSON {
 		return out.WriteSuccess("changes list", map[string]interface{}{
 			"changes":           allChanges,
 			"newStartPageToken": newStartPageToken,
@@ -305,34 +211,35 @@ func paginateChanges(ctx context.Context, mgr *changes.Manager, reqCtx *types.Re
 	return nil
 }
 
-func runChangesWatch(cmd *cobra.Command, args []string) error {
+func (cmd *ChangesWatchCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	mgr, _, reqCtx, out, err := getChangesManager(ctx, globalFlags)
+	mgr, _, reqCtx, out, err := getChangesManager(ctx, flags)
 	if err != nil {
 		return err
 	}
 
 	opts := types.WatchOptions{
-		PageToken:                 changesPageToken,
-		DriveID:                   globalFlags.DriveID,
-		IncludeCorpusRemovals:     changesIncludeCorpusRemovals,
-		IncludeItemsFromAllDrives: changesIncludeItemsFromAllDrives,
-		IncludePermissionsForView: changesIncludePermissionsForView,
-		IncludeRemoved:            changesIncludeRemoved,
-		RestrictToMyDrive:         changesRestrictToMyDrive,
-		SupportsAllDrives:         changesSupportsAllDrives,
-		Spaces:                    changesSpaces,
-		WebhookURL:                changesWebhookURL,
-		Expiration:                changesExpiration,
-		Token:                     changesToken,
+		PageToken:                 cmd.PageToken,
+		DriveID:                   flags.DriveID,
+		IncludeCorpusRemovals:     cmd.IncludeCorpusRemovals,
+		IncludeItemsFromAllDrives: cmd.IncludeItemsFromAllDrives,
+		IncludePermissionsForView: cmd.IncludePermissionsForView,
+		IncludeRemoved:            cmd.IncludeRemoved,
+		RestrictToMyDrive:         cmd.RestrictToMyDrive,
+		SupportsAllDrives:         cmd.SupportsAllDrives,
+		Spaces:                    cmd.Spaces,
+		WebhookURL:                cmd.WebhookURL,
+		Expiration:                cmd.Expiration,
+		Token:                     cmd.Token,
 	}
 
-	channel, err := mgr.Watch(ctx, reqCtx, changesPageToken, changesWebhookURL, opts)
+	channel, err := mgr.Watch(ctx, reqCtx, cmd.PageToken, cmd.WebhookURL, opts)
 	if err != nil {
 		return err
 	}
 
-	if globalFlags.OutputFormat == types.OutputFormatJSON {
+	if flags.OutputFormat == types.OutputFormatJSON {
 		return out.WriteSuccess("changes watch", channel)
 	}
 
@@ -348,29 +255,27 @@ func runChangesWatch(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runChangesStop(cmd *cobra.Command, args []string) error {
+func (cmd *ChangesStopCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
-	mgr, _, reqCtx, out, err := getChangesManager(ctx, globalFlags)
+	mgr, _, reqCtx, out, err := getChangesManager(ctx, flags)
 	if err != nil {
 		return err
 	}
 
-	channelID := args[0]
-	resourceID := args[1]
-
-	err = mgr.Stop(ctx, reqCtx, channelID, resourceID)
+	err = mgr.Stop(ctx, reqCtx, cmd.ChannelID, cmd.ResourceID)
 	if err != nil {
 		return err
 	}
 
-	if globalFlags.OutputFormat == types.OutputFormatJSON {
+	if flags.OutputFormat == types.OutputFormatJSON {
 		return out.WriteSuccess("changes stop", map[string]string{
 			"status":     "stopped",
-			"channelId":  channelID,
-			"resourceId": resourceID,
+			"channelId":  cmd.ChannelID,
+			"resourceId": cmd.ResourceID,
 		})
 	}
 
-	fmt.Printf("Stopped watching channel %s\n", channelID)
+	fmt.Printf("Stopped watching channel %s\n", cmd.ChannelID)
 	return nil
 }
