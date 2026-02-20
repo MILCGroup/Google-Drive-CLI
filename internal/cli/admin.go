@@ -9,249 +9,142 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 	adminapi "google.golang.org/api/admin/directory/v1"
 )
 
-var adminCmd = &cobra.Command{
-	Use:   "admin",
-	Short: "Google Workspace Admin SDK operations",
-	Long:  "Commands for managing users and groups",
+type AdminCmd struct {
+	Users  AdminUsersCmd  `cmd:"" help:"User management operations"`
+	Groups AdminGroupsCmd `cmd:"" help:"Group management operations"`
 }
 
-var adminUsersCmd = &cobra.Command{
-	Use:   "users",
-	Short: "User management operations",
+type AdminUsersCmd struct {
+	List      AdminUsersListCmd      `cmd:"" help:"List users"`
+	Get       AdminUsersGetCmd       `cmd:"" help:"Get user details"`
+	Create    AdminUsersCreateCmd    `cmd:"" help:"Create a new user"`
+	Delete    AdminUsersDeleteCmd    `cmd:"" help:"Delete a user"`
+	Update    AdminUsersUpdateCmd    `cmd:"" help:"Update a user"`
+	Suspend   AdminUsersSuspendCmd   `cmd:"" help:"Suspend a user"`
+	Unsuspend AdminUsersUnsuspendCmd `cmd:"" help:"Unsuspend a user"`
 }
 
-var adminGroupsCmd = &cobra.Command{
-	Use:   "groups",
-	Short: "Group management operations",
+type AdminGroupsCmd struct {
+	List    AdminGroupsListCmd    `cmd:"" help:"List groups"`
+	Get     AdminGroupsGetCmd     `cmd:"" help:"Get group details"`
+	Create  AdminGroupsCreateCmd  `cmd:"" help:"Create a new group"`
+	Delete  AdminGroupsDeleteCmd  `cmd:"" help:"Delete a group"`
+	Update  AdminGroupsUpdateCmd  `cmd:"" help:"Update a group"`
+	Members AdminGroupsMembersCmd `cmd:"" help:"Group membership management"`
 }
 
-var adminMembersCmd = &cobra.Command{
-	Use:   "members",
-	Short: "Group membership management",
+type AdminGroupsMembersCmd struct {
+	List   AdminGroupsMembersListCmd   `cmd:"" help:"List group members"`
+	Add    AdminGroupsMembersAddCmd    `cmd:"" help:"Add member to group"`
+	Remove AdminGroupsMembersRemoveCmd `cmd:"" help:"Remove member from group"`
 }
 
-var adminMembersListCmd = &cobra.Command{
-	Use:   "list <group-key>",
-	Short: "List group members",
-	Long:  "List members of a group",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminMembersList,
+type AdminUsersListCmd struct {
+	Domain    string `help:"Domain to list users from" name:"domain"`
+	Customer  string `help:"Customer ID" name:"customer"`
+	Query     string `help:"Search query" name:"query"`
+	Limit     int    `help:"Maximum results per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Fields    string `help:"Fields to return" name:"fields"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
+	OrderBy   string `help:"Sort order" name:"order-by"`
 }
 
-var adminMembersAddCmd = &cobra.Command{
-	Use:   "add <group-key> <member-email>",
-	Short: "Add member to group",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runAdminMembersAdd,
+type AdminUsersGetCmd struct {
+	UserKey string `arg:"" name:"user-key" help:"User email or ID"`
+	Fields  string `help:"Fields to return" name:"fields"`
 }
 
-var adminMembersRemoveCmd = &cobra.Command{
-	Use:   "remove <group-key> <member-email>",
-	Short: "Remove member from group",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runAdminMembersRemove,
+type AdminUsersCreateCmd struct {
+	Email      string `arg:"" name:"email" help:"User email address"`
+	GivenName  string `help:"First name" name:"given-name" required:""`
+	FamilyName string `help:"Last name" name:"family-name" required:""`
+	Password   string `help:"Password" name:"password" required:""`
 }
 
-var adminUsersListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List users",
-	Long:  "List users in the domain",
-	RunE:  runAdminUsersList,
+type AdminUsersDeleteCmd struct {
+	UserKey string `arg:"" name:"user-key" help:"User email or ID"`
 }
 
-var adminUsersGetCmd = &cobra.Command{
-	Use:   "get <user-key>",
-	Short: "Get user details",
-	Long:  "Get details for a user by email or ID",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminUsersGet,
+type AdminUsersUpdateCmd struct {
+	UserKey     string `arg:"" name:"user-key" help:"User email or ID"`
+	GivenName   string `help:"Update first name" name:"given-name"`
+	FamilyName  string `help:"Update last name" name:"family-name"`
+	Suspended   string `help:"Set suspension status (true/false)" name:"suspended"`
+	OrgUnitPath string `help:"Update organizational unit path" name:"org-unit-path"`
 }
 
-var adminUsersCreateCmd = &cobra.Command{
-	Use:   "create <email>",
-	Short: "Create a new user",
-	Long:  "Create a new user in the domain",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminUsersCreate,
+type AdminUsersSuspendCmd struct {
+	UserKey string `arg:"" name:"user-key" help:"User email or ID"`
 }
 
-var adminUsersDeleteCmd = &cobra.Command{
-	Use:   "delete <user-key>",
-	Short: "Delete a user",
-	Long:  "Delete a user by email or ID",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminUsersDelete,
+type AdminUsersUnsuspendCmd struct {
+	UserKey string `arg:"" name:"user-key" help:"User email or ID"`
 }
 
-var adminUsersUpdateCmd = &cobra.Command{
-	Use:   "update <user-key>",
-	Short: "Update a user",
-	Long:  "Update user properties",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminUsersUpdate,
+// --- Group command structs ---
+
+type AdminGroupsListCmd struct {
+	Domain    string `help:"Domain to list groups from" name:"domain"`
+	Customer  string `help:"Customer ID" name:"customer"`
+	Query     string `help:"Search query" name:"query"`
+	Limit     int    `help:"Maximum results per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Fields    string `help:"Fields to return" name:"fields"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
+	OrderBy   string `help:"Sort order" name:"order-by"`
 }
 
-var adminUsersSuspendCmd = &cobra.Command{
-	Use:   "suspend <user-key>",
-	Short: "Suspend a user",
-	Long:  "Suspend a user account",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminUsersSuspend,
+type AdminGroupsGetCmd struct {
+	GroupKey string `arg:"" name:"group-key" help:"Group email, alias, or ID"`
+	Fields   string `help:"Fields to return" name:"fields"`
 }
 
-var adminUsersUnsuspendCmd = &cobra.Command{
-	Use:   "unsuspend <user-key>",
-	Short: "Unsuspend a user",
-	Long:  "Unsuspend a user account",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminUsersUnsuspend,
-}
-var adminGroupsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List groups",
-	Long:  "List groups in the domain",
-	RunE:  runAdminGroupsList,
+type AdminGroupsCreateCmd struct {
+	Email       string `arg:"" name:"email" help:"Group email address"`
+	Name        string `arg:"" name:"name" help:"Group name"`
+	Description string `help:"Group description" name:"description"`
 }
 
-var adminGroupsGetCmd = &cobra.Command{
-	Use:   "get <group-key>",
-	Short: "Get group details",
-	Long:  "Get details of a group by email, alias, or ID",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminGroupsGet,
+type AdminGroupsDeleteCmd struct {
+	GroupKey string `arg:"" name:"group-key" help:"Group email, alias, or ID"`
 }
 
-var adminGroupsCreateCmd = &cobra.Command{
-	Use:   "create <email> <name>",
-	Short: "Create a new group",
-	Long:  "Create a new Google Workspace group",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runAdminGroupsCreate,
+type AdminGroupsUpdateCmd struct {
+	GroupKey    string `arg:"" name:"group-key" help:"Group email, alias, or ID"`
+	Name        string `help:"Update group name" name:"name"`
+	Description string `help:"Update group description" name:"description"`
 }
 
-var adminGroupsDeleteCmd = &cobra.Command{
-	Use:   "delete <group-key>",
-	Short: "Delete a group",
-	Long:  "Delete a group by email, alias, or ID",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminGroupsDelete,
+// --- Members command structs ---
+
+type AdminGroupsMembersListCmd struct {
+	GroupKey  string `arg:"" name:"group-key" help:"Group email or ID"`
+	Limit     int    `help:"Maximum results per page" default:"200" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Roles     string `help:"Filter by role (OWNER, MANAGER, MEMBER)" name:"roles"`
+	Fields    string `help:"Fields to return" name:"fields"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var adminGroupsUpdateCmd = &cobra.Command{
-	Use:   "update <group-key>",
-	Short: "Update a group",
-	Long:  "Update group properties",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAdminGroupsUpdate,
+type AdminGroupsMembersAddCmd struct {
+	GroupKey    string `arg:"" name:"group-key" help:"Group email or ID"`
+	MemberEmail string `arg:"" name:"member-email" help:"Member email"`
+	Role        string `help:"Member role (OWNER, MANAGER, MEMBER)" default:"MEMBER" name:"role"`
 }
 
-var (
-	adminUsersListDomain    string
-	adminUsersListCustomer  string
-	adminUsersListQuery     string
-	adminUsersListLimit     int
-	adminUsersListPageToken string
-	adminUsersListFields    string
-	adminUsersListPaginate  bool
-	adminUsersListOrderBy   string
-	adminUsersGetFields     string
-	adminUsersCreateGiven   string
-	adminUsersCreateFamily  string
-	adminUsersCreatePass    string
-	adminUsersUpdateGiven   string
-	adminUsersUpdateFamily  string
-	adminUsersUpdateSuspend string
-	adminUsersUpdateOrgUnit string
-
-	adminGroupsListDomain    string
-	adminGroupsListCustomer  string
-	adminGroupsListQuery     string
-	adminGroupsListLimit     int
-	adminGroupsListPageToken string
-	adminGroupsListFields    string
-	adminGroupsListPaginate  bool
-	adminGroupsListOrderBy   string
-	adminGroupsGetFields     string
-	adminGroupsCreateDesc    string
-	adminGroupsUpdateName    string
-	adminGroupsUpdateDesc    string
-
-	adminMembersListLimit     int
-	adminMembersListPageToken string
-	adminMembersListRoles     string
-	adminMembersListFields    string
-	adminMembersListPaginate  bool
-	adminMembersAddRole       string
-)
-
-func init() {
-	adminUsersListCmd.Flags().StringVar(&adminUsersListDomain, "domain", "", "Domain to list users from")
-	adminUsersListCmd.Flags().StringVar(&adminUsersListCustomer, "customer", "", "Customer ID")
-	adminUsersListCmd.Flags().StringVar(&adminUsersListQuery, "query", "", "Search query")
-	adminUsersListCmd.Flags().IntVar(&adminUsersListLimit, "limit", 100, "Maximum results per page")
-	adminUsersListCmd.Flags().StringVar(&adminUsersListPageToken, "page-token", "", "Page token for pagination")
-	adminUsersListCmd.Flags().StringVar(&adminUsersListFields, "fields", "", "Fields to return")
-	adminUsersListCmd.Flags().BoolVar(&adminUsersListPaginate, "paginate", false, "Automatically fetch all pages")
-	adminUsersListCmd.Flags().StringVar(&adminUsersListOrderBy, "order-by", "", "Sort order")
-	adminUsersGetCmd.Flags().StringVar(&adminUsersGetFields, "fields", "", "Fields to return")
-	adminUsersCreateCmd.Flags().StringVar(&adminUsersCreateGiven, "given-name", "", "First name")
-	adminUsersCreateCmd.Flags().StringVar(&adminUsersCreateFamily, "family-name", "", "Last name")
-	adminUsersCreateCmd.Flags().StringVar(&adminUsersCreatePass, "password", "", "Password")
-	_ = adminUsersCreateCmd.MarkFlagRequired("given-name")
-	_ = adminUsersCreateCmd.MarkFlagRequired("family-name")
-	_ = adminUsersCreateCmd.MarkFlagRequired("password")
-	adminUsersUpdateCmd.Flags().StringVar(&adminUsersUpdateGiven, "given-name", "", "Update first name")
-	adminUsersUpdateCmd.Flags().StringVar(&adminUsersUpdateFamily, "family-name", "", "Update last name")
-	adminUsersUpdateCmd.Flags().StringVar(&adminUsersUpdateSuspend, "suspended", "", "Set suspension status (true/false)")
-	adminUsersUpdateCmd.Flags().StringVar(&adminUsersUpdateOrgUnit, "org-unit-path", "", "Update organizational unit path")
-
-	adminGroupsListCmd.Flags().StringVar(&adminGroupsListDomain, "domain", "", "Domain to list groups from")
-	adminGroupsListCmd.Flags().StringVar(&adminGroupsListCustomer, "customer", "", "Customer ID")
-	adminGroupsListCmd.Flags().StringVar(&adminGroupsListQuery, "query", "", "Search query")
-	adminGroupsListCmd.Flags().IntVar(&adminGroupsListLimit, "limit", 100, "Maximum results per page")
-	adminGroupsListCmd.Flags().StringVar(&adminGroupsListPageToken, "page-token", "", "Page token for pagination")
-	adminGroupsListCmd.Flags().StringVar(&adminGroupsListFields, "fields", "", "Fields to return")
-	adminGroupsListCmd.Flags().BoolVar(&adminGroupsListPaginate, "paginate", false, "Automatically fetch all pages")
-	adminGroupsListCmd.Flags().StringVar(&adminGroupsListOrderBy, "order-by", "", "Sort order")
-	adminGroupsGetCmd.Flags().StringVar(&adminGroupsGetFields, "fields", "", "Fields to return")
-	adminGroupsCreateCmd.Flags().StringVar(&adminGroupsCreateDesc, "description", "", "Group description")
-	adminGroupsUpdateCmd.Flags().StringVar(&adminGroupsUpdateName, "name", "", "Update group name")
-	adminGroupsUpdateCmd.Flags().StringVar(&adminGroupsUpdateDesc, "description", "", "Update group description")
-
-	adminMembersListCmd.Flags().IntVar(&adminMembersListLimit, "limit", 200, "Maximum results per page")
-	adminMembersListCmd.Flags().StringVar(&adminMembersListPageToken, "page-token", "", "Page token for pagination")
-	adminMembersListCmd.Flags().StringVar(&adminMembersListRoles, "roles", "", "Filter by role (OWNER, MANAGER, MEMBER)")
-	adminMembersListCmd.Flags().StringVar(&adminMembersListFields, "fields", "", "Fields to return")
-	adminMembersListCmd.Flags().BoolVar(&adminMembersListPaginate, "paginate", false, "Automatically fetch all pages")
-	adminMembersAddCmd.Flags().StringVar(&adminMembersAddRole, "role", "MEMBER", "Member role: OWNER, MANAGER, or MEMBER")
-
-	adminUsersCmd.AddCommand(adminUsersListCmd)
-	adminUsersCmd.AddCommand(adminUsersGetCmd)
-	adminUsersCmd.AddCommand(adminUsersCreateCmd)
-	adminUsersCmd.AddCommand(adminUsersDeleteCmd)
-	adminUsersCmd.AddCommand(adminUsersUpdateCmd)
-	adminUsersCmd.AddCommand(adminUsersSuspendCmd)
-	adminUsersCmd.AddCommand(adminUsersUnsuspendCmd)
-	adminGroupsCmd.AddCommand(adminGroupsListCmd)
-	adminGroupsCmd.AddCommand(adminGroupsGetCmd)
-	adminGroupsCmd.AddCommand(adminGroupsCreateCmd)
-	adminGroupsCmd.AddCommand(adminGroupsDeleteCmd)
-	adminGroupsCmd.AddCommand(adminGroupsUpdateCmd)
-	adminMembersCmd.AddCommand(adminMembersListCmd)
-	adminMembersCmd.AddCommand(adminMembersAddCmd)
-	adminMembersCmd.AddCommand(adminMembersRemoveCmd)
-	adminGroupsCmd.AddCommand(adminMembersCmd)
-	adminCmd.AddCommand(adminUsersCmd)
-	adminCmd.AddCommand(adminGroupsCmd)
-	rootCmd.AddCommand(adminCmd)
+type AdminGroupsMembersRemoveCmd struct {
+	GroupKey  string `arg:"" name:"group-key" help:"Group email or ID"`
+	MemberKey string `arg:"" name:"member-key" help:"Member email or ID"`
 }
 
-func runAdminUsersList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+// --- Run methods ---
+
+func (cmd *AdminUsersListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -260,21 +153,21 @@ func runAdminUsersList(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.users.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	if adminUsersListDomain == "" && adminUsersListCustomer == "" {
+	if cmd.Domain == "" && cmd.Customer == "" {
 		return out.WriteError("admin.users.list", utils.NewCLIError(utils.ErrCodeInvalidArgument, "domain or customer is required").Build())
 	}
 
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 	result, err := mgr.ListUsers(ctx, reqCtx, &admin.ListUsersOptions{
-		Domain:     adminUsersListDomain,
-		Customer:   adminUsersListCustomer,
-		Query:      adminUsersListQuery,
-		MaxResults: int64(adminUsersListLimit),
-		PageToken:  adminUsersListPageToken,
-		OrderBy:    adminUsersListOrderBy,
-		Fields:     adminUsersListFields,
-		Paginate:   adminUsersListPaginate,
+		Domain:     cmd.Domain,
+		Customer:   cmd.Customer,
+		Query:      cmd.Query,
+		MaxResults: int64(cmd.Limit),
+		PageToken:  cmd.PageToken,
+		OrderBy:    cmd.OrderBy,
+		Fields:     cmd.Fields,
+		Paginate:   cmd.Paginate,
 	})
 	if err != nil {
 		return handleCLIError(out, "admin.users.list", err)
@@ -283,8 +176,8 @@ func runAdminUsersList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.users.list", result)
 }
 
-func runAdminUsersGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminUsersGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -293,10 +186,9 @@ func runAdminUsersGet(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.users.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	userKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeGetByID
-	result, err := mgr.GetUser(ctx, reqCtx, userKey, adminUsersGetFields)
+	result, err := mgr.GetUser(ctx, reqCtx, cmd.UserKey, cmd.Fields)
 	if err != nil {
 		return handleCLIError(out, "admin.users.get", err)
 	}
@@ -304,8 +196,8 @@ func runAdminUsersGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.users.get", result)
 }
 
-func runAdminUsersCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminUsersCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -314,14 +206,13 @@ func runAdminUsersCreate(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.users.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	email := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.CreateUser(ctx, reqCtx, &types.CreateUserRequest{
-		Email:      email,
-		GivenName:  adminUsersCreateGiven,
-		FamilyName: adminUsersCreateFamily,
-		Password:   adminUsersCreatePass,
+		Email:      cmd.Email,
+		GivenName:  cmd.GivenName,
+		FamilyName: cmd.FamilyName,
+		Password:   cmd.Password,
 	})
 	if err != nil {
 		return handleCLIError(out, "admin.users.create", err)
@@ -330,8 +221,8 @@ func runAdminUsersCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.users.create", result)
 }
 
-func runAdminUsersDelete(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminUsersDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -340,20 +231,19 @@ func runAdminUsersDelete(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.users.delete", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	userKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
-	if err := mgr.DeleteUser(ctx, reqCtx, userKey); err != nil {
+	if err := mgr.DeleteUser(ctx, reqCtx, cmd.UserKey); err != nil {
 		return handleCLIError(out, "admin.users.delete", err)
 	}
 
 	return out.WriteSuccess("admin.users.delete", map[string]string{
-		"message": fmt.Sprintf("User %s deleted successfully", userKey),
+		"message": fmt.Sprintf("User %s deleted successfully", cmd.UserKey),
 	})
 }
 
-func runAdminUsersUpdate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminUsersUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -363,30 +253,29 @@ func runAdminUsersUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	req := &types.UpdateUserRequest{}
-	if adminUsersUpdateGiven != "" {
-		req.GivenName = &adminUsersUpdateGiven
+	if cmd.GivenName != "" {
+		req.GivenName = &cmd.GivenName
 	}
-	if adminUsersUpdateFamily != "" {
-		req.FamilyName = &adminUsersUpdateFamily
+	if cmd.FamilyName != "" {
+		req.FamilyName = &cmd.FamilyName
 	}
-	if adminUsersUpdateSuspend != "" {
-		value, err := parseSuspendedFlag(adminUsersUpdateSuspend)
+	if cmd.Suspended != "" {
+		value, err := parseSuspendedFlag(cmd.Suspended)
 		if err != nil {
 			return out.WriteError("admin.users.update", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
 		}
 		req.Suspended = value
 	}
-	if adminUsersUpdateOrgUnit != "" {
-		req.OrgUnitPath = &adminUsersUpdateOrgUnit
+	if cmd.OrgUnitPath != "" {
+		req.OrgUnitPath = &cmd.OrgUnitPath
 	}
 	if req.GivenName == nil && req.FamilyName == nil && req.Suspended == nil && req.OrgUnitPath == nil {
 		return out.WriteError("admin.users.update", utils.NewCLIError(utils.ErrCodeInvalidArgument, "at least one field must be provided").Build())
 	}
 
-	userKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
-	result, err := mgr.UpdateUser(ctx, reqCtx, userKey, req)
+	result, err := mgr.UpdateUser(ctx, reqCtx, cmd.UserKey, req)
 	if err != nil {
 		return handleCLIError(out, "admin.users.update", err)
 	}
@@ -394,8 +283,8 @@ func runAdminUsersUpdate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.users.update", result)
 }
 
-func runAdminUsersSuspend(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminUsersSuspendCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -404,10 +293,9 @@ func runAdminUsersSuspend(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.users.suspend", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	userKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
-	result, err := mgr.SuspendUser(ctx, reqCtx, userKey)
+	result, err := mgr.SuspendUser(ctx, reqCtx, cmd.UserKey)
 	if err != nil {
 		return handleCLIError(out, "admin.users.suspend", err)
 	}
@@ -415,8 +303,8 @@ func runAdminUsersSuspend(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.users.suspend", result)
 }
 
-func runAdminUsersUnsuspend(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminUsersUnsuspendCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -425,10 +313,9 @@ func runAdminUsersUnsuspend(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.users.unsuspend", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	userKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
-	result, err := mgr.UnsuspendUser(ctx, reqCtx, userKey)
+	result, err := mgr.UnsuspendUser(ctx, reqCtx, cmd.UserKey)
 	if err != nil {
 		return handleCLIError(out, "admin.users.unsuspend", err)
 	}
@@ -436,8 +323,8 @@ func runAdminUsersUnsuspend(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.users.unsuspend", result)
 }
 
-func runAdminGroupsList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminGroupsListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -446,21 +333,21 @@ func runAdminGroupsList(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.groups.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	if adminGroupsListDomain == "" && adminGroupsListCustomer == "" {
+	if cmd.Domain == "" && cmd.Customer == "" {
 		return out.WriteError("admin.groups.list", utils.NewCLIError(utils.ErrCodeInvalidArgument, "domain or customer is required").Build())
 	}
 
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 	result, err := mgr.ListGroups(ctx, reqCtx, &admin.ListGroupsOptions{
-		Domain:     adminGroupsListDomain,
-		Customer:   adminGroupsListCustomer,
-		Query:      adminGroupsListQuery,
-		MaxResults: int64(adminGroupsListLimit),
-		PageToken:  adminGroupsListPageToken,
-		OrderBy:    adminGroupsListOrderBy,
-		Fields:     adminGroupsListFields,
-		Paginate:   adminGroupsListPaginate,
+		Domain:     cmd.Domain,
+		Customer:   cmd.Customer,
+		Query:      cmd.Query,
+		MaxResults: int64(cmd.Limit),
+		PageToken:  cmd.PageToken,
+		OrderBy:    cmd.OrderBy,
+		Fields:     cmd.Fields,
+		Paginate:   cmd.Paginate,
 	})
 	if err != nil {
 		return handleCLIError(out, "admin.groups.list", err)
@@ -469,8 +356,8 @@ func runAdminGroupsList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.groups.list", result)
 }
 
-func runAdminGroupsGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminGroupsGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -479,10 +366,9 @@ func runAdminGroupsGet(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.groups.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	groupKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeGetByID
-	result, err := mgr.GetGroup(ctx, reqCtx, groupKey, &admin.GetGroupOptions{Fields: adminGroupsGetFields})
+	result, err := mgr.GetGroup(ctx, reqCtx, cmd.GroupKey, &admin.GetGroupOptions{Fields: cmd.Fields})
 	if err != nil {
 		return handleCLIError(out, "admin.groups.get", err)
 	}
@@ -490,8 +376,8 @@ func runAdminGroupsGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.groups.get", result)
 }
 
-func runAdminGroupsCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminGroupsCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -500,14 +386,12 @@ func runAdminGroupsCreate(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.groups.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	email := args[0]
-	name := args[1]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
 	result, err := mgr.CreateGroup(ctx, reqCtx, &types.CreateGroupRequest{
-		Email:       email,
-		Name:        name,
-		Description: adminGroupsCreateDesc,
+		Email:       cmd.Email,
+		Name:        cmd.Name,
+		Description: cmd.Description,
 	})
 	if err != nil {
 		return handleCLIError(out, "admin.groups.create", err)
@@ -516,8 +400,8 @@ func runAdminGroupsCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("admin.groups.create", result)
 }
 
-func runAdminGroupsDelete(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminGroupsDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -526,20 +410,19 @@ func runAdminGroupsDelete(cmd *cobra.Command, args []string) error {
 		return out.WriteError("admin.groups.delete", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	groupKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
-	if err := mgr.DeleteGroup(ctx, reqCtx, groupKey); err != nil {
+	if err := mgr.DeleteGroup(ctx, reqCtx, cmd.GroupKey); err != nil {
 		return handleCLIError(out, "admin.groups.delete", err)
 	}
 
 	return out.WriteSuccess("admin.groups.delete", map[string]string{
-		"message": fmt.Sprintf("Group %s deleted successfully", groupKey),
+		"message": fmt.Sprintf("Group %s deleted successfully", cmd.GroupKey),
 	})
 }
 
-func runAdminGroupsUpdate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AdminGroupsUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -549,25 +432,99 @@ func runAdminGroupsUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	req := &types.UpdateGroupRequest{}
-	if adminGroupsUpdateName != "" {
-		req.Name = &adminGroupsUpdateName
+	if cmd.Name != "" {
+		req.Name = &cmd.Name
 	}
-	if adminGroupsUpdateDesc != "" {
-		req.Description = &adminGroupsUpdateDesc
+	if cmd.Description != "" {
+		req.Description = &cmd.Description
 	}
 	if req.Name == nil && req.Description == nil {
 		return out.WriteError("admin.groups.update", utils.NewCLIError(utils.ErrCodeInvalidArgument, "at least one field must be provided").Build())
 	}
 
-	groupKey := args[0]
 	mgr := admin.NewManager(client, svc)
 	reqCtx.RequestType = types.RequestTypeMutation
-	result, err := mgr.UpdateGroup(ctx, reqCtx, groupKey, req)
+	result, err := mgr.UpdateGroup(ctx, reqCtx, cmd.GroupKey, req)
 	if err != nil {
 		return handleCLIError(out, "admin.groups.update", err)
 	}
 
 	return out.WriteSuccess("admin.groups.update", result)
+}
+
+func (cmd *AdminGroupsMembersListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	svc, client, reqCtx, err := getAdminService(ctx, flags)
+	if err != nil {
+		return out.WriteError("admin.groups.members.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+
+	mgr := admin.NewManager(client, svc)
+	reqCtx.RequestType = types.RequestTypeListOrSearch
+	result, err := mgr.ListMembers(ctx, reqCtx, cmd.GroupKey, &admin.ListMembersOptions{
+		MaxResults: int64(cmd.Limit),
+		PageToken:  cmd.PageToken,
+		Roles:      cmd.Roles,
+		Fields:     cmd.Fields,
+		Paginate:   cmd.Paginate,
+	})
+	if err != nil {
+		return handleCLIError(out, "admin.groups.members.list", err)
+	}
+
+	return out.WriteSuccess("admin.groups.members.list", result)
+}
+
+func (cmd *AdminGroupsMembersAddCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	svc, client, reqCtx, err := getAdminService(ctx, flags)
+	if err != nil {
+		return out.WriteError("admin.groups.members.add", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+
+	role := cmd.Role
+	if role != "OWNER" && role != "MANAGER" && role != "MEMBER" {
+		return out.WriteError("admin.groups.members.add", utils.NewCLIError(utils.ErrCodeInvalidArgument, "role must be OWNER, MANAGER, or MEMBER").Build())
+	}
+
+	mgr := admin.NewManager(client, svc)
+	reqCtx.RequestType = types.RequestTypeMutation
+	result, err := mgr.AddMember(ctx, reqCtx, cmd.GroupKey, &types.AddMemberRequest{
+		Email: cmd.MemberEmail,
+		Role:  role,
+	})
+	if err != nil {
+		return handleCLIError(out, "admin.groups.members.add", err)
+	}
+
+	return out.WriteSuccess("admin.groups.members.add", result)
+}
+
+func (cmd *AdminGroupsMembersRemoveCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	svc, client, reqCtx, err := getAdminService(ctx, flags)
+	if err != nil {
+		return out.WriteError("admin.groups.members.remove", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+
+	mgr := admin.NewManager(client, svc)
+	reqCtx.RequestType = types.RequestTypeMutation
+	if err := mgr.RemoveMember(ctx, reqCtx, cmd.GroupKey, cmd.MemberKey); err != nil {
+		return handleCLIError(out, "admin.groups.members.remove", err)
+	}
+
+	return out.WriteSuccess("admin.groups.members.remove", map[string]string{
+		"message": fmt.Sprintf("Member %s removed from group %s", cmd.MemberKey, cmd.GroupKey),
+	})
 }
 
 func parseSuspendedFlag(value string) (*bool, error) {
@@ -581,88 +538,6 @@ func parseSuspendedFlag(value string) (*bool, error) {
 	default:
 		return nil, fmt.Errorf("suspended must be true or false")
 	}
-}
-
-func runAdminMembersList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
-	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
-	ctx := context.Background()
-
-	svc, client, reqCtx, err := getAdminService(ctx, flags)
-	if err != nil {
-		return out.WriteError("admin.groups.members.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
-	}
-
-	groupKey := args[0]
-	mgr := admin.NewManager(client, svc)
-	reqCtx.RequestType = types.RequestTypeListOrSearch
-	result, err := mgr.ListMembers(ctx, reqCtx, groupKey, &admin.ListMembersOptions{
-		MaxResults: int64(adminMembersListLimit),
-		PageToken:  adminMembersListPageToken,
-		Roles:      adminMembersListRoles,
-		Fields:     adminMembersListFields,
-		Paginate:   adminMembersListPaginate,
-	})
-	if err != nil {
-		return handleCLIError(out, "admin.groups.members.list", err)
-	}
-
-	return out.WriteSuccess("admin.groups.members.list", result)
-}
-
-func runAdminMembersAdd(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
-	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
-	ctx := context.Background()
-
-	svc, client, reqCtx, err := getAdminService(ctx, flags)
-	if err != nil {
-		return out.WriteError("admin.groups.members.add", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
-	}
-
-	role := adminMembersAddRole
-	if role != "OWNER" && role != "MANAGER" && role != "MEMBER" {
-		return out.WriteError("admin.groups.members.add", utils.NewCLIError(utils.ErrCodeInvalidArgument, "role must be OWNER, MANAGER, or MEMBER").Build())
-	}
-
-	groupKey := args[0]
-	memberEmail := args[1]
-
-	mgr := admin.NewManager(client, svc)
-	reqCtx.RequestType = types.RequestTypeMutation
-	result, err := mgr.AddMember(ctx, reqCtx, groupKey, &types.AddMemberRequest{
-		Email: memberEmail,
-		Role:  role,
-	})
-	if err != nil {
-		return handleCLIError(out, "admin.groups.members.add", err)
-	}
-
-	return out.WriteSuccess("admin.groups.members.add", result)
-}
-
-func runAdminMembersRemove(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
-	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
-	ctx := context.Background()
-
-	svc, client, reqCtx, err := getAdminService(ctx, flags)
-	if err != nil {
-		return out.WriteError("admin.groups.members.remove", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
-	}
-
-	groupKey := args[0]
-	memberKey := args[1]
-
-	mgr := admin.NewManager(client, svc)
-	reqCtx.RequestType = types.RequestTypeMutation
-	if err := mgr.RemoveMember(ctx, reqCtx, groupKey, memberKey); err != nil {
-		return handleCLIError(out, "admin.groups.members.remove", err)
-	}
-
-	return out.WriteSuccess("admin.groups.members.remove", map[string]string{
-		"message": fmt.Sprintf("Member %s removed from group %s", memberKey, groupKey),
-	})
 }
 
 func getAdminService(ctx context.Context, flags types.GlobalFlags) (*adminapi.Service, *api.Client, *types.RequestContext, error) {
