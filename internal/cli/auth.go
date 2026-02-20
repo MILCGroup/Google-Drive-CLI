@@ -14,114 +14,59 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/config"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var authCmd = &cobra.Command{
-	Use:   "auth",
-	Short: "Authentication commands",
-	Long:  "Manage authentication with Google Drive API",
+type AuthCmd struct {
+	Login          AuthLoginCmd          `cmd:"" help:"Authenticate with Google Drive"`
+	Logout         AuthLogoutCmd         `cmd:"" help:"Remove stored credentials"`
+	ServiceAccount AuthServiceAccountCmd `cmd:"service-account" help:"Authenticate with a service account"`
+	Status         AuthStatusCmd         `cmd:"" help:"Show authentication status"`
+	Device         AuthDeviceCmd         `cmd:"" help:"Authenticate with device code flow"`
+	Profiles       AuthProfilesCmd       `cmd:"" help:"List credential profiles"`
+	Diagnose       AuthDiagnoseCmd       `cmd:"" help:"Diagnose authentication configuration"`
 }
 
-var authLoginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Authenticate with Google Drive",
-	Long:  "Initiate OAuth2 authentication flow to obtain credentials",
-	RunE:  runAuthLogin,
+type AuthLoginCmd struct {
+	Scopes       []string `help:"OAuth scopes to request" name:"scopes"`
+	NoBrowser    bool     `help:"Do not open a browser; use manual code entry" name:"no-browser"`
+	Wide         bool     `help:"Request full Drive access scope" name:"wide"`
+	Preset       string   `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete" name:"preset"`
+	ClientID     *string  `help:"OAuth client ID" name:"client-id"`
+	ClientSecret *string  `help:"OAuth client secret" name:"client-secret"`
 }
 
-var authLogoutCmd = &cobra.Command{
-	Use:   "logout",
-	Short: "Remove stored credentials",
-	Long:  "Delete stored credentials for the current or specified profile",
-	RunE:  runAuthLogout,
+type AuthLogoutCmd struct{}
+
+type AuthServiceAccountCmd struct {
+	KeyFile         string   `help:"Path to service account JSON key file" name:"key-file" required:""`
+	ImpersonateUser string   `help:"User email to impersonate (required for Admin SDK scopes)" name:"impersonate-user"`
+	Scopes          []string `help:"OAuth scopes to request" name:"scopes"`
+	Wide            bool     `help:"Request full Drive access scope" name:"wide"`
+	Preset          string   `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete" name:"preset"`
 }
 
-var authServiceAccountCmd = &cobra.Command{
-	Use:   "service-account",
-	Short: "Authenticate with a service account",
-	Long:  "Load service account credentials from a JSON key file",
-	RunE:  runAuthServiceAccount,
+type AuthStatusCmd struct{}
+
+type AuthDeviceCmd struct {
+	Wide   bool   `help:"Request full Drive access scope" name:"wide"`
+	Preset string `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete" name:"preset"`
 }
 
-var authStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show authentication status",
-	Long:  "Display current authentication status and credential information",
-	RunE:  runAuthStatus,
+type AuthProfilesCmd struct{}
+
+type AuthDiagnoseCmd struct {
+	RefreshCheck bool `help:"Attempt a token refresh and report errors" name:"refresh-check"`
 }
 
-var authDeviceCmd = &cobra.Command{
-	Use:   "device",
-	Short: "Authenticate with device code flow",
-	Long:  "Initiate device code authentication flow to obtain credentials",
-	RunE:  runAuthDevice,
-}
-
-var authProfilesCmd = &cobra.Command{
-	Use:   "profiles",
-	Short: "List credential profiles",
-	Long:  "Display all stored credential profiles",
-	RunE:  runAuthProfiles,
-}
-
-var authDiagnoseCmd = &cobra.Command{
-	Use:   "diagnose",
-	Short: "Diagnose authentication configuration",
-	Long:  "Show detailed authentication diagnostics and token status",
-	RunE:  runAuthDiagnose,
-}
-
-var (
-	authScopes               []string
-	authNoBrowser            bool
-	authWide                 bool
-	authPreset               string
-	authKeyFile              string
-	authImpersonateUser      string
-	clientID                 string
-	clientSecret             string
-	authDiagnoseRefreshCheck bool
-)
-
-func init() {
-	authLoginCmd.Flags().StringSliceVar(&authScopes, "scopes", []string{}, "OAuth scopes to request")
-	authLoginCmd.Flags().BoolVar(&authNoBrowser, "no-browser", false, "Do not open a browser; use manual code entry")
-	authLoginCmd.Flags().BoolVar(&authWide, "wide", false, "Request full Drive access scope")
-	authLoginCmd.Flags().StringVar(&authPreset, "preset", "", "Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete")
-	authLoginCmd.Flags().StringVar(&clientID, "client-id", "", "OAuth client ID")
-	authLoginCmd.Flags().StringVar(&clientSecret, "client-secret", "", "OAuth client secret")
-	authDeviceCmd.Flags().BoolVar(&authWide, "wide", false, "Request full Drive access scope")
-	authDeviceCmd.Flags().StringVar(&authPreset, "preset", "", "Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete")
-	authServiceAccountCmd.Flags().StringVar(&authKeyFile, "key-file", "", "Path to service account JSON key file (required)")
-	authServiceAccountCmd.Flags().StringVar(&authImpersonateUser, "impersonate-user", "", "User email to impersonate (required for Admin SDK scopes)")
-	authServiceAccountCmd.Flags().StringSliceVar(&authScopes, "scopes", []string{}, "OAuth scopes to request")
-	authServiceAccountCmd.Flags().BoolVar(&authWide, "wide", false, "Request full Drive access scope")
-	authServiceAccountCmd.Flags().StringVar(&authPreset, "preset", "", "Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete")
-	_ = authServiceAccountCmd.MarkFlagRequired("key-file")
-	authDiagnoseCmd.Flags().BoolVar(&authDiagnoseRefreshCheck, "refresh-check", false, "Attempt a token refresh and report errors")
-
-	authCmd.AddCommand(authLoginCmd)
-	authCmd.AddCommand(authDeviceCmd)
-	authCmd.AddCommand(authServiceAccountCmd)
-	authCmd.AddCommand(authLogoutCmd)
-	authCmd.AddCommand(authStatusCmd)
-	authCmd.AddCommand(authProfilesCmd)
-	authCmd.AddCommand(authDiagnoseCmd)
-	rootCmd.AddCommand(authCmd)
-}
-
-func runAuthLogin(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AuthLoginCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	configDir := getConfigDir()
-	resolvedID, resolvedSecret, source, cliErr := resolveOAuthClient(cmd, configDir, false)
+	resolvedID, resolvedSecret, source, cliErr := resolveOAuthClient(cmd.ClientID, cmd.ClientSecret, configDir, false)
 	if cliErr != nil {
 		return out.WriteError("auth.login", cliErr.Build())
 	}
-	clientID = resolvedID
-	clientSecret = resolvedSecret
 
 	if source == oauthClientSourceBundled {
 		out.Log("Using default public OAuth client credentials.")
@@ -134,20 +79,20 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 		out.Log("%s", warning)
 	}
 
-	scopes, err := resolveAuthScopes(out)
+	scopes, err := resolveAuthScopes(out, cmd.Preset, cmd.Wide, cmd.Scopes)
 	if err != nil {
 		return err
 	}
-	mgr.SetOAuthConfig(clientID, clientSecret, scopes)
+	mgr.SetOAuthConfig(resolvedID, resolvedSecret, scopes)
 
 	ctx := context.Background()
 	var creds *types.Credentials
 	creds, err = mgr.Authenticate(ctx, flags.Profile, openBrowser, auth.OAuthAuthOptions{
-		NoBrowser: authNoBrowser,
+		NoBrowser: cmd.NoBrowser,
 	})
 
 	if err != nil {
-		return out.WriteError("auth.login", buildAuthFlowError(err, source, clientID, clientSecret).Build())
+		return out.WriteError("auth.login", buildAuthFlowError(err, source, resolvedID, resolvedSecret).Build())
 	}
 
 	out.Log("Successfully authenticated!")
@@ -159,17 +104,15 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 	})
 }
 
-func runAuthDevice(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AuthDeviceCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	configDir := getConfigDir()
-	resolvedID, resolvedSecret, source, cliErr := resolveOAuthClient(cmd, configDir, false)
+	resolvedID, resolvedSecret, source, cliErr := resolveOAuthClient(nil, nil, configDir, false)
 	if cliErr != nil {
 		return out.WriteError("auth.device", cliErr.Build())
 	}
-	clientID = resolvedID
-	clientSecret = resolvedSecret
 	if source == oauthClientSourceBundled {
 		out.Log("Using default public OAuth client credentials.")
 	}
@@ -181,19 +124,19 @@ func runAuthDevice(cmd *cobra.Command, args []string) error {
 		out.Log("%s", warning)
 	}
 
-	scopes, err := resolveAuthScopes(out)
+	scopes, err := resolveAuthScopes(out, cmd.Preset, cmd.Wide, nil)
 	if err != nil {
 		return err
 	}
 
-	mgr.SetOAuthConfig(clientID, clientSecret, scopes)
+	mgr.SetOAuthConfig(resolvedID, resolvedSecret, scopes)
 
 	ctx := context.Background()
 	out.Log("Using device code authentication flow...")
 	creds, err := mgr.AuthenticateWithDeviceCode(ctx, flags.Profile)
 
 	if err != nil {
-		return out.WriteError("auth.device", buildAuthFlowError(err, source, clientID, clientSecret).Build())
+		return out.WriteError("auth.device", buildAuthFlowError(err, source, resolvedID, resolvedSecret).Build())
 	}
 
 	out.Log("Successfully authenticated!")
@@ -205,8 +148,8 @@ func runAuthDevice(cmd *cobra.Command, args []string) error {
 	})
 }
 
-func runAuthLogout(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AuthLogoutCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	configDir := getConfigDir()
@@ -224,8 +167,8 @@ func runAuthLogout(cmd *cobra.Command, args []string) error {
 	})
 }
 
-func runAuthStatus(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AuthStatusCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	configDir := getConfigDir()
@@ -271,8 +214,8 @@ func getConfigDir() string {
 	return filepath.Join(home, ".config", "gdrv")
 }
 
-func runAuthProfiles(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AuthProfilesCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	configDir := getConfigDir()
@@ -313,26 +256,26 @@ func runAuthProfiles(cmd *cobra.Command, args []string) error {
 	})
 }
 
-func runAuthServiceAccount(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AuthServiceAccountCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	if authKeyFile == "" {
+	if cmd.KeyFile == "" {
 		return fmt.Errorf("service account key file required via --key-file")
 	}
 
-	scopes, err := resolveAuthScopes(out)
+	scopes, err := resolveAuthScopes(out, cmd.Preset, cmd.Wide, cmd.Scopes)
 	if err != nil {
 		return err
 	}
-	if err := validateAdminScopesRequireImpersonation(scopes, authImpersonateUser); err != nil {
+	if err := validateAdminScopesRequireImpersonation(scopes, cmd.ImpersonateUser); err != nil {
 		return out.WriteError("auth.service-account", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
 	configDir := getConfigDir()
 	mgr := auth.NewManager(configDir)
 
-	creds, err := mgr.LoadServiceAccount(context.Background(), authKeyFile, scopes, authImpersonateUser)
+	creds, err := mgr.LoadServiceAccount(context.Background(), cmd.KeyFile, scopes, cmd.ImpersonateUser)
 	if err != nil {
 		return out.WriteError("auth.service-account", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
@@ -352,24 +295,24 @@ func runAuthServiceAccount(cmd *cobra.Command, args []string) error {
 	})
 }
 
-func resolveAuthScopes(out *OutputWriter) ([]string, error) {
-	if authPreset != "" {
-		scopes, err := scopesForPreset(authPreset)
+func resolveAuthScopes(out *OutputWriter, preset string, wide bool, commandScopes []string) ([]string, error) {
+	if preset != "" {
+		scopes, err := scopesForPreset(preset)
 		if err != nil {
 			return nil, err
 		}
-		out.Log("Using scope preset: %s", authPreset)
+		out.Log("Using scope preset: %s", preset)
 		return scopes, nil
 	}
-	if authWide {
+	if wide {
 		out.Log("Using full Drive scope (%s)", utils.ScopeFull)
 		return []string{utils.ScopeFull}, nil
 	}
-	if len(authScopes) == 0 {
+	if len(commandScopes) == 0 {
 		out.Log("Using default scope preset: workspace-basic")
 		return utils.ScopesWorkspaceBasic, nil
 	}
-	return authScopes, nil
+	return commandScopes, nil
 }
 
 func scopesForPreset(preset string) ([]string, error) {
@@ -423,24 +366,22 @@ func validateAdminScopesRequireImpersonation(scopes []string, impersonateUser st
 	return nil
 }
 
-func runAuthDiagnose(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *AuthDiagnoseCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	configDir := getConfigDir()
 	mgr := auth.NewManager(configDir)
 
-	resolvedID, resolvedSecret, source, cliErr := resolveOAuthClient(cmd, configDir, !authDiagnoseRefreshCheck)
+	resolvedID, resolvedSecret, source, cliErr := resolveOAuthClient(nil, nil, configDir, !cmd.RefreshCheck)
 	if cliErr != nil {
 		return out.WriteError("auth.diagnose", cliErr.Build())
 	}
-	clientID = resolvedID
-	clientSecret = resolvedSecret
 	if source == oauthClientSourceBundled {
 		out.Log("Using default public OAuth client credentials.")
 	}
-	if clientID != "" {
-		mgr.SetOAuthConfig(clientID, clientSecret, []string{})
+	if resolvedID != "" {
+		mgr.SetOAuthConfig(resolvedID, resolvedSecret, []string{})
 	}
 
 	creds, err := mgr.LoadCredentials(flags.Profile)
@@ -462,7 +403,7 @@ func runAuthDiagnose(cmd *cobra.Command, args []string) error {
 		"profile":                     flags.Profile,
 		"storageBackend":              mgr.GetStorageBackend(),
 		"oauthClientSource":           source,
-		"oauthClientSecretConfigured": strings.TrimSpace(clientSecret) != "",
+		"oauthClientSecretConfigured": strings.TrimSpace(resolvedSecret) != "",
 		"tokenLocation":               location,
 		"clientIdHash":                clientHash,
 		"clientIdLast4":               clientFingerprint,
@@ -474,11 +415,11 @@ func runAuthDiagnose(cmd *cobra.Command, args []string) error {
 		"impersonatedUser":            creds.ImpersonatedUser,
 	}
 
-	if hint := oauthClientSecretHint(source, clientSecret); hint != "" {
+	if hint := oauthClientSecretHint(source, resolvedSecret); hint != "" {
 		diagnostics["oauthClientSecretHint"] = hint
 	}
 
-	if authDiagnoseRefreshCheck && creds.Type == types.AuthTypeOAuth {
+	if cmd.RefreshCheck && creds.Type == types.AuthTypeOAuth {
 		if mgr.GetOAuthConfig() == nil {
 			return out.WriteError("auth.diagnose", utils.NewCLIError(utils.ErrCodeAuthClientMissing,
 				"OAuth client credentials required for refresh check. Set GDRV_CLIENT_ID (and GDRV_CLIENT_SECRET if required) or pass --client-id/--client-secret.").Build())
@@ -569,18 +510,27 @@ func oauthClientSecretHint(source oauthClientSource, resolvedClientSecret string
 	}
 }
 
-func resolveOAuthClient(cmd *cobra.Command, configDir string, allowMissing bool) (string, string, oauthClientSource, *utils.CLIErrorBuilder) {
+func resolveOAuthClient(clientID *string, clientSecret *string, configDir string, allowMissing bool) (string, string, oauthClientSource, *utils.CLIErrorBuilder) {
 	requireCustom := isTruthyEnv("GDRV_REQUIRE_CUSTOM_OAUTH")
 	requireSecret := false
 
-	flagIDSet := cmd.Flags().Changed("client-id")
-	flagSecretSet := cmd.Flags().Changed("client-secret")
+	flagIDSet := clientID != nil
+	flagSecretSet := clientSecret != nil
 	if flagIDSet || flagSecretSet {
-		if clientID == "" || (requireSecret && clientSecret == "") {
+		resolvedID := ""
+		if clientID != nil {
+			resolvedID = *clientID
+		}
+		resolvedSecret := ""
+		if clientSecret != nil {
+			resolvedSecret = *clientSecret
+		}
+
+		if resolvedID == "" || (requireSecret && resolvedSecret == "") {
 			return "", "", "", buildOAuthClientError(utils.ErrCodeAuthClientPartial, configDir,
 				"Partial OAuth client override not allowed. Set client ID (and secret if required by your client type) via flags, or clear them to use the default client if available.")
 		}
-		return clientID, clientSecret, oauthClientSourceFlags, nil
+		return resolvedID, resolvedSecret, oauthClientSourceFlags, nil
 	}
 
 	envID := strings.TrimSpace(os.Getenv("GDRV_CLIENT_ID"))

@@ -10,12 +10,6 @@ func (c *FoldersCmd) Run(globals *Globals) error {
 	return fmt.Errorf("folders command not yet migrated to kong")
 }
 
-type AuthCmd struct{}
-
-func (c *AuthCmd) Run(globals *Globals) error {
-	return fmt.Errorf("auth command not yet migrated to kong")
-}
-
 type PermissionsCmd struct{}
 
 func (c *PermissionsCmd) Run(globals *Globals) error {
