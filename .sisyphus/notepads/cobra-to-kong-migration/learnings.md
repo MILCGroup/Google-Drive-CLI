@@ -180,3 +180,18 @@ When refactoring from global variable helpers to parameterized helpers, `*_test.
 - `internal/cli/sheets.go` — full rewrite (517 → ~430 lines)
 - `internal/cli/stubs.go` — removed SheetsCmd stub
 - `internal/cli/sheets_test.go` — updated to use parameterized helpers
+
+## slides.go + docs.go migration (2026-02-20)
+
+### Pattern applied
+- Both files followed identical structure: List/Get/Read/Create/Update (Docs) + Replace (Slides)
+- Helper functions that read global vars (`readSlidesRequests`, `readSlidesReplacements`, `readDocsRequests`) were renamed to `parse*` and refactored to accept explicit parameters instead of package-level globals
+- No flag name collisions with globals were found for either domain
+
+### Test file updates required
+- `slides_test.go` and `docs_test.go` referenced old global vars (`slidesUpdateRequests`, etc.) and old function names
+- Updated both test files to call `parseSlidesRequests(json, file)` / `parseSlidesReplacements(data, file)` / `parseDocsRequests(json, file)` with explicit params — no global state needed → simpler, thread-safe tests
+
+### Stubs.go state after this migration
+- `DocsCmd` and `SlidesCmd` stubs removed
+- Remaining stubs: `FoldersCmd`, `DrivesCmd`, `CompletionCmd`
