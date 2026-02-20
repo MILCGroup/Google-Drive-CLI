@@ -55,3 +55,9 @@ These files are **safe to call from kong Run() methods** without any refactoring
 - `Globals.ToGlobalFlags()` keeps manager-layer compatibility by converting kong-parsed values to `types.GlobalFlags`.
 - `internal/cli/stubs.go` allows incremental migration: root CLI references all top-level commands immediately, while each domain can replace its stub type without repeated edits to `root.go`.
 - Issues encountered and resolved: missing `go.sum` entry for kong after first import (`go get github.com/alecthomas/kong@v1.14.0` fixed it), and local `gopls` not on PATH for diagnostics tooling.
+
+## [2026-02-20] Task 6: Files domain migration
+- Full files domain migrated from cobra command vars/functions to kong struct commands with `Run(globals *Globals) error` methods.
+- `getFileManager()` stayed reusable and unchanged; all command methods now call `globals.ToGlobalFlags()` and existing manager logic.
+- Kong v1.14 does not allow a command node to mix positional args and subcommands. Revisions list moved to `files revisions list <file-id>` using `default:"withargs"` to preserve `files revisions <file-id>` behavior.
+- Kong v1.14 also rejects duplicate flag names across inherited global flags and command-local flags. Local `--output`/`--force` had to be renamed to avoid runtime parser panic.
