@@ -195,3 +195,94 @@ When refactoring from global variable helpers to parameterized helpers, `*_test.
 ### Stubs.go state after this migration
 - `DocsCmd` and `SlidesCmd` stubs removed
 - Remaining stubs: `FoldersCmd`, `DrivesCmd`, `CompletionCmd`
+
+## Shell Completion (2026-02-20)
+
+### Option A (kong-completion) mismatch
+- `github.com/jotaen/kong-completion` API doesn't expose `Complete(ctx, WithShell(shell))` as the task described.
+- The package provides `kongcompletion.Completion` type + `kongcompletion.Register(app)` for runtime completion intercepting.
+- Requires `kong.Must(&CLI{})` + `Register` + `app.Parse(os.Args[1:])` pattern — incompatible with our `kong.Parse(&c, ...)` in main.go without bigger refactor.
+- `go get` upgraded `go` directive from `1.24.0` → `1.25` (transitive requirement of kong-completion). Restore with `go mod tidy` after removing.
+
+### Option C (manual scripts) chosen
+- Implemented `CompletionCmd` with bash/zsh/fish inline completion scripts.
+- `Run(_ *Globals) error` signature matches other kong commands (dependency-injected by `ctx.Run(&c.Globals)`).
+- `bin/gdrv completion bash | bash -n` passes — scripts are syntactically valid.
+- No new dependencies required.
+
+### stubs.go pattern
+- `stubs.go` held temporary `CompletionCmd` stub returning error until migration.
+- Delete the file entirely once replaced; don't leave empty files.
+
+## [2026-02-20] Task: Parse-level tests for all kong command structs
+
+### Summary
+Created `internal/cli/parse_test.go` with comprehensive parse-level coverage for all CLI command structs.
+
+### Test Statistics
+- **227 top-level test functions** passing
+- **0 failures** with `-race` flag
+- **Coverage**: 5.2% of statements (parse-only, no Run() calls)
+- File: `internal/cli/parse_test.go`
+
+### Kong Test Pattern
+The correct pattern for kong parse tests without triggering `os.Exit`:
+```go
+func TestParseXxx(t *testing.T) {
+    var c CLI
+    p := kong.Must(&c,
+        kong.Name("gdrv"),
+        kong.Exit(func(int) { t.Fatal("unexpected exit") }),
+    )
+    _, err := p.Parse([]string{"cmd", "sub", "arg"})
+    if err != nil {
+        t.Fatalf("unexpected parse error: %v", err)
+    }
+}
+```
+
+### Key Patterns Verified
+
+**Flag rename workarounds (kong v1.14 duplicate flag limitation):**
+- `files download --file-output` (NOT `--output` — collides with global `--output`)
+- `files delete --skip-confirmation` (NOT `--force` — collides with global `--force`)
+
+**`default:"withargs"` routing:**
+- `files revisions FILEID` parses as `files revisions list FILEID` due to `default:"withargs"` tag
+- Both `files revisions list FILEID` AND `files revisions FILEID` parse successfully
+
+**`perm` alias:**
+- `perm list FILEID` parses identically to `permissions list FILEID`
+- The `aliases:"perm"` tag in the CLI struct makes this work at parse level
+
+**Required flags enforced at parse time:**
+- `admin users create` requires `--given-name`, `--family-name`, `--password`
+- `auth service-account` requires `--key-file`
+- `changes list` requires `--page-token`
+- `changes watch` requires `--page-token` AND `--webhook-url`
+- `permissions create` requires `--type` AND `--role`
+- `permissions update` requires `--role`
+- `permissions audit external` requires `--internal-domain`
+- `permissions bulk remove-public` requires `--folder-id`
+- `permissions bulk update-role` requires `--folder-id`, `--from-role`, `--to-role`
+- `files move` requires `--parent`
+- `files revisions download` requires `--revision-output`
+
+**Default values verified:**
+- `--output` defaults to `"json"`
+- `--profile` defaults to `"default"`
+- `--cache-ttl` defaults to `300`
+- `files list --limit` defaults to `100`
+- `sheets values update --value-input-option` defaults to `"USER_ENTERED"`
+- `changes list --supports-all-drives` defaults to `true`
+- `sync push --concurrency` defaults to `5`
+- `admin groups members add --role` defaults to `"MEMBER"`
+
+**Short flags verified:** `-q` (quiet), `-v` (verbose), `-f` (force), `-y` (yes) all work on subcommands.
+
+**`--json` flag:** Sets `c.JSON = true` at parse level (AfterApply sets `c.Output = "json"` at run time).
+
+### Important: AfterApply NOT called during parse
+The `Globals.AfterApply()` method initializes a logger (which requires real config/files).
+Kong only calls `AfterApply()` when running commands, NOT during `p.Parse()`.
+This means parse tests work cleanly without any file system or auth setup.
