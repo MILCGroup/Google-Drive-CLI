@@ -16,12 +16,6 @@ func (c *DrivesCmd) Run(globals *Globals) error {
 	return fmt.Errorf("drives command not yet migrated to kong")
 }
 
-type SheetsCmd struct{}
-
-func (c *SheetsCmd) Run(globals *Globals) error {
-	return fmt.Errorf("sheets command not yet migrated to kong")
-}
-
 type DocsCmd struct{}
 
 func (c *DocsCmd) Run(globals *Globals) error {
@@ -44,18 +38,6 @@ type ActivityCmd struct{}
 
 func (c *ActivityCmd) Run(globals *Globals) error {
 	return fmt.Errorf("activity command not yet migrated to kong")
-}
-
-type ChatCmd struct{}
-
-func (c *ChatCmd) Run(globals *Globals) error {
-	return fmt.Errorf("chat command not yet migrated to kong")
-}
-
-type SyncCmd struct{}
-
-func (c *SyncCmd) Run(globals *Globals) error {
-	return fmt.Errorf("sync command not yet migrated to kong")
 }
 
 type ConfigCmd struct{}
