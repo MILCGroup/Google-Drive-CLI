@@ -30,7 +30,7 @@ type AuthLoginCmd struct {
 	Scopes       []string `help:"OAuth scopes to request" name:"scopes"`
 	NoBrowser    bool     `help:"Do not open a browser; use manual code entry" name:"no-browser"`
 	Wide         bool     `help:"Request full Drive access scope" name:"wide"`
-	Preset       string   `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete" name:"preset"`
+	Preset       string   `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete, gmail, gmail-readonly, calendar, calendar-readonly, people, tasks, forms, appscript, groups, suite-complete" name:"preset"`
 	ClientID     *string  `help:"OAuth client ID" name:"client-id"`
 	ClientSecret *string  `help:"OAuth client secret" name:"client-secret"`
 }
@@ -42,14 +42,14 @@ type AuthServiceAccountCmd struct {
 	ImpersonateUser string   `help:"User email to impersonate (required for Admin SDK scopes)" name:"impersonate-user"`
 	Scopes          []string `help:"OAuth scopes to request" name:"scopes"`
 	Wide            bool     `help:"Request full Drive access scope" name:"wide"`
-	Preset          string   `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete" name:"preset"`
+	Preset          string   `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete, gmail, gmail-readonly, calendar, calendar-readonly, people, tasks, forms, appscript, groups, suite-complete" name:"preset"`
 }
 
 type AuthStatusCmd struct{}
 
 type AuthDeviceCmd struct {
 	Wide   bool   `help:"Request full Drive access scope" name:"wide"`
-	Preset string `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete" name:"preset"`
+	Preset string `help:"Scope preset: workspace-basic, workspace-full, admin, workspace-with-admin, workspace-activity, workspace-labels, workspace-sync, workspace-complete, gmail, gmail-readonly, calendar, calendar-readonly, people, tasks, forms, appscript, groups, suite-complete" name:"preset"`
 }
 
 type AuthProfilesCmd struct{}
@@ -333,6 +333,26 @@ func scopesForPreset(preset string) ([]string, error) {
 		return utils.ScopesWorkspaceSync, nil
 	case "workspace-complete":
 		return utils.ScopesWorkspaceComplete, nil
+	case "gmail":
+		return utils.ScopesGmail, nil
+	case "gmail-readonly":
+		return utils.ScopesGmailReadonly, nil
+	case "calendar":
+		return utils.ScopesCalendar, nil
+	case "calendar-readonly":
+		return utils.ScopesCalendarReadonly, nil
+	case "people":
+		return utils.ScopesPeople, nil
+	case "tasks":
+		return utils.ScopesTasks, nil
+	case "forms":
+		return utils.ScopesForms, nil
+	case "appscript":
+		return utils.ScopesAppScript, nil
+	case "groups":
+		return utils.ScopesGroups, nil
+	case "suite-complete":
+		return utils.ScopesSuiteComplete, nil
 	default:
 		return nil, fmt.Errorf("unknown preset: %s", preset)
 	}

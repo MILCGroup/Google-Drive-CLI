@@ -21,3 +21,7 @@ bin/
 .idea/
 .vscode/
 *.swp
+
+# Generated protobuf files
+pkg/gen/
+proto/

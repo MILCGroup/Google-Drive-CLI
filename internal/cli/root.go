@@ -108,24 +108,36 @@ func (g *Globals) ToGlobalFlags() types.GlobalFlags {
 type CLI struct {
 	Globals
 
-	Version     VersionCmd     `cmd:"" help:"Print the version number"`
-	About       AboutCmd       `cmd:"" help:"Display Drive account information and API capabilities"`
-	Files       FilesCmd       `cmd:"" help:"File operations"`
-	Folders     FoldersCmd     `cmd:"" help:"Folder operations"`
-	Auth        AuthCmd        `cmd:"" help:"Authentication commands"`
-	Permissions PermissionsCmd `cmd:"" aliases:"perm" help:"Permission operations"`
-	Drives      DrivesCmd      `cmd:"" help:"Manage Shared Drives"`
-	Sheets      SheetsCmd      `cmd:"" help:"Google Sheets operations"`
-	Docs        DocsCmd        `cmd:"" help:"Google Docs operations"`
-	Slides      SlidesCmd      `cmd:"" help:"Google Slides operations"`
-	Admin       AdminCmd       `cmd:"" help:"Google Workspace Admin SDK operations"`
-	Changes     ChangesCmd     `cmd:"" help:"Drive Changes API operations"`
-	Labels      LabelsCmd      `cmd:"" help:"Drive Labels API operations"`
-	Activity    ActivityCmd    `cmd:"" help:"Drive Activity API operations"`
-	Chat        ChatCmd        `cmd:"" help:"Google Chat operations"`
-	Sync        SyncCmd        `cmd:"" help:"Sync local folders with Drive"`
-	Config      ConfigCmd      `cmd:"" help:"Configuration management"`
-	Completion  CompletionCmd  `cmd:"" help:"Generate shell completion scripts" hidden:""`
+	Version     VersionCmd      `cmd:"" help:"Print the version number"`
+	About       AboutCmd        `cmd:"" help:"Display Drive account information and API capabilities"`
+	Files       FilesCmd        `cmd:"" help:"File operations"`
+	Folders     FoldersCmd      `cmd:"" help:"Folder operations"`
+	Auth        AuthCmd         `cmd:"" help:"Authentication commands"`
+	Permissions PermissionsCmd  `cmd:"" aliases:"perm" help:"Permission operations"`
+	Drives      DrivesCmd       `cmd:"" help:"Manage Shared Drives"`
+	Sheets      SheetsCmd       `cmd:"" help:"Google Sheets operations"`
+	Docs        DocsCmd         `cmd:"" help:"Google Docs operations"`
+	Slides      SlidesCmd       `cmd:"" help:"Google Slides operations"`
+	Admin       AdminCmd        `cmd:"" help:"Google Workspace Admin SDK operations"`
+	Groups      GroupsCmd       `cmd:"" help:"Cloud Identity Groups operations (distinct from 'admin groups' which uses Admin SDK)"`
+	Changes     ChangesCmd      `cmd:"" help:"Drive Changes API operations"`
+	Labels      LabelsCmd       `cmd:"" help:"Drive Labels API operations"`
+	Activity    ActivityCmd     `cmd:"" help:"Drive Activity API operations"`
+	Forms       FormsCmd        `cmd:"" help:"Google Forms operations"`
+	People      PeopleCmd       `cmd:"" help:"Google People/Contacts operations"`
+	Chat        ChatCmd         `cmd:"" help:"Google Chat operations"`
+	Gmail       GmailCmd        `cmd:"" help:"Gmail operations"`
+	Calendar    CalendarCmd     `cmd:"" help:"Google Calendar operations"`
+	Tasks       TasksCmd        `cmd:"" help:"Google Tasks operations"`
+	AppScript   AppScriptCmd    `cmd:"" help:"Google Apps Script operations"`
+	Sync        SyncCmd         `cmd:"" help:"Sync local folders with Drive"`
+	Config      ConfigCmd       `cmd:"" help:"Configuration management"`
+	Completion  CompletionCmd   `cmd:"" help:"Generate shell completion scripts" hidden:""`
+	AI          AICmd           `cmd:"" help:"Google Generative AI (Gemini) operations"`
+	Meet        MeetCmd         `cmd:"" help:"Google Meet operations"`
+	Logging     CloudLoggingCmd `cmd:"" help:"Cloud Logging operations"`
+	Monitoring  MonitoringCmd   `cmd:"" help:"Cloud Monitoring operations"`
+	IAMAdmin    IAMAdminCmd     `cmd:"" aliases:"iam-admin" help:"IAM Admin operations"`
 }
 
 // VersionCmd prints the version.

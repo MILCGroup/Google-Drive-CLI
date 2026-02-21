@@ -1,5 +1,10 @@
 package types
 
+const (
+	maxMessageTextLength = 50
+	truncatedTextLength  = 47
+)
+
 // ChatSpace represents a Google Chat space
 type ChatSpace struct {
 	ID                  string `json:"id"`
@@ -48,8 +53,8 @@ func (m *ChatMessage) Headers() []string {
 
 func (m *ChatMessage) Rows() [][]string {
 	text := m.Text
-	if len(text) > 50 {
-		text = text[:47] + "..."
+	if len(text) > maxMessageTextLength {
+		text = text[:truncatedTextLength] + "..."
 	}
 	return [][]string{{
 		truncateID(m.ID, 20),
@@ -157,8 +162,8 @@ func (r *ChatMessagesListResponse) Rows() [][]string {
 	rows := make([][]string, len(r.Messages))
 	for i, msg := range r.Messages {
 		text := msg.Text
-		if len(text) > 50 {
-			text = text[:47] + "..."
+		if len(text) > maxMessageTextLength {
+			text = text[:truncatedTextLength] + "..."
 		}
 		rows[i] = []string{
 			truncateID(msg.ID, 20),
