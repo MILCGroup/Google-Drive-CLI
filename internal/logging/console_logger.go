@@ -107,7 +107,7 @@ func (l *ConsoleLogger) formatMessage(level LogLevel, msg string, fields ...Fiel
 			sb.WriteString(colorRed)
 		}
 	}
-	sb.WriteString(fmt.Sprintf("%-5s", levelStr))
+	fmt.Fprintf(&sb, "%-5s", levelStr)
 	if l.colorEnabled {
 		sb.WriteString(colorReset)
 	}
@@ -118,7 +118,7 @@ func (l *ConsoleLogger) formatMessage(level LogLevel, msg string, fields ...Fiel
 		if l.colorEnabled {
 			sb.WriteString(colorGray)
 		}
-		sb.WriteString(fmt.Sprintf("[%s] ", l.traceID[:8])) // Show first 8 chars
+		fmt.Fprintf(&sb, "[%s] ", l.traceID[:8]) // Show first 8 chars
 		if l.colorEnabled {
 			sb.WriteString(colorReset)
 		}
@@ -141,7 +141,7 @@ func (l *ConsoleLogger) formatMessage(level LogLevel, msg string, fields ...Fiel
 			if l.redactSensitive {
 				value = redactSensitiveData(value)
 			}
-			sb.WriteString(fmt.Sprintf("%s=%s", field.Key, value))
+			fmt.Fprintf(&sb, "%s=%s", field.Key, value)
 		}
 	}
 
