@@ -21,8 +21,8 @@
 package chatv1
 
 import (
-	_ "github.com/dl-alexandre/gdrv/pkg/gen/google/api"
-	v1 "github.com/dl-alexandre/gdrv/pkg/gen/google/apps/card/v1"
+	_ "github.com/milcgroup/gdrv/pkg/gen/google/api"
+	v1 "github.com/milcgroup/gdrv/pkg/gen/google/apps/card/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -2152,7 +2152,7 @@ const file_google_chat_v1_message_proto_rawDesc = "" +
 	"CardWithId\x12\x17\n" +
 	"\acard_id\x18\x01 \x01(\tR\x06cardId\x12-\n" +
 	"\x04card\x18\x02 \x01(\v2\x19.google.apps.card.v1.CardR\x04cardB\xb8\x01\n" +
-	"\x12com.google.chat.v1B\fMessageProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\fMessageProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_message_proto_rawDescOnce sync.Once

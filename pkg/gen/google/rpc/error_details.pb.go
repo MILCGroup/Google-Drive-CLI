@@ -1131,7 +1131,7 @@ const file_google_rpc_error_details_proto_rawDesc = "" +
 	"\x10LocalizedMessage\x12\x16\n" +
 	"\x06locale\x18\x01 \x01(\tR\x06locale\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessageB\x9d\x01\n" +
-	"\x0ecom.google.rpcB\x11ErrorDetailsProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/rpc\xa2\x02\x03GRX\xaa\x02\n" +
+	"\x0ecom.google.rpcB\x11ErrorDetailsProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/rpc\xa2\x02\x03GRX\xaa\x02\n" +
 	"Google.Rpc\xca\x02\n" +
 	"Google\\Rpc\xe2\x02\x16Google\\Rpc\\GPBMetadata\xea\x02\vGoogle::Rpcb\x06proto3"
 

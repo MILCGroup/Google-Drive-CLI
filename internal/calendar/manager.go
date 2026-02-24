@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/types"
 	calendar "google.golang.org/api/calendar/v3"
 )
 

@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	groupsmgr "github.com/dl-alexandre/gdrv/internal/groups"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	groupsmgr "github.com/milcgroup/gdrv/internal/groups"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 // GroupsCmd provides Cloud Identity Groups operations.

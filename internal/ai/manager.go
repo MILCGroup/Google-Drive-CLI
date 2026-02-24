@@ -7,7 +7,7 @@ import (
 
 	generativelanguage "cloud.google.com/go/ai/generativelanguage/apiv1"
 	"cloud.google.com/go/ai/generativelanguage/apiv1/generativelanguagepb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )

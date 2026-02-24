@@ -258,7 +258,7 @@ const file_google_rpc_http_proto_rawDesc = "" +
 	"HttpHeader\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05valueB\x95\x01\n" +
-	"\x0ecom.google.rpcB\tHttpProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/rpc\xa2\x02\x03GRX\xaa\x02\n" +
+	"\x0ecom.google.rpcB\tHttpProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/rpc\xa2\x02\x03GRX\xaa\x02\n" +
 	"Google.Rpc\xca\x02\n" +
 	"Google\\Rpc\xe2\x02\x16Google\\Rpc\\GPBMetadata\xea\x02\vGoogle::Rpcb\x06proto3"
 

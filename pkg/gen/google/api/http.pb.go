@@ -652,7 +652,7 @@ const file_google_api_http_proto_rawDesc = "" +
 	"\x11CustomHttpPattern\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04pathB\x95\x01\n" +
-	"\x0ecom.google.apiB\tHttpProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
+	"\x0ecom.google.apiB\tHttpProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
 	"Google.Api\xca\x02\n" +
 	"Google\\Api\xe2\x02\x16Google\\Api\\GPBMetadata\xea\x02\vGoogle::Apib\x06proto3"
 

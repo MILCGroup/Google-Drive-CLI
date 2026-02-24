@@ -584,7 +584,7 @@ const file_google_api_routing_proto_rawDesc = "" +
 	"\x05field\x18\x01 \x01(\tR\x05field\x12#\n" +
 	"\rpath_template\x18\x02 \x01(\tR\fpathTemplate:T\n" +
 	"\arouting\x12\x1e.google.protobuf.MethodOptions\x18\xb1ʼ\" \x01(\v2\x17.google.api.RoutingRuleR\aroutingB\x98\x01\n" +
-	"\x0ecom.google.apiB\fRoutingProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
+	"\x0ecom.google.apiB\fRoutingProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
 	"Google.Api\xca\x02\n" +
 	"Google\\Api\xe2\x02\x16Google\\Api\\GPBMetadata\xea\x02\vGoogle::Apib\x06proto3"
 

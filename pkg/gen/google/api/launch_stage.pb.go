@@ -146,7 +146,7 @@ const file_google_api_launch_stage_proto_rawDesc = "" +
 	"\x02GA\x10\x04\x12\x0e\n" +
 	"\n" +
 	"DEPRECATED\x10\x05B\x9c\x01\n" +
-	"\x0ecom.google.apiB\x10LaunchStageProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
+	"\x0ecom.google.apiB\x10LaunchStageProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
 	"Google.Api\xca\x02\n" +
 	"Google\\Api\xe2\x02\x16Google\\Api\\GPBMetadata\xea\x02\vGoogle::Apib\x06proto3"
 

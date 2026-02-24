@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	chatmgr "github.com/dl-alexandre/gdrv/internal/chat"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	chatmgr "github.com/milcgroup/gdrv/internal/chat"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	chatapi "google.golang.org/api/chat/v1"
 )
 
