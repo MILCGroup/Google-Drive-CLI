@@ -22,6 +22,11 @@ bin/
 .vscode/
 *.swp
 
-# Generated protobuf files
-pkg/gen/
-proto/
+# Coverage reports
+coverage*.out
+*.bak
+
+# Test artifacts
+*.test
+internal/files/Large Document
+internal/files/auto-name.txt
