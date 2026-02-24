@@ -19,9 +19,17 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/chat/v1"
+	"google.golang.org/api/cloudidentity/v1"
 	"google.golang.org/api/docs/v1"
+	"google.golang.org/api/forms/v1"
+	"google.golang.org/api/gmail/v1"
+	"google.golang.org/api/people/v1"
+	"google.golang.org/api/script/v1"
 	"google.golang.org/api/sheets/v4"
 	"google.golang.org/api/slides/v1"
+	"google.golang.org/api/tasks/v1"
 )
 
 const (
@@ -294,6 +302,19 @@ func (m *Manager) GetHTTPClient(ctx context.Context, creds *types.Credentials) *
 		return oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 	}
 	return m.oauthConfig.Client(ctx, token)
+}
+
+// GetTokenSource returns an oauth2.TokenSource for gRPC authentication
+func (m *Manager) GetTokenSource(ctx context.Context, creds *types.Credentials) oauth2.TokenSource {
+	token := &oauth2.Token{
+		AccessToken:  creds.AccessToken,
+		RefreshToken: creds.RefreshToken,
+		Expiry:       creds.ExpiryDate,
+	}
+	if m.oauthConfig == nil || creds.Type != types.AuthTypeOAuth {
+		return oauth2.StaticTokenSource(token)
+	}
+	return m.oauthConfig.TokenSource(ctx, token)
 }
 
 // loadStoredCredentials loads credentials from storage
@@ -590,6 +611,38 @@ func (m *Manager) GetAdminService(ctx context.Context, creds *types.Credentials)
 	return m.GetServiceFactory().CreateAdminService(ctx, creds)
 }
 
+func (m *Manager) GetChatService(ctx context.Context, creds *types.Credentials) (*chat.Service, error) {
+	return m.GetServiceFactory().CreateChatService(ctx, creds)
+}
+
+func (m *Manager) GetGmailService(ctx context.Context, creds *types.Credentials) (*gmail.Service, error) {
+	return m.GetServiceFactory().CreateGmailService(ctx, creds)
+}
+
+func (m *Manager) GetCalendarService(ctx context.Context, creds *types.Credentials) (*calendar.Service, error) {
+	return m.GetServiceFactory().CreateCalendarService(ctx, creds)
+}
+
+func (m *Manager) GetPeopleService(ctx context.Context, creds *types.Credentials) (*people.Service, error) {
+	return m.GetServiceFactory().CreatePeopleService(ctx, creds)
+}
+
+func (m *Manager) GetTasksService(ctx context.Context, creds *types.Credentials) (*tasks.Service, error) {
+	return m.GetServiceFactory().CreateTasksService(ctx, creds)
+}
+
+func (m *Manager) GetFormsService(ctx context.Context, creds *types.Credentials) (*forms.Service, error) {
+	return m.GetServiceFactory().CreateFormsService(ctx, creds)
+}
+
+func (m *Manager) GetAppScriptService(ctx context.Context, creds *types.Credentials) (*script.Service, error) {
+	return m.GetServiceFactory().CreateAppScriptService(ctx, creds)
+}
+
+func (m *Manager) GetCloudIdentityService(ctx context.Context, creds *types.Credentials) (*cloudidentity.Service, error) {
+	return m.GetServiceFactory().CreateCloudIdentityService(ctx, creds)
+}
+
 func RequiredScopesForService(svcType ServiceType) []string {
 	switch svcType {
 	case ServiceDrive:
@@ -602,6 +655,22 @@ func RequiredScopesForService(svcType ServiceType) []string {
 		return []string{utils.ScopeSlides}
 	case ServiceAdminDir:
 		return []string{utils.ScopeAdminDirectoryUser, utils.ScopeAdminDirectoryGroup}
+	case ServiceChat:
+		return []string{utils.ScopeChat}
+	case ServiceGmail:
+		return []string{utils.ScopeGmailModify}
+	case ServiceCalendar:
+		return []string{utils.ScopeCalendar}
+	case ServicePeople:
+		return []string{utils.ScopeContacts}
+	case ServiceTasks:
+		return []string{utils.ScopeTasks}
+	case ServiceForms:
+		return []string{utils.ScopeFormsBody}
+	case ServiceAppScript:
+		return []string{utils.ScopeScriptProjects}
+	case ServiceCloudIdentity:
+		return []string{utils.ScopeCloudIdentityGroups}
 	default:
 		return nil
 	}

@@ -61,20 +61,18 @@ func (m *Manager) LoadServiceAccount(ctx context.Context, keyFilePath string, sc
 		return nil, fmt.Errorf("missing private_key in service account key")
 	}
 
-	var config *google.Credentials
-	if impersonateUser != "" {
-		config, err = google.CredentialsFromJSONWithParams(ctx, keyData, google.CredentialsParams{
-			Scopes:  scopes,
-			Subject: impersonateUser,
-		})
-	} else {
-		config, err = google.CredentialsFromJSON(ctx, keyData, scopes...)
-	}
+	// Use JWTConfigFromJSON for proper credential validation
+	jwtConfig, err := google.JWTConfigFromJSON(keyData, scopes...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse service account key: %w", err)
 	}
 
-	token, err := config.TokenSource.Token()
+	// Set subject for domain-wide delegation if impersonating a user
+	if impersonateUser != "" {
+		jwtConfig.Subject = impersonateUser
+	}
+
+	token, err := jwtConfig.TokenSource(ctx).Token()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}

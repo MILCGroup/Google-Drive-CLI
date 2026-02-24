@@ -8,49 +8,26 @@ import (
 	"github.com/milcgroup/gdrv/internal/drives"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var drivesCmd = &cobra.Command{
-	Use:   "drives",
-	Short: "Manage Shared Drives",
-	Long:  `Commands for listing and managing Shared Drives (formerly Team Drives).`,
+type DrivesCmd struct {
+	List DrivesListCmd `cmd:"" help:"List all Shared Drives"`
+	Get  DrivesGetCmd  `cmd:"" help:"Get Shared Drive details"`
 }
 
-var drivesListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all Shared Drives",
-	Long:  `List all Shared Drives accessible by the authenticated user.`,
-	RunE:  runDrivesList,
+type DrivesListCmd struct {
+	PageSize  int    `help:"Maximum number of drives to return per page" default:"100" name:"page-size"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var drivesGetCmd = &cobra.Command{
-	Use:   "get <drive-id>",
-	Short: "Get Shared Drive details",
-	Long:  `Get details of a specific Shared Drive by its ID.`,
-	Args:  cobra.ExactArgs(1),
-	RunE:  runDrivesGet,
+type DrivesGetCmd struct {
+	DriveID string `arg:"" name:"drive-id" help:"Shared Drive ID"`
 }
 
-var (
-	drivesListPageSize  int
-	drivesListPageToken string
-	drivesListPaginate  bool
-)
-
-func init() {
-	rootCmd.AddCommand(drivesCmd)
-	drivesCmd.AddCommand(drivesListCmd)
-	drivesCmd.AddCommand(drivesGetCmd)
-
-	drivesListCmd.Flags().IntVar(&drivesListPageSize, "page-size", 100, "Maximum number of drives to return per page")
-	drivesListCmd.Flags().StringVar(&drivesListPageToken, "page-token", "", "Page token for pagination")
-	drivesListCmd.Flags().BoolVar(&drivesListPaginate, "paginate", false, "Automatically fetch all pages")
-}
-
-func runDrivesList(cmd *cobra.Command, args []string) error {
+func (cmd *DrivesListCmd) Run(globals *Globals) error {
 	ctx := context.Background()
-	flags := GetGlobalFlags()
+	flags := globals.ToGlobalFlags()
 
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
@@ -67,11 +44,11 @@ func runDrivesList(cmd *cobra.Command, args []string) error {
 	reqCtx := api.NewRequestContext(flags.Profile, "", types.RequestTypeListOrSearch)
 
 	// If --paginate flag is set, fetch all pages
-	if drivesListPaginate {
+	if cmd.Paginate {
 		var allDrives []*drives.SharedDrive
-		pageToken := drivesListPageToken
+		pageToken := cmd.PageToken
 		for {
-			result, err := manager.List(ctx, reqCtx, drivesListPageSize, pageToken)
+			result, err := manager.List(ctx, reqCtx, cmd.PageSize, pageToken)
 			if err != nil {
 				return handleCLIError(writer, "drives list", err)
 			}
@@ -87,7 +64,7 @@ func runDrivesList(cmd *cobra.Command, args []string) error {
 	}
 
 	// List drives
-	result, err := manager.List(ctx, reqCtx, drivesListPageSize, drivesListPageToken)
+	result, err := manager.List(ctx, reqCtx, cmd.PageSize, cmd.PageToken)
 	if err != nil {
 		return handleCLIError(writer, "drives list", err)
 	}
@@ -96,10 +73,9 @@ func runDrivesList(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("drives list", result)
 }
 
-func runDrivesGet(cmd *cobra.Command, args []string) error {
+func (cmd *DrivesGetCmd) Run(globals *Globals) error {
 	ctx := context.Background()
-	flags := GetGlobalFlags()
-	driveID := args[0]
+	flags := globals.ToGlobalFlags()
 
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
@@ -113,10 +89,10 @@ func runDrivesGet(cmd *cobra.Command, args []string) error {
 	manager := drives.NewManager(client)
 
 	// Create request context
-	reqCtx := api.NewRequestContext(flags.Profile, driveID, types.RequestTypeGetByID)
+	reqCtx := api.NewRequestContext(flags.Profile, cmd.DriveID, types.RequestTypeGetByID)
 
 	// Get drive
-	result, err := manager.Get(ctx, reqCtx, driveID, "")
+	result, err := manager.Get(ctx, reqCtx, cmd.DriveID, "")
 	if err != nil {
 		return handleCLIError(writer, "drives get", err)
 	}

@@ -9,115 +9,70 @@ import (
 	"github.com/milcgroup/gdrv/internal/api"
 	"github.com/milcgroup/gdrv/internal/auth"
 	"github.com/milcgroup/gdrv/internal/logging"
-	"github.com/milcgroup/gdrv/internal/sync/conflict"
 	syncengine "github.com/milcgroup/gdrv/internal/sync"
+	"github.com/milcgroup/gdrv/internal/sync/conflict"
 	"github.com/milcgroup/gdrv/internal/sync/diff"
 	"github.com/milcgroup/gdrv/internal/sync/index"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
 	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 )
 
-var syncCmd = &cobra.Command{
-	Use:   "sync <config-id>",
-	Short: "Sync local folders with Drive",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSyncBidirectional,
+// SyncCmd is the parent for all sync subcommands.
+type SyncCmd struct {
+	Init   SyncInitCmd   `cmd:"" help:"Initialize a sync configuration"`
+	Push   SyncPushCmd   `cmd:"" help:"Push local changes to Drive"`
+	Pull   SyncPullCmd   `cmd:"" help:"Pull remote changes to local"`
+	Status SyncStatusCmd `cmd:"" help:"Show pending sync changes"`
+	List   SyncListCmd   `cmd:"" help:"List sync configurations"`
+	Remove SyncRemoveCmd `cmd:"" help:"Remove a sync configuration"`
 }
 
-var syncInitCmd = &cobra.Command{
-	Use:   "init <local-path> <remote-folder>",
-	Short: "Initialize a sync configuration",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runSyncInit,
+type SyncInitCmd struct {
+	LocalPath    string `arg:"" name:"local-path" help:"Local path to sync"`
+	RemoteFolder string `arg:"" name:"remote-folder" help:"Remote folder ID or path"`
+	Exclude      string `help:"Comma-separated exclude patterns" name:"exclude"`
+	Conflict     string `help:"Conflict policy (local-wins, remote-wins, rename-both)" default:"rename-both" name:"conflict"`
+	Direction    string `help:"Sync direction (push, pull, bidirectional)" default:"bidirectional" name:"direction"`
+	ID           string `help:"Optional sync configuration ID" name:"id"`
 }
 
-var syncPushCmd = &cobra.Command{
-	Use:   "push <config-id>",
-	Short: "Push local changes to Drive",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSyncPush,
+type SyncPushCmd struct {
+	ConfigID    string `arg:"" name:"config-id" help:"Sync configuration ID"`
+	Delete      bool   `help:"Propagate deletions" name:"delete"`
+	Conflict    string `help:"Override conflict policy" name:"conflict"`
+	Concurrency int    `help:"Concurrent transfers" default:"5" name:"concurrency"`
+	UseChanges  bool   `help:"Use Drive Changes API when available" default:"true" name:"use-changes"`
 }
 
-var syncPullCmd = &cobra.Command{
-	Use:   "pull <config-id>",
-	Short: "Pull remote changes to local",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSyncPull,
+type SyncPullCmd struct {
+	ConfigID    string `arg:"" name:"config-id" help:"Sync configuration ID"`
+	Delete      bool   `help:"Propagate deletions" name:"delete"`
+	Conflict    string `help:"Override conflict policy" name:"conflict"`
+	Concurrency int    `help:"Concurrent transfers" default:"5" name:"concurrency"`
+	UseChanges  bool   `help:"Use Drive Changes API when available" default:"true" name:"use-changes"`
 }
 
-var syncStatusCmd = &cobra.Command{
-	Use:   "status <config-id>",
-	Short: "Show pending sync changes",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSyncStatus,
+type SyncStatusCmd struct {
+	ConfigID   string `arg:"" name:"config-id" help:"Sync configuration ID"`
+	Delete     bool   `help:"Include deletions in status" name:"delete"`
+	Conflict   string `help:"Override conflict policy" name:"conflict"`
+	UseChanges bool   `help:"Use Drive Changes API when available" default:"true" name:"use-changes"`
 }
 
-var syncListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List sync configurations",
-	RunE:  runSyncList,
+type SyncListCmd struct{}
+
+type SyncRemoveCmd struct {
+	ConfigID string `arg:"" name:"config-id" help:"Sync configuration ID"`
 }
 
-var syncRemoveCmd = &cobra.Command{
-	Use:   "remove <config-id>",
-	Short: "Remove a sync configuration",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSyncRemove,
-}
-
-var (
-	syncExclude     string
-	syncConflict    string
-	syncDirection   string
-	syncConfigID    string
-	syncDelete      bool
-	syncConcurrency int
-	syncUseChanges  bool
-)
-
-func init() {
-	syncInitCmd.Flags().StringVar(&syncExclude, "exclude", "", "Comma-separated exclude patterns")
-	syncInitCmd.Flags().StringVar(&syncConflict, "conflict", "rename-both", "Conflict policy (local-wins, remote-wins, rename-both)")
-	syncInitCmd.Flags().StringVar(&syncDirection, "direction", "bidirectional", "Sync direction (push, pull, bidirectional)")
-	syncInitCmd.Flags().StringVar(&syncConfigID, "id", "", "Optional sync configuration ID")
-
-	syncCmd.Flags().BoolVar(&syncDelete, "delete", false, "Propagate deletions")
-	syncCmd.Flags().StringVar(&syncConflict, "conflict", "", "Override conflict policy")
-	syncCmd.Flags().IntVar(&syncConcurrency, "concurrency", 5, "Concurrent transfers")
-	syncCmd.Flags().BoolVar(&syncUseChanges, "use-changes", true, "Use Drive Changes API when available")
-
-	syncPushCmd.Flags().BoolVar(&syncDelete, "delete", false, "Propagate deletions")
-	syncPushCmd.Flags().StringVar(&syncConflict, "conflict", "", "Override conflict policy")
-	syncPushCmd.Flags().IntVar(&syncConcurrency, "concurrency", 5, "Concurrent transfers")
-	syncPushCmd.Flags().BoolVar(&syncUseChanges, "use-changes", true, "Use Drive Changes API when available")
-
-	syncPullCmd.Flags().BoolVar(&syncDelete, "delete", false, "Propagate deletions")
-	syncPullCmd.Flags().StringVar(&syncConflict, "conflict", "", "Override conflict policy")
-	syncPullCmd.Flags().IntVar(&syncConcurrency, "concurrency", 5, "Concurrent transfers")
-	syncPullCmd.Flags().BoolVar(&syncUseChanges, "use-changes", true, "Use Drive Changes API when available")
-
-	syncStatusCmd.Flags().BoolVar(&syncDelete, "delete", false, "Include deletions in status")
-	syncStatusCmd.Flags().StringVar(&syncConflict, "conflict", "", "Override conflict policy")
-	syncStatusCmd.Flags().BoolVar(&syncUseChanges, "use-changes", true, "Use Drive Changes API when available")
-
-	syncCmd.AddCommand(syncInitCmd)
-	syncCmd.AddCommand(syncPushCmd)
-	syncCmd.AddCommand(syncPullCmd)
-	syncCmd.AddCommand(syncStatusCmd)
-	syncCmd.AddCommand(syncListCmd)
-	syncCmd.AddCommand(syncRemoveCmd)
-	rootCmd.AddCommand(syncCmd)
-}
-
-func runSyncInit(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *SyncInitCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	localPath := args[0]
-	remotePath := args[1]
+	localPath := cmd.LocalPath
+	remotePath := cmd.RemoteFolder
 
 	stat, err := os.Stat(localPath)
 	if err != nil || !stat.IsDir() {
@@ -152,14 +107,14 @@ func runSyncInit(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	configID := syncConfigID
+	configID := cmd.ID
 	if configID == "" {
 		configID = uuid.New().String()
 	}
 
 	excludes := []string{}
-	if syncExclude != "" {
-		for _, part := range strings.Split(syncExclude, ",") {
+	if cmd.Exclude != "" {
+		for _, part := range strings.Split(cmd.Exclude, ",") {
 			part = strings.TrimSpace(part)
 			if part != "" {
 				excludes = append(excludes, part)
@@ -172,8 +127,8 @@ func runSyncInit(cmd *cobra.Command, args []string) error {
 		LocalRoot:       absLocal,
 		RemoteRootID:    remoteID,
 		ExcludePatterns: excludes,
-		ConflictPolicy:  syncConflict,
-		Direction:       syncDirection,
+		ConflictPolicy:  cmd.Conflict,
+		Direction:       cmd.Direction,
 	}
 	if err := syncengine.EnsureConfig(&cfg); err != nil {
 		return out.WriteError("sync.init", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
@@ -186,24 +141,72 @@ func runSyncInit(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("sync.init", cfg)
 }
 
-func runSyncBidirectional(cmd *cobra.Command, args []string) error {
-	return runSyncWithMode(args[0], diff.ModeBidirectional, "sync", false)
+func (cmd *SyncPushCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	return runSyncWithMode(flags, cmd.ConfigID, diff.ModePush, "sync.push", false, cmd.Delete, cmd.Conflict, cmd.Concurrency, cmd.UseChanges)
 }
 
-func runSyncPush(cmd *cobra.Command, args []string) error {
-	return runSyncWithMode(args[0], diff.ModePush, "sync.push", false)
+func (cmd *SyncPullCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	return runSyncWithMode(flags, cmd.ConfigID, diff.ModePull, "sync.pull", false, cmd.Delete, cmd.Conflict, cmd.Concurrency, cmd.UseChanges)
 }
 
-func runSyncPull(cmd *cobra.Command, args []string) error {
-	return runSyncWithMode(args[0], diff.ModePull, "sync.pull", false)
+func (cmd *SyncStatusCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	return runSyncWithMode(flags, cmd.ConfigID, diff.ModeBidirectional, "sync.status", true, cmd.Delete, cmd.Conflict, 0, cmd.UseChanges)
 }
 
-func runSyncStatus(cmd *cobra.Command, args []string) error {
-	return runSyncWithMode(args[0], diff.ModeBidirectional, "sync.status", true)
+func (cmd *SyncListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+
+	db, err := openSyncDB()
+	if err != nil {
+		return out.WriteError("sync.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			GetLogger().Warn("failed to close sync database", logging.F("error", closeErr))
+		}
+	}()
+
+	configs, err := db.ListConfigs(context.Background())
+	if err != nil {
+		return out.WriteError("sync.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+	}
+
+	return out.WriteSuccess("sync.list", map[string]interface{}{
+		"configs": configs,
+	})
 }
 
-func runSyncWithMode(configID string, mode diff.Mode, command string, planOnly bool) error {
-	flags := GetGlobalFlags()
+func (cmd *SyncRemoveCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+
+	db, err := openSyncDB()
+	if err != nil {
+		return out.WriteError("sync.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			GetLogger().Warn("failed to close sync database", logging.F("error", closeErr))
+		}
+	}()
+
+	if err := db.DeleteEntries(context.Background(), cmd.ConfigID); err != nil {
+		return out.WriteError("sync.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+	}
+	if err := db.DeleteConfig(context.Background(), cmd.ConfigID); err != nil {
+		return out.WriteError("sync.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
+	}
+
+	return out.WriteSuccess("sync.remove", map[string]interface{}{
+		"configId": cmd.ConfigID,
+	})
+}
+
+func runSyncWithMode(flags types.GlobalFlags, configID string, mode diff.Mode, command string, planOnly bool, delete bool, conflictStr string, concurrency int, useChanges bool) error {
 	ctx := context.Background()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
@@ -219,15 +222,15 @@ func runSyncWithMode(configID string, mode diff.Mode, command string, planOnly b
 
 	opts := syncengine.Options{
 		Mode:        mode,
-		Delete:      syncDelete,
+		Delete:      delete,
 		DryRun:      flags.DryRun || planOnly,
 		Force:       flags.Force,
 		Yes:         flags.Yes,
-		Concurrency: syncConcurrency,
-		UseChanges:  syncUseChanges,
+		Concurrency: concurrency,
+		UseChanges:  useChanges,
 	}
-	if syncConflict != "" {
-		opts.ConflictPolicy = conflict.Policy(syncConflict)
+	if conflictStr != "" {
+		opts.ConflictPolicy = conflict.Policy(conflictStr)
 	}
 
 	plan, err := engine.Plan(ctx, cfg, opts, reqCtx)
@@ -256,54 +259,6 @@ func runSyncWithMode(configID string, mode diff.Mode, command string, planOnly b
 	return out.WriteSuccess(command, map[string]interface{}{
 		"configId": cfg.ID,
 		"summary":  result.Summary,
-	})
-}
-
-func runSyncList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
-	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
-	db, err := openSyncDB()
-	if err != nil {
-		return out.WriteError("sync.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			GetLogger().Warn("failed to close sync database", logging.F("error", closeErr))
-		}
-	}()
-
-	configs, err := db.ListConfigs(context.Background())
-	if err != nil {
-		return out.WriteError("sync.list", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
-	}
-
-	return out.WriteSuccess("sync.list", map[string]interface{}{
-		"configs": configs,
-	})
-}
-
-func runSyncRemove(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
-	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
-	db, err := openSyncDB()
-	if err != nil {
-		return out.WriteError("sync.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			GetLogger().Warn("failed to close sync database", logging.F("error", closeErr))
-		}
-	}()
-
-	if err := db.DeleteEntries(context.Background(), args[0]); err != nil {
-		return out.WriteError("sync.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
-	}
-	if err := db.DeleteConfig(context.Background(), args[0]); err != nil {
-		return out.WriteError("sync.remove", utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())
-	}
-
-	return out.WriteSuccess("sync.remove", map[string]interface{}{
-		"configId": args[0],
 	})
 }
 

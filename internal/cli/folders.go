@@ -8,101 +8,52 @@ import (
 	"github.com/milcgroup/gdrv/internal/folders"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var foldersCmd = &cobra.Command{
-	Use:   "folders",
-	Short: "Folder operations",
-	Long:  "Commands for managing folders in Google Drive",
+type FoldersCmd struct {
+	Create FoldersCreateCmd `cmd:"" help:"Create a folder"`
+	List   FoldersListCmd   `cmd:"" help:"List folder contents"`
+	Delete FoldersDeleteCmd `cmd:"" help:"Delete a folder"`
+	Move   FoldersMoveCmd   `cmd:"" help:"Move a folder"`
+	Get    FoldersGetCmd    `cmd:"" help:"Get folder metadata"`
 }
 
-var folderCreateCmd = &cobra.Command{
-	Use:   "create <name>",
-	Short: "Create a new folder",
-	Long:  "Create a new folder in Google Drive",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFolderCreate,
+type FoldersCreateCmd struct {
+	Name   string `arg:"" name:"name" help:"Folder name"`
+	Parent string `help:"Parent folder ID" name:"parent"`
 }
 
-var folderListCmd = &cobra.Command{
-	Use:   "list <folder-id>",
-	Short: "List folder contents",
-	Long:  "List contents of a folder in Google Drive",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFolderList,
+type FoldersListCmd struct {
+	FolderID  string `arg:"" name:"folder-id" help:"Folder ID"`
+	PageSize  int    `help:"Number of items per page" default:"100" name:"page-size"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var folderDeleteCmd = &cobra.Command{
-	Use:   "delete <folder-id>",
-	Short: "Delete a folder",
-	Long:  "Delete a folder from Google Drive",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFolderDelete,
+type FoldersDeleteCmd struct {
+	FolderID  string `arg:"" name:"folder-id" help:"Folder ID"`
+	Recursive bool   `help:"Delete folder contents recursively" name:"recursive"`
 }
 
-var folderMoveCmd = &cobra.Command{
-	Use:   "move <folder-id> <new-parent-id>",
-	Short: "Move a folder",
-	Long:  "Move a folder to a new parent folder",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runFolderMove,
+type FoldersMoveCmd struct {
+	FolderID    string `arg:"" name:"folder-id" help:"Folder ID"`
+	NewParentID string `arg:"" name:"new-parent-id" help:"New parent folder ID"`
 }
 
-var folderGetCmd = &cobra.Command{
-	Use:   "get <folder-id>",
-	Short: "Get folder metadata",
-	Long:  "Retrieve metadata for a folder",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFolderGet,
+type FoldersGetCmd struct {
+	FolderID string `arg:"" name:"folder-id" help:"Folder ID"`
+	Fields   string `help:"Fields to retrieve (comma-separated)" name:"fields"`
 }
 
-// Flags
-var (
-	folderParentID  string
-	folderRecursive bool
-	folderPageSize  int
-	folderPageToken string
-	folderFields    string
-	folderPaginate  bool
-)
-
-func init() {
-	rootCmd.AddCommand(foldersCmd)
-
-	foldersCmd.AddCommand(folderCreateCmd)
-	foldersCmd.AddCommand(folderListCmd)
-	foldersCmd.AddCommand(folderDeleteCmd)
-	foldersCmd.AddCommand(folderMoveCmd)
-	foldersCmd.AddCommand(folderGetCmd)
-
-	// Create flags
-	folderCreateCmd.Flags().StringVar(&folderParentID, "parent", "", "Parent folder ID")
-
-	// List flags
-	folderListCmd.Flags().IntVar(&folderPageSize, "page-size", 100, "Number of items per page")
-	folderListCmd.Flags().StringVar(&folderPageToken, "page-token", "", "Page token for pagination")
-	folderListCmd.Flags().BoolVar(&folderPaginate, "paginate", false, "Automatically fetch all pages")
-
-	// Delete flags
-	folderDeleteCmd.Flags().BoolVar(&folderRecursive, "recursive", false, "Delete folder contents recursively")
-
-	// Get flags
-	folderGetCmd.Flags().StringVar(&folderFields, "fields", "", "Fields to retrieve (comma-separated)")
-}
-
-func getFolderManager() (*folders.Manager, error) {
-	flags := GetGlobalFlags()
-
+func getFolderManager(ctx context.Context, flags types.GlobalFlags) (*folders.Manager, error) {
 	configDir := getConfigDir()
 	authMgr := auth.NewManager(configDir)
-	creds, err := authMgr.LoadCredentials(flags.Profile)
+	creds, err := authMgr.GetValidCredentials(ctx, flags.Profile)
 	if err != nil {
-		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeAuthRequired,
-			"Authentication required. Run 'gdrv auth login' first.").Build())
+		return nil, err
 	}
 
-	service, err := authMgr.GetDriveService(context.Background(), creds)
+	service, err := authMgr.GetDriveService(ctx, creds)
 	if err != nil {
 		return nil, err
 	}
@@ -111,19 +62,20 @@ func getFolderManager() (*folders.Manager, error) {
 	return folders.NewManager(client), nil
 }
 
-func runFolderCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FoldersCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getFolderManager()
+	mgr, err := getFolderManager(ctx, flags)
 	if err != nil {
-		return handleCLIError(writer, "folder.create", err)
+		return writer.WriteError("folder.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeMutation)
-	name := args[0]
+	name := cmd.Name
 
-	result, err := mgr.Create(context.Background(), reqCtx, name, folderParentID)
+	result, err := mgr.Create(ctx, reqCtx, name, cmd.Parent)
 	if err != nil {
 		return handleCLIError(writer, "folder.create", err)
 	}
@@ -131,24 +83,25 @@ func runFolderCreate(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("folder.create", result)
 }
 
-func runFolderList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FoldersListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getFolderManager()
+	mgr, err := getFolderManager(ctx, flags)
 	if err != nil {
-		return handleCLIError(writer, "folder.list", err)
+		return writer.WriteError("folder.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeListOrSearch)
-	folderID := args[0]
+	folderID := cmd.FolderID
 
 	// If --paginate flag is set, fetch all pages
-	if folderPaginate {
+	if cmd.Paginate {
 		var allFiles []*types.DriveFile
-		pageToken := folderPageToken
+		pageToken := cmd.PageToken
 		for {
-			result, err := mgr.List(context.Background(), reqCtx, folderID, folderPageSize, pageToken)
+			result, err := mgr.List(ctx, reqCtx, folderID, cmd.PageSize, pageToken)
 			if err != nil {
 				return handleCLIError(writer, "folder.list", err)
 			}
@@ -163,7 +116,7 @@ func runFolderList(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	result, err := mgr.List(context.Background(), reqCtx, folderID, folderPageSize, folderPageToken)
+	result, err := mgr.List(ctx, reqCtx, folderID, cmd.PageSize, cmd.PageToken)
 	if err != nil {
 		return handleCLIError(writer, "folder.list", err)
 	}
@@ -171,19 +124,20 @@ func runFolderList(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("folder.list", result)
 }
 
-func runFolderDelete(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FoldersDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getFolderManager()
+	mgr, err := getFolderManager(ctx, flags)
 	if err != nil {
-		return handleCLIError(writer, "folder.delete", err)
+		return writer.WriteError("folder.delete", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeMutation)
-	folderID := args[0]
+	folderID := cmd.FolderID
 
-	err = mgr.Delete(context.Background(), reqCtx, folderID, folderRecursive)
+	err = mgr.Delete(ctx, reqCtx, folderID, cmd.Recursive)
 	if err != nil {
 		return handleCLIError(writer, "folder.delete", err)
 	}
@@ -191,24 +145,25 @@ func runFolderDelete(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("folder.delete", map[string]interface{}{
 		"deleted":   true,
 		"folderId":  folderID,
-		"recursive": folderRecursive,
+		"recursive": cmd.Recursive,
 	})
 }
 
-func runFolderMove(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FoldersMoveCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getFolderManager()
+	mgr, err := getFolderManager(ctx, flags)
 	if err != nil {
-		return handleCLIError(writer, "folder.move", err)
+		return writer.WriteError("folder.move", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeMutation)
-	folderID := args[0]
-	newParentID := args[1]
+	folderID := cmd.FolderID
+	newParentID := cmd.NewParentID
 
-	result, err := mgr.Move(context.Background(), reqCtx, folderID, newParentID)
+	result, err := mgr.Move(ctx, reqCtx, folderID, newParentID)
 	if err != nil {
 		return handleCLIError(writer, "folder.move", err)
 	}
@@ -216,19 +171,20 @@ func runFolderMove(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("folder.move", result)
 }
 
-func runFolderGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FoldersGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getFolderManager()
+	mgr, err := getFolderManager(ctx, flags)
 	if err != nil {
-		return handleCLIError(writer, "folder.get", err)
+		return writer.WriteError("folder.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypeGetByID)
-	folderID := args[0]
+	folderID := cmd.FolderID
 
-	result, err := mgr.Get(context.Background(), reqCtx, folderID, folderFields)
+	result, err := mgr.Get(ctx, reqCtx, folderID, cmd.Fields)
 	if err != nil {
 		return handleCLIError(writer, "folder.get", err)
 	}

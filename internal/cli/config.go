@@ -8,47 +8,27 @@ import (
 	"github.com/milcgroup/gdrv/internal/config"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Configuration management",
-	Long:  "Commands for managing gdrv configuration",
+type ConfigCmd struct {
+	Show  ConfigShowCmd  `cmd:"" help:"Show current config"`
+	Set   ConfigSetCmd   `cmd:"" help:"Set config value"`
+	Reset ConfigResetCmd `cmd:"" help:"Reset to defaults"`
 }
 
-var configShowCmd = &cobra.Command{
-	Use:   "show",
-	Short: "Show current configuration",
-	Long:  "Display the current configuration settings",
-	RunE:  runConfigShow,
+type ConfigShowCmd struct {
 }
 
-var configSetCmd = &cobra.Command{
-	Use:   "set <key> <value>",
-	Short: "Set a configuration value",
-	Long:  "Set a configuration value. Use 'config show' to see available keys",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runConfigSet,
+type ConfigSetCmd struct {
+	Key   string `arg:"" name:"key" help:"Configuration key"`
+	Value string `arg:"" name:"value" help:"Configuration value"`
 }
 
-var configResetCmd = &cobra.Command{
-	Use:   "reset",
-	Short: "Reset configuration to defaults",
-	Long:  "Reset all configuration settings to their default values",
-	RunE:  runConfigReset,
+type ConfigResetCmd struct {
 }
 
-func init() {
-	rootCmd.AddCommand(configCmd)
-
-	configCmd.AddCommand(configShowCmd)
-	configCmd.AddCommand(configSetCmd)
-	configCmd.AddCommand(configResetCmd)
-}
-
-func runConfigShow(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ConfigShowCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	cfg, err := config.Load()
@@ -59,12 +39,9 @@ func runConfigShow(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("config.show", cfg)
 }
 
-func runConfigSet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ConfigSetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
-
-	key := args[0]
-	value := args[1]
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -72,47 +49,47 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Set the value based on key
-	switch strings.ToLower(key) {
+	switch strings.ToLower(cmd.Key) {
 	case "defaultprofile":
-		cfg.DefaultProfile = value
+		cfg.DefaultProfile = cmd.Value
 	case "defaultoutputformat":
-		if value != string(types.OutputFormatJSON) && value != string(types.OutputFormatTable) {
+		if cmd.Value != string(types.OutputFormatJSON) && cmd.Value != string(types.OutputFormatTable) {
 			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				"Invalid output format. Must be 'json' or 'table'").Build())
 		}
-		cfg.DefaultOutputFormat = types.OutputFormat(value)
+		cfg.DefaultOutputFormat = types.OutputFormat(cmd.Value)
 	case "defaultfields":
-		preset := config.FieldMaskPreset(value)
+		preset := config.FieldMaskPreset(cmd.Value)
 		if preset != config.FieldMaskMinimal && preset != config.FieldMaskStandard && preset != config.FieldMaskFull {
 			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				"Invalid field mask preset. Must be 'minimal', 'standard', or 'full'").Build())
 		}
 		cfg.DefaultFields = preset
 	case "cachettl":
-		ttl, err := strconv.Atoi(value)
+		ttl, err := strconv.Atoi(cmd.Value)
 		if err != nil || ttl < 0 {
 			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				"Cache TTL must be a non-negative integer").Build())
 		}
 		cfg.CacheTTL = ttl
 	case "includeexportlinks":
-		cfg.IncludeExportLinks = parseBool(value)
+		cfg.IncludeExportLinks = parseBool(cmd.Value)
 	case "maxretries":
-		retries, err := strconv.Atoi(value)
+		retries, err := strconv.Atoi(cmd.Value)
 		if err != nil || retries < 0 || retries > 10 {
 			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				"Max retries must be between 0 and 10").Build())
 		}
 		cfg.MaxRetries = retries
 	case "retrybasedelay":
-		delay, err := strconv.Atoi(value)
+		delay, err := strconv.Atoi(cmd.Value)
 		if err != nil || delay < 100 || delay > 60000 {
 			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				"Retry base delay must be between 100 and 60000 ms").Build())
 		}
 		cfg.RetryBaseDelay = delay
 	case "requesttimeout":
-		timeout, err := strconv.Atoi(value)
+		timeout, err := strconv.Atoi(cmd.Value)
 		if err != nil || timeout < 1 || timeout > 3600 {
 			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				"Request timeout must be between 1 and 3600 seconds").Build())
@@ -122,7 +99,7 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 		validLevels := []string{"quiet", "normal", "verbose", "debug"}
 		valid := false
 		for _, level := range validLevels {
-			if value == level {
+			if cmd.Value == level {
 				valid = true
 				break
 			}
@@ -131,16 +108,16 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 				fmt.Sprintf("Invalid log level. Must be one of: %s", strings.Join(validLevels, ", "))).Build())
 		}
-		cfg.LogLevel = value
+		cfg.LogLevel = cmd.Value
 	case "coloroutput":
-		cfg.ColorOutput = parseBool(value)
+		cfg.ColorOutput = parseBool(cmd.Value)
 	case "oauthclientid":
-		cfg.OAuthClientID = value
+		cfg.OAuthClientID = cmd.Value
 	case "oauthclientsecret":
-		cfg.OAuthClientSecret = value
+		cfg.OAuthClientSecret = cmd.Value
 	default:
 		return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
-			fmt.Sprintf("Unknown configuration key: %s", key)).Build())
+			fmt.Sprintf("Unknown configuration key: %s", cmd.Key)).Build())
 	}
 
 	// Save the configuration
@@ -149,15 +126,15 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 			fmt.Sprintf("Failed to save configuration: %v", err)).Build())
 	}
 
-	out.Log("Configuration updated: %s = %s", key, value)
+	out.Log("Configuration updated: %s = %s", cmd.Key, cmd.Value)
 	return out.WriteSuccess("config.set", map[string]interface{}{
-		"key":   key,
-		"value": value,
+		"key":   cmd.Key,
+		"value": cmd.Value,
 	})
 }
 
-func runConfigReset(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *ConfigResetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	cfg := config.DefaultConfig()

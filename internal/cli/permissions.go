@@ -8,268 +8,134 @@ import (
 	"github.com/milcgroup/gdrv/internal/permissions"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var permissionsCmd = &cobra.Command{
-	Use:     "permissions",
-	Aliases: []string{"perm"},
-	Short:   "Permission operations",
-	Long:    "Commands for managing file and folder permissions in Google Drive",
+// PermissionsCmd is the top-level permissions command group.
+type PermissionsCmd struct {
+	List       PermListCmd       `cmd:"" help:"List permissions"`
+	Create     PermCreateCmd     `cmd:"" help:"Create a permission"`
+	Update     PermUpdateCmd     `cmd:"" help:"Update a permission"`
+	Remove     PermRemoveCmd     `cmd:"" help:"Remove a permission"`
+	CreateLink PermCreateLinkCmd `cmd:"create-link" help:"Create a public link"`
+	Audit      PermAuditCmd      `cmd:"" help:"Audit permissions"`
+	Analyze    PermAnalyzeCmd    `cmd:"" help:"Analyze folder permissions"`
+	Report     PermReportCmd     `cmd:"" help:"Generate permission report"`
+	Bulk       PermBulkCmd       `cmd:"" help:"Bulk permission operations"`
+	Search     PermSearchCmd     `cmd:"" help:"Search permissions"`
 }
 
-var permListCmd = &cobra.Command{
-	Use:   "list <file-id>",
-	Short: "List permissions",
-	Long:  "List all permissions for a file or folder",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPermList,
+type PermAuditCmd struct {
+	Public         PermAuditPublicCmd         `cmd:"" help:"Audit public files"`
+	External       PermAuditExternalCmd       `cmd:"" help:"Audit external shares"`
+	AnyoneWithLink PermAuditAnyoneWithLinkCmd `cmd:"anyone-with-link" help:"Audit anyone-with-link files"`
+	User           PermAuditUserCmd           `cmd:"" help:"Audit user access"`
 }
 
-var permCreateCmd = &cobra.Command{
-	Use:   "create <file-id>",
-	Short: "Create a permission",
-	Long:  "Create a new permission to a file or folder",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPermCreate,
+type PermBulkCmd struct {
+	RemovePublic PermBulkRemovePublicCmd `cmd:"remove-public" help:"Bulk remove public access"`
+	UpdateRole   PermBulkUpdateRoleCmd   `cmd:"update-role" help:"Bulk change role"`
 }
 
-var permUpdateCmd = &cobra.Command{
-	Use:   "update <file-id> <permission-id>",
-	Short: "Update a permission",
-	Long:  "Update an existing permission's role",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runPermUpdate,
+// --- Leaf command structs ---
+
+type PermListCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
 }
 
-var permRemoveCmd = &cobra.Command{
-	Use:   "remove <file-id> <permission-id>",
-	Short: "Remove a permission",
-	Long:  "Remove a permission from a file or folder",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runPermRemove,
+type PermCreateCmd struct {
+	FileID            string `arg:"" name:"file-id" help:"File ID or path"`
+	Type              string `help:"Permission type (user, group, domain, anyone)" name:"type" required:""`
+	Role              string `help:"Permission role (reader, commenter, writer, organizer)" name:"role" required:""`
+	Email             string `help:"Email address (for user/group type)" name:"email"`
+	Domain            string `help:"Domain (for domain type)" name:"domain"`
+	SendNotification  bool   `help:"Send email notification" name:"send-notification" default:"true"`
+	Message           string `help:"Custom email message" name:"message"`
+	TransferOwnership bool   `help:"Transfer ownership (requires owner role)" name:"transfer-ownership"`
+	AllowDiscovery    bool   `help:"Allow file discovery (for anyone type)" name:"allow-discovery"`
 }
 
-var permCreateLinkCmd = &cobra.Command{
-	Use:   "create-link <file-id>",
-	Short: "Create a public link",
-	Long:  "Create a public sharing link for a file or folder",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPermCreateLink,
+type PermUpdateCmd struct {
+	FileID       string `arg:"" name:"file-id" help:"File ID"`
+	PermissionID string `arg:"" name:"permission-id" help:"Permission ID"`
+	Role         string `help:"New role" name:"role" required:""`
 }
 
-// Flags
-var (
-	permType               string
-	permRole               string
-	permEmail              string
-	permDomain             string
-	permSendNotification   bool
-	permEmailMessage       string
-	permTransferOwnership  bool
-	permAllowFileDiscovery bool
-)
-
-var permAuditCmd = &cobra.Command{
-	Use:   "audit",
-	Short: "Audit permissions",
-	Long:  "Audit file and folder permissions for security and compliance",
+type PermRemoveCmd struct {
+	FileID       string `arg:"" name:"file-id" help:"File ID"`
+	PermissionID string `arg:"" name:"permission-id" help:"Permission ID"`
 }
 
-var permAuditPublicCmd = &cobra.Command{
-	Use:   "public",
-	Short: "Audit public files",
-	Long:  "Find all files with public access (anyone)",
-	RunE:  runPermAuditPublic,
+type PermCreateLinkCmd struct {
+	FileID         string `arg:"" name:"file-id" help:"File ID or path"`
+	Role           string `help:"Permission role (reader, commenter, writer)" name:"role" default:"reader"`
+	AllowDiscovery bool   `help:"Allow file discovery in search" name:"allow-discovery"`
 }
 
-var permAuditExternalCmd = &cobra.Command{
-	Use:   "external",
-	Short: "Audit external shares",
-	Long:  "Find all files shared with external domains",
-	RunE:  runPermAuditExternal,
+type PermAuditPublicCmd struct {
+	FolderID           string `help:"Limit audit to specific folder" name:"folder-id"`
+	Recursive          bool   `help:"Include subfolders" name:"recursive"`
+	IncludePermissions bool   `help:"Include full permission details" name:"include-permissions"`
 }
 
-var permAuditAnyoneWithLinkCmd = &cobra.Command{
-	Use:   "anyone-with-link",
-	Short: "Audit anyone-with-link files",
-	Long:  "Find all files with 'anyone with link' access",
-	RunE:  runPermAuditAnyoneWithLink,
+type PermAuditExternalCmd struct {
+	FolderID           string `help:"Limit audit to specific folder" name:"folder-id"`
+	Recursive          bool   `help:"Include subfolders" name:"recursive"`
+	InternalDomain     string `help:"Internal domain (required)" name:"internal-domain" required:""`
+	IncludePermissions bool   `help:"Include full permission details" name:"include-permissions"`
 }
 
-var permAuditUserCmd = &cobra.Command{
-	Use:   "user <email>",
-	Short: "Audit user access",
-	Long:  "Find all files accessible by a specific user",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPermAuditUser,
+type PermAuditAnyoneWithLinkCmd struct {
+	FolderID           string `help:"Limit audit to specific folder" name:"folder-id"`
+	Recursive          bool   `help:"Include subfolders" name:"recursive"`
+	IncludePermissions bool   `help:"Include full permission details" name:"include-permissions"`
 }
 
-var permAnalyzeCmd = &cobra.Command{
-	Use:   "analyze <folder-id>",
-	Short: "Analyze folder permissions",
-	Long:  "Analyze permissions for a folder and its contents",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPermAnalyze,
+type PermAuditUserCmd struct {
+	Email              string `arg:"" name:"email" help:"User email address"`
+	FolderID           string `help:"Limit audit to specific folder" name:"folder-id"`
+	Recursive          bool   `help:"Include subfolders" name:"recursive"`
+	IncludePermissions bool   `help:"Include full permission details" name:"include-permissions"`
 }
 
-var permReportCmd = &cobra.Command{
-	Use:   "report <file-id>",
-	Short: "Generate permission report",
-	Long:  "Generate a detailed permission report for a file or folder",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPermReport,
+type PermAnalyzeCmd struct {
+	FolderID       string `arg:"" name:"folder-id" help:"Folder ID"`
+	Recursive      bool   `help:"Analyze subfolders recursively" name:"recursive"`
+	MaxDepth       int    `help:"Maximum recursion depth (0 = unlimited)" name:"max-depth"`
+	IncludeDetails bool   `help:"Include detailed file lists" name:"include-details"`
+	InternalDomain string `help:"Internal domain for external detection" name:"internal-domain"`
 }
 
-var permBulkCmd = &cobra.Command{
-	Use:   "bulk",
-	Short: "Bulk permission operations",
-	Long:  "Perform bulk permission operations on multiple files",
+type PermReportCmd struct {
+	FileID         string `arg:"" name:"file-id" help:"File ID or folder ID"`
+	InternalDomain string `help:"Internal domain for external detection" name:"internal-domain"`
 }
 
-var permBulkRemovePublicCmd = &cobra.Command{
-	Use:   "remove-public",
-	Short: "Bulk remove public access",
-	Long:  "Remove public access from all files in a folder",
-	RunE:  runPermBulkRemovePublic,
+type PermBulkRemovePublicCmd struct {
+	FolderID        string `help:"Folder to operate on (required)" name:"folder-id" required:""`
+	Recursive       bool   `help:"Include subfolders" name:"recursive"`
+	MaxFiles        int    `help:"Maximum files to process (0 = unlimited)" name:"max-files"`
+	ContinueOnError bool   `help:"Continue if individual operations fail" name:"continue-on-error"`
 }
 
-var permBulkUpdateRoleCmd = &cobra.Command{
-	Use:   "update-role",
-	Short: "Bulk update roles",
-	Long:  "Update permission roles from one role to another in a folder",
-	RunE:  runPermBulkUpdateRole,
+type PermBulkUpdateRoleCmd struct {
+	FolderID        string `help:"Folder to operate on (required)" name:"folder-id" required:""`
+	Recursive       bool   `help:"Include subfolders" name:"recursive"`
+	FromRole        string `help:"Source role (required)" name:"from-role" required:""`
+	ToRole          string `help:"Target role (required)" name:"to-role" required:""`
+	MaxFiles        int    `help:"Maximum files to process (0 = unlimited)" name:"max-files"`
+	ContinueOnError bool   `help:"Continue if individual operations fail" name:"continue-on-error"`
 }
 
-var permSearchCmd = &cobra.Command{
-	Use:   "search",
-	Short: "Search permissions",
-	Long:  "Search for files by permission criteria",
-	RunE:  runPermSearch,
+type PermSearchCmd struct {
+	Email     string `help:"Search by email address" name:"email"`
+	Role      string `help:"Search by role" name:"role"`
+	FolderID  string `help:"Limit search to specific folder" name:"folder-id"`
+	Recursive bool   `help:"Include subfolders" name:"recursive"`
 }
 
-var (
-	auditFolderID       string
-	auditRecursive      bool
-	auditInternalDomain string
-	auditIncludePerms   bool
+// --- Helper ---
 
-	analyzeRecursive      bool
-	analyzeMaxDepth       int
-	analyzeIncludeDetails bool
-	analyzeInternalDomain string
-
-	bulkFolderID        string
-	bulkRecursive       bool
-	bulkFromRole        string
-	bulkToRole          string
-	bulkMaxFiles        int
-	bulkContinueOnError bool
-
-	searchEmail     string
-	searchRole      string
-	searchFolderID  string
-	searchRecursive bool
-)
-
-func init() {
-	rootCmd.AddCommand(permissionsCmd)
-
-	permissionsCmd.AddCommand(permListCmd)
-	permissionsCmd.AddCommand(permCreateCmd)
-	permissionsCmd.AddCommand(permUpdateCmd)
-	permissionsCmd.AddCommand(permRemoveCmd)
-	permissionsCmd.AddCommand(permCreateLinkCmd)
-	permissionsCmd.AddCommand(permAuditCmd)
-	permissionsCmd.AddCommand(permAnalyzeCmd)
-	permissionsCmd.AddCommand(permReportCmd)
-	permissionsCmd.AddCommand(permBulkCmd)
-	permissionsCmd.AddCommand(permSearchCmd)
-
-	permAuditCmd.AddCommand(permAuditPublicCmd)
-	permAuditCmd.AddCommand(permAuditExternalCmd)
-	permAuditCmd.AddCommand(permAuditAnyoneWithLinkCmd)
-	permAuditCmd.AddCommand(permAuditUserCmd)
-
-	permBulkCmd.AddCommand(permBulkRemovePublicCmd)
-	permBulkCmd.AddCommand(permBulkUpdateRoleCmd)
-
-	// Create flags
-	permCreateCmd.Flags().StringVar(&permType, "type", "", "Permission type (user, group, domain, anyone)")
-	permCreateCmd.Flags().StringVar(&permRole, "role", "", "Permission role (reader, commenter, writer, organizer)")
-	permCreateCmd.Flags().StringVar(&permEmail, "email", "", "Email address (for user/group type)")
-	permCreateCmd.Flags().StringVar(&permDomain, "domain", "", "Domain (for domain type)")
-	permCreateCmd.Flags().BoolVar(&permSendNotification, "send-notification", true, "Send email notification")
-	permCreateCmd.Flags().StringVar(&permEmailMessage, "message", "", "Custom email message")
-	permCreateCmd.Flags().BoolVar(&permTransferOwnership, "transfer-ownership", false, "Transfer ownership (requires owner role)")
-	permCreateCmd.Flags().BoolVar(&permAllowFileDiscovery, "allow-discovery", false, "Allow file discovery (for anyone type)")
-	_ = permCreateCmd.MarkFlagRequired("type")
-	_ = permCreateCmd.MarkFlagRequired("role")
-
-	// Update flags
-	permUpdateCmd.Flags().StringVar(&permRole, "role", "", "New permission role")
-	_ = permUpdateCmd.MarkFlagRequired("role")
-
-	// Create link flags
-	permCreateLinkCmd.Flags().StringVar(&permRole, "role", "reader", "Permission role (reader, commenter, writer)")
-	permCreateLinkCmd.Flags().BoolVar(&permAllowFileDiscovery, "allow-discovery", false, "Allow file discovery in search")
-
-	// Audit flags
-	permAuditPublicCmd.Flags().StringVar(&auditFolderID, "folder-id", "", "Limit audit to specific folder")
-	permAuditPublicCmd.Flags().BoolVar(&auditRecursive, "recursive", false, "Include subfolders")
-	permAuditPublicCmd.Flags().BoolVar(&auditIncludePerms, "include-permissions", false, "Include full permission details")
-
-	permAuditExternalCmd.Flags().StringVar(&auditFolderID, "folder-id", "", "Limit audit to specific folder")
-	permAuditExternalCmd.Flags().BoolVar(&auditRecursive, "recursive", false, "Include subfolders")
-	permAuditExternalCmd.Flags().StringVar(&auditInternalDomain, "internal-domain", "", "Internal domain (required)")
-	permAuditExternalCmd.Flags().BoolVar(&auditIncludePerms, "include-permissions", false, "Include full permission details")
-	_ = permAuditExternalCmd.MarkFlagRequired("internal-domain")
-
-	permAuditAnyoneWithLinkCmd.Flags().StringVar(&auditFolderID, "folder-id", "", "Limit audit to specific folder")
-	permAuditAnyoneWithLinkCmd.Flags().BoolVar(&auditRecursive, "recursive", false, "Include subfolders")
-	permAuditAnyoneWithLinkCmd.Flags().BoolVar(&auditIncludePerms, "include-permissions", false, "Include full permission details")
-
-	permAuditUserCmd.Flags().StringVar(&auditFolderID, "folder-id", "", "Limit audit to specific folder")
-	permAuditUserCmd.Flags().BoolVar(&auditRecursive, "recursive", false, "Include subfolders")
-	permAuditUserCmd.Flags().BoolVar(&auditIncludePerms, "include-permissions", false, "Include full permission details")
-
-	// Analyze flags
-	permAnalyzeCmd.Flags().BoolVar(&analyzeRecursive, "recursive", false, "Analyze subfolders recursively")
-	permAnalyzeCmd.Flags().IntVar(&analyzeMaxDepth, "max-depth", 0, "Maximum recursion depth (0 = unlimited)")
-	permAnalyzeCmd.Flags().BoolVar(&analyzeIncludeDetails, "include-details", false, "Include detailed file lists")
-	permAnalyzeCmd.Flags().StringVar(&analyzeInternalDomain, "internal-domain", "", "Internal domain for external detection")
-
-	// Report flags
-	permReportCmd.Flags().StringVar(&analyzeInternalDomain, "internal-domain", "", "Internal domain for external detection")
-
-	// Bulk remove public flags
-	permBulkRemovePublicCmd.Flags().StringVar(&bulkFolderID, "folder-id", "", "Folder to operate on (required)")
-	permBulkRemovePublicCmd.Flags().BoolVar(&bulkRecursive, "recursive", false, "Include subfolders")
-	permBulkRemovePublicCmd.Flags().IntVar(&bulkMaxFiles, "max-files", 0, "Maximum files to process (0 = unlimited)")
-	permBulkRemovePublicCmd.Flags().BoolVar(&bulkContinueOnError, "continue-on-error", false, "Continue if individual operations fail")
-	_ = permBulkRemovePublicCmd.MarkFlagRequired("folder-id")
-
-	// Bulk update role flags
-	permBulkUpdateRoleCmd.Flags().StringVar(&bulkFolderID, "folder-id", "", "Folder to operate on (required)")
-	permBulkUpdateRoleCmd.Flags().BoolVar(&bulkRecursive, "recursive", false, "Include subfolders")
-	permBulkUpdateRoleCmd.Flags().StringVar(&bulkFromRole, "from-role", "", "Source role (required)")
-	permBulkUpdateRoleCmd.Flags().StringVar(&bulkToRole, "to-role", "", "Target role (required)")
-	permBulkUpdateRoleCmd.Flags().IntVar(&bulkMaxFiles, "max-files", 0, "Maximum files to process (0 = unlimited)")
-	permBulkUpdateRoleCmd.Flags().BoolVar(&bulkContinueOnError, "continue-on-error", false, "Continue if individual operations fail")
-	_ = permBulkUpdateRoleCmd.MarkFlagRequired("folder-id")
-	_ = permBulkUpdateRoleCmd.MarkFlagRequired("from-role")
-	_ = permBulkUpdateRoleCmd.MarkFlagRequired("to-role")
-
-	// Search flags
-	permSearchCmd.Flags().StringVar(&searchEmail, "email", "", "Search by email address")
-	permSearchCmd.Flags().StringVar(&searchRole, "role", "", "Search by role")
-	permSearchCmd.Flags().StringVar(&searchFolderID, "folder-id", "", "Limit search to specific folder")
-	permSearchCmd.Flags().BoolVar(&searchRecursive, "recursive", false, "Include subfolders")
-}
-
-func getPermissionManager() (*permissions.Manager, error) {
-	flags := GetGlobalFlags()
-
+func getPermissionManager(flags types.GlobalFlags) (*permissions.Manager, error) {
 	configDir := getConfigDir()
 	authMgr := auth.NewManager(configDir)
 	creds, err := authMgr.LoadCredentials(flags.Profile)
@@ -287,19 +153,20 @@ func getPermissionManager() (*permissions.Manager, error) {
 	return permissions.NewManager(client), nil
 }
 
-func runPermList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+// --- Run methods ---
+
+func (cmd *PermListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permission.list", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	fileID := args[0]
 
-	result, err := mgr.List(context.Background(), reqCtx, fileID, permissions.ListOptions{})
+	result, err := mgr.List(context.Background(), reqCtx, cmd.FileID, permissions.ListOptions{})
 	if err != nil {
 		return handleCLIError(writer, "permission.list", err)
 	}
@@ -307,56 +174,55 @@ func runPermList(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permission.list", result)
 }
 
-func runPermCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	// Validate type
 	validTypes := map[string]bool{"user": true, "group": true, "domain": true, "anyone": true}
-	if !validTypes[permType] {
+	if !validTypes[cmd.Type] {
 		return writer.WriteError("permissions.create", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			"Invalid permission type. Must be one of: user, group, domain, anyone").Build())
 	}
 
 	// Validate role
 	validRoles := map[string]bool{"reader": true, "commenter": true, "writer": true, "organizer": true, "owner": true}
-	if !validRoles[permRole] {
+	if !validRoles[cmd.Role] {
 		return writer.WriteError("permissions.create", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			"Invalid permission role. Must be one of: reader, commenter, writer, organizer, owner").Build())
 	}
 
 	// Validate email for user/group type
-	if (permType == "user" || permType == "group") && permEmail == "" {
+	if (cmd.Type == "user" || cmd.Type == "group") && cmd.Email == "" {
 		return writer.WriteError("permissions.create", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			"Email address is required for user or group permission type").Build())
 	}
 
 	// Validate domain for domain type
-	if permType == "domain" && permDomain == "" {
+	if cmd.Type == "domain" && cmd.Domain == "" {
 		return writer.WriteError("permissions.create", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			"Domain is required for domain permission type").Build())
 	}
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.create", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	fileID := args[0]
 
 	opts := permissions.CreateOptions{
-		Type:                  permType,
-		Role:                  permRole,
-		EmailAddress:          permEmail,
-		Domain:                permDomain,
-		SendNotificationEmail: permSendNotification,
-		EmailMessage:          permEmailMessage,
-		TransferOwnership:     permTransferOwnership,
-		AllowFileDiscovery:    permAllowFileDiscovery,
+		Type:                  cmd.Type,
+		Role:                  cmd.Role,
+		EmailAddress:          cmd.Email,
+		Domain:                cmd.Domain,
+		SendNotificationEmail: cmd.SendNotification,
+		EmailMessage:          cmd.Message,
+		TransferOwnership:     cmd.TransferOwnership,
+		AllowFileDiscovery:    cmd.AllowDiscovery,
 	}
 
-	result, err := mgr.Create(context.Background(), reqCtx, fileID, opts)
+	result, err := mgr.Create(context.Background(), reqCtx, cmd.FileID, opts)
 	if err != nil {
 		return handleCLIError(writer, "permissions.create", err)
 	}
@@ -364,27 +230,25 @@ func runPermCreate(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.create", result)
 }
 
-func runPermUpdate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	// Validate role
 	validRoles := map[string]bool{"reader": true, "commenter": true, "writer": true, "organizer": true, "owner": true}
-	if !validRoles[permRole] {
+	if !validRoles[cmd.Role] {
 		return writer.WriteError("permission.update", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			"Invalid permission role. Must be one of: reader, commenter, writer, organizer, owner").Build())
 	}
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permission.update", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	fileID := args[0]
-	permissionID := args[1]
 
-	result, err := mgr.Update(context.Background(), reqCtx, fileID, permissionID, permissions.UpdateOptions{Role: permRole})
+	result, err := mgr.Update(context.Background(), reqCtx, cmd.FileID, cmd.PermissionID, permissions.UpdateOptions{Role: cmd.Role})
 	if err != nil {
 		return handleCLIError(writer, "permission.update", err)
 	}
@@ -392,50 +256,47 @@ func runPermUpdate(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permission.update", result)
 }
 
-func runPermRemove(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermRemoveCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permission.remove", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	fileID := args[0]
-	permissionID := args[1]
 
-	err = mgr.Delete(context.Background(), reqCtx, fileID, permissionID, permissions.DeleteOptions{})
+	err = mgr.Delete(context.Background(), reqCtx, cmd.FileID, cmd.PermissionID, permissions.DeleteOptions{})
 	if err != nil {
 		return handleCLIError(writer, "permission.remove", err)
 	}
 
 	return writer.WriteSuccess("permission.remove", map[string]interface{}{
 		"deleted":      true,
-		"fileId":       fileID,
-		"permissionId": permissionID,
+		"fileId":       cmd.FileID,
+		"permissionId": cmd.PermissionID,
 	})
 }
 
-func runPermCreateLink(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermCreateLinkCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
 	validRoles := map[string]bool{"reader": true, "commenter": true, "writer": true}
-	if !validRoles[permRole] {
+	if !validRoles[cmd.Role] {
 		return writer.WriteError("permission.create-link", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			"Invalid permission role for public link. Must be one of: reader, commenter, writer").Build())
 	}
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permission.create-link", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	fileID := args[0]
 
-	result, err := mgr.CreatePublicLink(context.Background(), reqCtx, fileID, permRole, permAllowFileDiscovery)
+	result, err := mgr.CreatePublicLink(context.Background(), reqCtx, cmd.FileID, cmd.Role, cmd.AllowDiscovery)
 	if err != nil {
 		return handleCLIError(writer, "permission.create-link", err)
 	}
@@ -443,20 +304,20 @@ func runPermCreateLink(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permission.create-link", result)
 }
 
-func runPermAuditPublic(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermAuditPublicCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.audit.public", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
 	opts := types.AuditOptions{
-		FolderID:           auditFolderID,
-		Recursive:          auditRecursive,
-		IncludePermissions: auditIncludePerms,
+		FolderID:           cmd.FolderID,
+		Recursive:          cmd.Recursive,
+		IncludePermissions: cmd.IncludePermissions,
 	}
 
 	result, err := mgr.AuditPublic(context.Background(), reqCtx, opts)
@@ -467,21 +328,21 @@ func runPermAuditPublic(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.audit.public", result)
 }
 
-func runPermAuditExternal(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermAuditExternalCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.audit.external", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
 	opts := types.AuditOptions{
-		FolderID:           auditFolderID,
-		Recursive:          auditRecursive,
-		InternalDomain:     auditInternalDomain,
-		IncludePermissions: auditIncludePerms,
+		FolderID:           cmd.FolderID,
+		Recursive:          cmd.Recursive,
+		InternalDomain:     cmd.InternalDomain,
+		IncludePermissions: cmd.IncludePermissions,
 	}
 
 	result, err := mgr.AuditExternal(context.Background(), reqCtx, opts)
@@ -492,20 +353,20 @@ func runPermAuditExternal(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.audit.external", result)
 }
 
-func runPermAuditAnyoneWithLink(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermAuditAnyoneWithLinkCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.audit.anyone-with-link", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
 	opts := types.AuditOptions{
-		FolderID:           auditFolderID,
-		Recursive:          auditRecursive,
-		IncludePermissions: auditIncludePerms,
+		FolderID:           cmd.FolderID,
+		Recursive:          cmd.Recursive,
+		IncludePermissions: cmd.IncludePermissions,
 	}
 
 	result, err := mgr.AuditAnyoneWithLink(context.Background(), reqCtx, opts)
@@ -516,24 +377,23 @@ func runPermAuditAnyoneWithLink(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.audit.anyone-with-link", result)
 }
 
-func runPermAuditUser(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermAuditUserCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.audit.user", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	email := args[0]
 	opts := types.AuditOptions{
-		FolderID:           auditFolderID,
-		Recursive:          auditRecursive,
-		IncludePermissions: auditIncludePerms,
+		FolderID:           cmd.FolderID,
+		Recursive:          cmd.Recursive,
+		IncludePermissions: cmd.IncludePermissions,
 	}
 
-	result, err := mgr.AuditUser(context.Background(), reqCtx, email, opts)
+	result, err := mgr.AuditUser(context.Background(), reqCtx, cmd.Email, opts)
 	if err != nil {
 		return handleCLIError(writer, "permissions.audit.user", err)
 	}
@@ -541,25 +401,24 @@ func runPermAuditUser(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.audit.user", result)
 }
 
-func runPermAnalyze(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermAnalyzeCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.analyze", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	folderID := args[0]
 	opts := types.AnalyzeOptions{
-		Recursive:      analyzeRecursive,
-		MaxDepth:       analyzeMaxDepth,
-		IncludeDetails: analyzeIncludeDetails,
-		InternalDomain: analyzeInternalDomain,
+		Recursive:      cmd.Recursive,
+		MaxDepth:       cmd.MaxDepth,
+		IncludeDetails: cmd.IncludeDetails,
+		InternalDomain: cmd.InternalDomain,
 	}
 
-	result, err := mgr.AnalyzeFolder(context.Background(), reqCtx, folderID, opts)
+	result, err := mgr.AnalyzeFolder(context.Background(), reqCtx, cmd.FolderID, opts)
 	if err != nil {
 		return handleCLIError(writer, "permissions.analyze", err)
 	}
@@ -567,19 +426,18 @@ func runPermAnalyze(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.analyze", result)
 }
 
-func runPermReport(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermReportCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.report", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
-	fileID := args[0]
 
-	result, err := mgr.GenerateReport(context.Background(), reqCtx, fileID, analyzeInternalDomain)
+	result, err := mgr.GenerateReport(context.Background(), reqCtx, cmd.FileID, cmd.InternalDomain)
 	if err != nil {
 		return handleCLIError(writer, "permissions.report", err)
 	}
@@ -587,22 +445,22 @@ func runPermReport(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.report", result)
 }
 
-func runPermBulkRemovePublic(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermBulkRemovePublicCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.bulk.remove-public", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
 	opts := types.BulkOptions{
-		FolderID:        bulkFolderID,
-		Recursive:       bulkRecursive,
+		FolderID:        cmd.FolderID,
+		Recursive:       cmd.Recursive,
 		DryRun:          flags.DryRun,
-		MaxFiles:        bulkMaxFiles,
-		ContinueOnError: bulkContinueOnError,
+		MaxFiles:        cmd.MaxFiles,
+		ContinueOnError: cmd.ContinueOnError,
 	}
 
 	result, err := mgr.BulkRemovePublic(context.Background(), reqCtx, opts)
@@ -613,25 +471,25 @@ func runPermBulkRemovePublic(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.bulk.remove-public", result)
 }
 
-func runPermBulkUpdateRole(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermBulkUpdateRoleCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.bulk.update-role", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
 	opts := types.BulkOptions{
-		FolderID:        bulkFolderID,
-		Recursive:       bulkRecursive,
+		FolderID:        cmd.FolderID,
+		Recursive:       cmd.Recursive,
 		DryRun:          flags.DryRun,
-		MaxFiles:        bulkMaxFiles,
-		ContinueOnError: bulkContinueOnError,
+		MaxFiles:        cmd.MaxFiles,
+		ContinueOnError: cmd.ContinueOnError,
 	}
 
-	result, err := mgr.BulkUpdateRole(context.Background(), reqCtx, bulkFromRole, bulkToRole, opts)
+	result, err := mgr.BulkUpdateRole(context.Background(), reqCtx, cmd.FromRole, cmd.ToRole, opts)
 	if err != nil {
 		return handleCLIError(writer, "permissions.bulk.update-role", err)
 	}
@@ -639,30 +497,30 @@ func runPermBulkUpdateRole(cmd *cobra.Command, args []string) error {
 	return writer.WriteSuccess("permissions.bulk.update-role", result)
 }
 
-func runPermSearch(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *PermSearchCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	writer := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 
-	if searchEmail == "" && searchRole == "" {
+	if cmd.Email == "" && cmd.Role == "" {
 		return writer.WriteError("permissions.search", utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			"Either --email or --role must be specified").Build())
 	}
 
-	mgr, err := getPermissionManager()
+	mgr, err := getPermissionManager(flags)
 	if err != nil {
 		return handleCLIError(writer, "permissions.search", err)
 	}
 
 	reqCtx := api.NewRequestContext(flags.Profile, flags.DriveID, types.RequestTypePermissionOp)
 	searchOpts := types.SearchOptions{
-		Email:     searchEmail,
-		Role:      searchRole,
-		FolderID:  searchFolderID,
-		Recursive: searchRecursive,
+		Email:     cmd.Email,
+		Role:      cmd.Role,
+		FolderID:  cmd.FolderID,
+		Recursive: cmd.Recursive,
 	}
 
 	var result *types.AuditResult
-	if searchEmail != "" {
+	if cmd.Email != "" {
 		result, err = mgr.SearchByEmail(context.Background(), reqCtx, searchOpts)
 	} else {
 		result, err = mgr.SearchByRole(context.Background(), reqCtx, searchOpts)

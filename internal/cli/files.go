@@ -10,196 +10,110 @@ import (
 	"github.com/milcgroup/gdrv/internal/revisions"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 )
 
-var filesCmd = &cobra.Command{
-	Use:   "files",
-	Short: "File operations",
-	Long:  "Manage files in Google Drive",
+type FilesCmd struct {
+	List          FilesListCmd          `cmd:"" help:"List files"`
+	Get           FilesGetCmd           `cmd:"" help:"Get file metadata"`
+	Upload        FilesUploadCmd        `cmd:"" help:"Upload a file"`
+	Download      FilesDownloadCmd      `cmd:"" help:"Download a file"`
+	Delete        FilesDeleteCmd        `cmd:"" help:"Delete a file"`
+	Copy          FilesCopyCmd          `cmd:"" help:"Copy a file"`
+	Move          FilesMoveCmd          `cmd:"" help:"Move a file"`
+	Trash         FilesTrashCmd         `cmd:"" help:"Move file to trash"`
+	Restore       FilesRestoreCmd       `cmd:"" help:"Restore file from trash"`
+	Revisions     FilesRevisionsCmd     `cmd:"" help:"List file revisions"`
+	ListTrashed   FilesListTrashedCmd   `cmd:"list-trashed" help:"List trashed files"`
+	ExportFormats FilesExportFormatsCmd `cmd:"export-formats" help:"Show available export formats for a file"`
 }
 
-var filesListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List files",
-	RunE:  runFilesList,
+type FilesListCmd struct {
+	Parent         string `help:"Parent folder ID" name:"parent"`
+	Query          string `help:"Search query" name:"query"`
+	Limit          int    `help:"Maximum files to return per page" default:"100" name:"limit"`
+	PageToken      string `help:"Page token for pagination" name:"page-token"`
+	OrderBy        string `help:"Sort order" name:"order-by"`
+	IncludeTrashed bool   `help:"Include trashed files" name:"include-trashed"`
+	Fields         string `help:"Fields to return" name:"fields"`
+	Paginate       bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var filesGetCmd = &cobra.Command{
-	Use:   "get <file-id>",
-	Short: "Get file metadata",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesGet,
+type FilesGetCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
+	Fields string `help:"Fields to return" name:"fields"`
 }
 
-var filesUploadCmd = &cobra.Command{
-	Use:   "upload <local-path>",
-	Short: "Upload a file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesUpload,
+type FilesUploadCmd struct {
+	LocalPath string `arg:"" name:"local-path" help:"Local file path"`
+	Parent    string `help:"Parent folder ID" name:"parent"`
+	Name      string `help:"File name" name:"name"`
+	MimeType  string `help:"MIME type" name:"mime-type"`
 }
 
-var filesDownloadCmd = &cobra.Command{
-	Use:   "download <file-id>",
-	Short: "Download a file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesDownload,
+type FilesDownloadCmd struct {
+	FileID     string `arg:"" name:"file-id" help:"File ID or path"`
+	OutputPath string `help:"Output path" name:"file-output"`
+	MimeType   string `help:"Export MIME type" name:"mime-type"`
+	Doc        bool   `help:"Export Google Docs as plain text" name:"doc" aliases:"doc-text"`
 }
 
-var filesDeleteCmd = &cobra.Command{
-	Use:   "delete <file-id>",
-	Short: "Delete a file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesDelete,
+type FilesDeleteCmd struct {
+	FileID           string `arg:"" name:"file-id" help:"File ID or path"`
+	Permanent        bool   `help:"Permanently delete" name:"permanent"`
+	SkipConfirmation bool   `help:"Skip confirmation" name:"skip-confirmation"`
 }
 
-var filesCopyCmd = &cobra.Command{
-	Use:   "copy <file-id>",
-	Short: "Copy a file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesCopy,
+type FilesCopyCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
+	Name   string `help:"New file name" name:"name"`
+	Parent string `help:"Destination folder ID" name:"parent"`
 }
 
-var filesMoveCmd = &cobra.Command{
-	Use:   "move <file-id>",
-	Short: "Move a file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesMove,
+type FilesMoveCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
+	Parent string `help:"New parent folder ID" name:"parent" required:""`
 }
 
-var filesTrashCmd = &cobra.Command{
-	Use:   "trash <file-id>",
-	Short: "Move file to trash",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesTrash,
+type FilesTrashCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
 }
 
-var filesRestoreCmd = &cobra.Command{
-	Use:   "restore <file-id>",
-	Short: "Restore file from trash",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesRestore,
+type FilesRestoreCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
 }
 
-var filesRevisionsCmd = &cobra.Command{
-	Use:   "revisions <file-id>",
-	Short: "List file revisions",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesRevisions,
+type FilesRevisionsCmd struct {
+	List     FilesRevisionsListCmd     `cmd:"" default:"withargs" help:"List file revisions"`
+	Download FilesRevisionsDownloadCmd `cmd:"" help:"Download a specific revision"`
+	Restore  FilesRevisionsRestoreCmd  `cmd:"" help:"Restore file to a specific revision"`
 }
 
-var filesRevisionsDownloadCmd = &cobra.Command{
-	Use:   "revisions download <file-id> <revision-id>",
-	Short: "Download a specific revision",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runFilesRevisionsDownload,
+type FilesRevisionsListCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
 }
 
-var filesRevisionsRestoreCmd = &cobra.Command{
-	Use:   "revisions restore <file-id> <revision-id>",
-	Short: "Restore file to a specific revision",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runFilesRevisionsRestore,
+type FilesRevisionsDownloadCmd struct {
+	FileID     string `arg:"" name:"file-id" help:"File ID or path"`
+	RevisionID string `arg:"" name:"revision-id" help:"Revision ID"`
+	OutputPath string `help:"Output path for revision download" name:"revision-output" required:""`
 }
 
-var filesListTrashedCmd = &cobra.Command{
-	Use:   "list-trashed",
-	Short: "List trashed files",
-	RunE:  runFilesListTrashed,
+type FilesRevisionsRestoreCmd struct {
+	FileID     string `arg:"" name:"file-id" help:"File ID or path"`
+	RevisionID string `arg:"" name:"revision-id" help:"Revision ID"`
 }
 
-var filesExportFormatsCmd = &cobra.Command{
-	Use:   "export-formats <file-id>",
-	Short: "Show available export formats for a file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFilesExportFormats,
+type FilesListTrashedCmd struct {
+	Query     string `help:"Search query" name:"query"`
+	Limit     int    `help:"Maximum files to return per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	OrderBy   string `help:"Sort order" name:"order-by"`
+	Fields    string `help:"Fields to return" name:"fields"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-// Command flags
-var (
-	filesParentID       string
-	filesQuery          string
-	filesLimit          int
-	filesPageToken      string
-	filesOrderBy        string
-	filesIncludeTrashed bool
-	filesFields         string
-	filesGetFields      string
-	filesName           string
-	filesMimeType       string
-	filesOutput         string
-	filesPermanent      bool
-	filesForce          bool
-	filesDownloadDoc    bool
-	filesRevisionOutput string
-	filesPaginate       bool
-)
-
-func init() {
-	// List flags
-	filesListCmd.Flags().StringVar(&filesParentID, "parent", "", "Parent folder ID")
-	filesListCmd.Flags().StringVar(&filesQuery, "query", "", "Search query")
-	filesListCmd.Flags().IntVar(&filesLimit, "limit", 100, "Maximum files to return per page")
-	filesListCmd.Flags().StringVar(&filesPageToken, "page-token", "", "Page token for pagination")
-	filesListCmd.Flags().StringVar(&filesOrderBy, "order-by", "", "Sort order")
-	filesListCmd.Flags().BoolVar(&filesIncludeTrashed, "include-trashed", false, "Include trashed files")
-	filesListCmd.Flags().StringVar(&filesFields, "fields", "", "Fields to return")
-	filesListCmd.Flags().BoolVar(&filesPaginate, "paginate", false, "Automatically fetch all pages")
-
-	// Get flags
-	filesGetCmd.Flags().StringVar(&filesGetFields, "fields", "", "Fields to return")
-
-	// Upload flags
-	filesUploadCmd.Flags().StringVar(&filesParentID, "parent", "", "Parent folder ID")
-	filesUploadCmd.Flags().StringVar(&filesName, "name", "", "File name")
-	filesUploadCmd.Flags().StringVar(&filesMimeType, "mime-type", "", "MIME type")
-
-	// Download flags
-	filesDownloadCmd.Flags().StringVar(&filesOutput, "output", "", "Output path")
-	filesDownloadCmd.Flags().StringVar(&filesMimeType, "mime-type", "", "Export MIME type")
-	filesDownloadCmd.Flags().BoolVar(&filesDownloadDoc, "doc", false, "Export Google Docs as plain text")
-	filesDownloadCmd.Flags().BoolVar(&filesDownloadDoc, "doc-text", false, "Export Google Docs as plain text")
-
-	// Delete flags
-	filesDeleteCmd.Flags().BoolVar(&filesPermanent, "permanent", false, "Permanently delete")
-	filesDeleteCmd.Flags().BoolVar(&filesForce, "force", false, "Skip confirmation")
-
-	// Copy flags
-	filesCopyCmd.Flags().StringVar(&filesName, "name", "", "New file name")
-	filesCopyCmd.Flags().StringVar(&filesParentID, "parent", "", "Destination folder ID")
-
-	// Move flags
-	filesMoveCmd.Flags().StringVar(&filesParentID, "parent", "", "New parent folder ID")
-	_ = filesMoveCmd.MarkFlagRequired("parent")
-
-	// Revision flags
-	filesRevisionsDownloadCmd.Flags().StringVar(&filesRevisionOutput, "output", "", "Output path for revision download")
-	_ = filesRevisionsDownloadCmd.MarkFlagRequired("output")
-
-	filesRevisionsCmd.AddCommand(filesRevisionsDownloadCmd)
-	filesRevisionsCmd.AddCommand(filesRevisionsRestoreCmd)
-
-	// List trashed flags
-	filesListTrashedCmd.Flags().StringVar(&filesQuery, "query", "", "Search query")
-	filesListTrashedCmd.Flags().IntVar(&filesLimit, "limit", 100, "Maximum files to return per page")
-	filesListTrashedCmd.Flags().StringVar(&filesPageToken, "page-token", "", "Page token for pagination")
-	filesListTrashedCmd.Flags().StringVar(&filesOrderBy, "order-by", "", "Sort order")
-	filesListTrashedCmd.Flags().StringVar(&filesFields, "fields", "", "Fields to return")
-	filesListTrashedCmd.Flags().BoolVar(&filesPaginate, "paginate", false, "Automatically fetch all pages")
-
-	filesCmd.AddCommand(filesListCmd)
-	filesCmd.AddCommand(filesGetCmd)
-	filesCmd.AddCommand(filesUploadCmd)
-	filesCmd.AddCommand(filesDownloadCmd)
-	filesCmd.AddCommand(filesDeleteCmd)
-	filesCmd.AddCommand(filesCopyCmd)
-	filesCmd.AddCommand(filesMoveCmd)
-	filesCmd.AddCommand(filesTrashCmd)
-	filesCmd.AddCommand(filesRestoreCmd)
-	filesCmd.AddCommand(filesRevisionsCmd)
-	filesCmd.AddCommand(filesListTrashedCmd)
-	filesCmd.AddCommand(filesExportFormatsCmd)
-	rootCmd.AddCommand(filesCmd)
+type FilesExportFormatsCmd struct {
+	FileID string `arg:"" name:"file-id" help:"File ID or path"`
 }
 
 func getFileManager(ctx context.Context, flags types.GlobalFlags) (*files.Manager, *api.Client, *types.RequestContext, *OutputWriter, error) {
@@ -224,8 +138,8 @@ func getFileManager(ctx context.Context, flags types.GlobalFlags) (*files.Manage
 	return mgr, client, reqCtx, out, nil
 }
 
-func runFilesList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -234,7 +148,7 @@ func runFilesList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve parent path if provided
-	parentID := filesParentID
+	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
@@ -248,16 +162,16 @@ func runFilesList(cmd *cobra.Command, args []string) error {
 
 	opts := files.ListOptions{
 		ParentID:       parentID,
-		Query:          filesQuery,
-		PageSize:       filesLimit,
-		PageToken:      filesPageToken,
-		OrderBy:        filesOrderBy,
-		IncludeTrashed: filesIncludeTrashed,
-		Fields:         filesFields,
+		Query:          cmd.Query,
+		PageSize:       cmd.Limit,
+		PageToken:      cmd.PageToken,
+		OrderBy:        cmd.OrderBy,
+		IncludeTrashed: cmd.IncludeTrashed,
+		Fields:         cmd.Fields,
 	}
 
 	// If --paginate flag is set, fetch all pages
-	if filesPaginate {
+	if cmd.Paginate {
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
 			return handleCLIError(out, "files.list", err)
@@ -276,8 +190,8 @@ func runFilesList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.list", result)
 }
 
-func runFilesGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -286,7 +200,7 @@ func runFilesGet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.get", appErr.CLIError)
@@ -295,7 +209,7 @@ func runFilesGet(cmd *cobra.Command, args []string) error {
 	}
 
 	reqCtx.RequestType = types.RequestTypeGetByID
-	file, err := mgr.Get(ctx, reqCtx, fileID, filesGetFields)
+	file, err := mgr.Get(ctx, reqCtx, fileID, cmd.Fields)
 	if err != nil {
 		return handleCLIError(out, "files.get", err)
 	}
@@ -303,8 +217,8 @@ func runFilesGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.get", file)
 }
 
-func runFilesUpload(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesUploadCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -313,7 +227,7 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve parent path if provided
-	parentID := filesParentID
+	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
@@ -326,10 +240,10 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 	}
 
 	reqCtx.RequestType = types.RequestTypeMutation
-	file, err := mgr.Upload(ctx, reqCtx, args[0], files.UploadOptions{
+	file, err := mgr.Upload(ctx, reqCtx, cmd.LocalPath, files.UploadOptions{
 		ParentID: parentID,
-		Name:     filesName,
-		MimeType: filesMimeType,
+		Name:     cmd.Name,
+		MimeType: cmd.MimeType,
 	})
 	if err != nil {
 		return handleCLIError(out, "files.upload", err)
@@ -339,8 +253,8 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.upload", file)
 }
 
-func runFilesDownload(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesDownloadCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -349,7 +263,7 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.download", appErr.CLIError)
@@ -358,25 +272,25 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 	}
 
 	reqCtx.RequestType = types.RequestTypeDownloadOrExport
-	mimeType := filesMimeType
-	if filesDownloadDoc && mimeType == "" {
+	mimeType := cmd.MimeType
+	if cmd.Doc && mimeType == "" {
 		mimeType = "text/plain"
 	}
 
 	err = mgr.Download(ctx, reqCtx, fileID, files.DownloadOptions{
-		OutputPath: filesOutput,
+		OutputPath: cmd.OutputPath,
 		MimeType:   mimeType,
 	})
 	if err != nil {
 		return handleCLIError(out, "files.download", err)
 	}
 
-	out.Log("Downloaded to: %s", filesOutput)
-	return out.WriteSuccess("files.download", map[string]string{"path": filesOutput})
+	out.Log("Downloaded to: %s", cmd.OutputPath)
+	return out.WriteSuccess("files.download", map[string]string{"path": cmd.OutputPath})
 }
 
-func runFilesDelete(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -385,7 +299,7 @@ func runFilesDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.delete", appErr.CLIError)
@@ -394,21 +308,21 @@ func runFilesDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	reqCtx.RequestType = types.RequestTypeMutation
-	err = mgr.Delete(ctx, reqCtx, fileID, filesPermanent)
+	err = mgr.Delete(ctx, reqCtx, fileID, cmd.Permanent)
 	if err != nil {
 		return handleCLIError(out, "files.delete", err)
 	}
 
 	action := "trashed"
-	if filesPermanent {
+	if cmd.Permanent {
 		action = "deleted"
 	}
 	out.Log("File %s: %s", action, fileID)
 	return out.WriteSuccess("files.delete", map[string]string{"id": fileID, "status": action})
 }
 
-func runFilesCopy(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesCopyCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -417,7 +331,7 @@ func runFilesCopy(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.copy", appErr.CLIError)
@@ -426,7 +340,7 @@ func runFilesCopy(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve parent path if provided
-	parentID := filesParentID
+	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
@@ -439,7 +353,7 @@ func runFilesCopy(cmd *cobra.Command, args []string) error {
 	}
 
 	reqCtx.RequestType = types.RequestTypeMutation
-	file, err := mgr.Copy(ctx, reqCtx, fileID, filesName, parentID)
+	file, err := mgr.Copy(ctx, reqCtx, fileID, cmd.Name, parentID)
 	if err != nil {
 		return handleCLIError(out, "files.copy", err)
 	}
@@ -448,8 +362,8 @@ func runFilesCopy(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.copy", file)
 }
 
-func runFilesMove(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesMoveCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -458,7 +372,7 @@ func runFilesMove(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.move", appErr.CLIError)
@@ -467,7 +381,7 @@ func runFilesMove(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve parent path
-	parentID, err := ResolveFileID(ctx, client, flags, filesParentID)
+	parentID, err := ResolveFileID(ctx, client, flags, cmd.Parent)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.move", appErr.CLIError)
@@ -485,8 +399,8 @@ func runFilesMove(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.move", file)
 }
 
-func runFilesTrash(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesTrashCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -495,7 +409,7 @@ func runFilesTrash(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.trash", appErr.CLIError)
@@ -513,8 +427,8 @@ func runFilesTrash(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.trash", file)
 }
 
-func runFilesRestore(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesRestoreCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -523,7 +437,7 @@ func runFilesRestore(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.restore", appErr.CLIError)
@@ -541,8 +455,8 @@ func runFilesRestore(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.restore", file)
 }
 
-func runFilesRevisions(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesRevisionsListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	_, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -551,7 +465,7 @@ func runFilesRevisions(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.revisions", appErr.CLIError)
@@ -571,8 +485,8 @@ func runFilesRevisions(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.revisions", result)
 }
 
-func runFilesRevisionsDownload(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesRevisionsDownloadCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	_, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -581,7 +495,7 @@ func runFilesRevisionsDownload(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.revisions.download", appErr.CLIError)
@@ -589,25 +503,25 @@ func runFilesRevisionsDownload(cmd *cobra.Command, args []string) error {
 		return out.WriteError("files.revisions.download", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
 	}
 
-	revisionID := args[1]
+	revisionID := cmd.RevisionID
 
 	// Create revisions manager
 	revMgr := revisions.NewManager(client)
 	reqCtx.RequestType = types.RequestTypeDownloadOrExport
 
 	err = revMgr.Download(ctx, reqCtx, fileID, revisionID, revisions.DownloadOptions{
-		OutputPath: filesRevisionOutput,
+		OutputPath: cmd.OutputPath,
 	})
 	if err != nil {
 		return handleCLIError(out, "files.revisions.download", err)
 	}
 
-	out.Log("Downloaded revision %s to: %s", revisionID, filesRevisionOutput)
-	return out.WriteSuccess("files.revisions.download", map[string]string{"revisionId": revisionID, "path": filesRevisionOutput})
+	out.Log("Downloaded revision %s to: %s", revisionID, cmd.OutputPath)
+	return out.WriteSuccess("files.revisions.download", map[string]string{"revisionId": revisionID, "path": cmd.OutputPath})
 }
 
-func runFilesRevisionsRestore(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesRevisionsRestoreCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	_, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -616,7 +530,7 @@ func runFilesRevisionsRestore(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.revisions.restore", appErr.CLIError)
@@ -624,7 +538,7 @@ func runFilesRevisionsRestore(cmd *cobra.Command, args []string) error {
 		return out.WriteError("files.revisions.restore", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
 	}
 
-	revisionID := args[1]
+	revisionID := cmd.RevisionID
 
 	// Create revisions manager
 	revMgr := revisions.NewManager(client)
@@ -639,8 +553,8 @@ func runFilesRevisionsRestore(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.revisions.restore", file)
 }
 
-func runFilesListTrashed(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesListTrashedCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, _, reqCtx, out, err := getFileManager(ctx, flags)
@@ -649,15 +563,15 @@ func runFilesListTrashed(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := files.ListOptions{
-		Query:     filesQuery,
-		PageSize:  filesLimit,
-		PageToken: filesPageToken,
-		OrderBy:   filesOrderBy,
-		Fields:    filesFields,
+		Query:     cmd.Query,
+		PageSize:  cmd.Limit,
+		PageToken: cmd.PageToken,
+		OrderBy:   cmd.OrderBy,
+		Fields:    cmd.Fields,
 	}
 
 	// If --paginate flag is set, fetch all pages
-	if filesPaginate {
+	if cmd.Paginate {
 		// Use ListAll with trashed query
 		opts.IncludeTrashed = true
 		if opts.Query != "" {
@@ -682,8 +596,8 @@ func runFilesListTrashed(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("files.list-trashed", result)
 }
 
-func runFilesExportFormats(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *FilesExportFormatsCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	ctx := context.Background()
 
 	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
@@ -692,7 +606,7 @@ func runFilesExportFormats(cmd *cobra.Command, args []string) error {
 	}
 
 	// Resolve file ID from path if needed
-	fileID, err := ResolveFileID(ctx, client, flags, args[0])
+	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("files.export-formats", appErr.CLIError)

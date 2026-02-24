@@ -12,88 +12,49 @@ import (
 	"github.com/milcgroup/gdrv/internal/files"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/spf13/cobra"
 	docsapi "google.golang.org/api/docs/v1"
 	"google.golang.org/api/drive/v3"
 )
 
-var docsCmd = &cobra.Command{
-	Use:   "docs",
-	Short: "Google Docs operations",
-	Long:  "Commands for managing Google Docs files",
+type DocsCmd struct {
+	List   DocsListCmd   `cmd:"" help:"List documents"`
+	Get    DocsGetCmd    `cmd:"" help:"Get document metadata"`
+	Read   DocsReadCmd   `cmd:"" help:"Extract plain text from document"`
+	Create DocsCreateCmd `cmd:"" help:"Create a document"`
+	Update DocsUpdateCmd `cmd:"" help:"Batch update document"`
 }
 
-var docsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List Google Docs files",
-	Long:  "List Google Docs files using Drive API with MIME type filter",
-	RunE:  runDocsList,
+type DocsListCmd struct {
+	Parent    string `help:"Parent folder ID" name:"parent"`
+	Query     string `help:"Additional search query" name:"query"`
+	Limit     int    `help:"Maximum files to return per page" default:"100" name:"limit"`
+	PageToken string `help:"Page token for pagination" name:"page-token"`
+	OrderBy   string `help:"Sort order" name:"order-by"`
+	Fields    string `help:"Fields to return" name:"fields"`
+	Paginate  bool   `help:"Automatically fetch all pages" name:"paginate"`
 }
 
-var docsGetCmd = &cobra.Command{
-	Use:   "get <document-id>",
-	Short: "Get document metadata",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runDocsGet,
+type DocsGetCmd struct {
+	DocumentID string `arg:"" name:"document-id" help:"Document ID or path"`
 }
 
-var docsReadCmd = &cobra.Command{
-	Use:   "read <document-id>",
-	Short: "Read document content",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runDocsRead,
+type DocsReadCmd struct {
+	DocumentID string `arg:"" name:"document-id" help:"Document ID or path"`
 }
 
-var docsCreateCmd = &cobra.Command{
-	Use:   "create <name>",
-	Short: "Create a new document",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runDocsCreate,
+type DocsCreateCmd struct {
+	Name   string `arg:"" name:"name" help:"Document name"`
+	Parent string `help:"Parent folder ID" name:"parent"`
 }
 
-var docsUpdateCmd = &cobra.Command{
-	Use:   "update <document-id>",
-	Short: "Update document content",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runDocsUpdate,
+type DocsUpdateCmd struct {
+	DocumentID   string `arg:"" name:"document-id" help:"Document ID or path"`
+	Requests     string `help:"Batch update requests JSON" name:"requests"`
+	RequestsFile string `help:"Path to JSON file with batch update requests" name:"requests-file"`
 }
 
-var (
-	docsListParentID   string
-	docsListQuery      string
-	docsListLimit      int
-	docsListPageToken  string
-	docsListOrderBy    string
-	docsListFields     string
-	docsListPaginate   bool
-	docsCreateParentID string
-	docsUpdateRequests string
-	docsUpdateFile     string
-)
-
-func init() {
-	docsListCmd.Flags().StringVar(&docsListParentID, "parent", "", "Parent folder ID")
-	docsListCmd.Flags().StringVar(&docsListQuery, "query", "", "Additional search query")
-	docsListCmd.Flags().IntVar(&docsListLimit, "limit", 100, "Maximum files to return per page")
-	docsListCmd.Flags().StringVar(&docsListPageToken, "page-token", "", "Page token for pagination")
-	docsListCmd.Flags().StringVar(&docsListOrderBy, "order-by", "", "Sort order")
-	docsListCmd.Flags().StringVar(&docsListFields, "fields", "", "Fields to return")
-	docsListCmd.Flags().BoolVar(&docsListPaginate, "paginate", false, "Automatically fetch all pages")
-
-	docsCreateCmd.Flags().StringVar(&docsCreateParentID, "parent", "", "Parent folder ID")
-	docsUpdateCmd.Flags().StringVar(&docsUpdateRequests, "requests", "", "Batch update requests JSON")
-	docsUpdateCmd.Flags().StringVar(&docsUpdateFile, "requests-file", "", "Path to JSON file with batch update requests")
-
-	docsCmd.AddCommand(docsListCmd)
-	docsCmd.AddCommand(docsGetCmd)
-	docsCmd.AddCommand(docsReadCmd)
-	docsCmd.AddCommand(docsCreateCmd)
-	docsCmd.AddCommand(docsUpdateCmd)
-	rootCmd.AddCommand(docsCmd)
-}
-
-func runDocsList(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *DocsListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -102,7 +63,7 @@ func runDocsList(cmd *cobra.Command, args []string) error {
 		return out.WriteError("docs.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	parentID := docsListParentID
+	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
@@ -118,24 +79,24 @@ func runDocsList(cmd *cobra.Command, args []string) error {
 	if parentID != "" {
 		query = fmt.Sprintf("'%s' in parents and %s", parentID, query)
 	}
-	if docsListQuery != "" {
-		query = fmt.Sprintf("%s and (%s)", query, docsListQuery)
+	if cmd.Query != "" {
+		query = fmt.Sprintf("%s and (%s)", query, cmd.Query)
 	}
 
 	opts := files.ListOptions{
 		ParentID:       parentID,
 		Query:          query,
-		PageSize:       docsListLimit,
-		PageToken:      docsListPageToken,
-		OrderBy:        docsListOrderBy,
+		PageSize:       cmd.Limit,
+		PageToken:      cmd.PageToken,
+		OrderBy:        cmd.OrderBy,
 		IncludeTrashed: false,
-		Fields:         docsListFields,
+		Fields:         cmd.Fields,
 	}
 
 	mgr := files.NewManager(client)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
-	if docsListPaginate {
+	if cmd.Paginate {
 		allFiles, err := mgr.ListAll(ctx, reqCtx, opts)
 		if err != nil {
 			return handleCLIError(out, "docs.list", err)
@@ -159,8 +120,8 @@ func runDocsList(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("docs.list", result)
 }
 
-func runDocsGet(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *DocsGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -169,7 +130,7 @@ func runDocsGet(cmd *cobra.Command, args []string) error {
 		return out.WriteError("docs.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	documentID, err := ResolveFileID(ctx, client, flags, args[0])
+	documentID, err := ResolveFileID(ctx, client, flags, cmd.DocumentID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("docs.get", appErr.CLIError)
@@ -187,8 +148,8 @@ func runDocsGet(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("docs.get", result)
 }
 
-func runDocsRead(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *DocsReadCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -197,7 +158,7 @@ func runDocsRead(cmd *cobra.Command, args []string) error {
 		return out.WriteError("docs.read", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	documentID, err := ResolveFileID(ctx, client, flags, args[0])
+	documentID, err := ResolveFileID(ctx, client, flags, cmd.DocumentID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("docs.read", appErr.CLIError)
@@ -215,8 +176,8 @@ func runDocsRead(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("docs.read", result)
 }
 
-func runDocsCreate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *DocsCreateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -225,7 +186,7 @@ func runDocsCreate(cmd *cobra.Command, args []string) error {
 		return out.WriteError("docs.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	parentID := docsCreateParentID
+	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
@@ -239,7 +200,7 @@ func runDocsCreate(cmd *cobra.Command, args []string) error {
 
 	reqCtx.RequestType = types.RequestTypeMutation
 	metadata := &drive.File{
-		Name:     args[0],
+		Name:     cmd.Name,
 		MimeType: utils.MimeTypeDocument,
 	}
 	if parentID != "" {
@@ -265,8 +226,8 @@ func runDocsCreate(cmd *cobra.Command, args []string) error {
 	return out.WriteSuccess("docs.create", convertDriveFile(result))
 }
 
-func runDocsUpdate(cmd *cobra.Command, args []string) error {
-	flags := GetGlobalFlags()
+func (cmd *DocsUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	ctx := context.Background()
 
@@ -275,12 +236,12 @@ func runDocsUpdate(cmd *cobra.Command, args []string) error {
 		return out.WriteError("docs.update", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	requests, err := readDocsRequests()
+	requests, err := parseDocsRequests(cmd.Requests, cmd.RequestsFile)
 	if err != nil {
 		return out.WriteError("docs.update", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
 	}
 
-	documentID, err := ResolveFileID(ctx, client, flags, args[0])
+	documentID, err := ResolveFileID(ctx, client, flags, cmd.DocumentID)
 	if err != nil {
 		if appErr, ok := err.(*utils.AppError); ok {
 			return out.WriteError("docs.update", appErr.CLIError)
@@ -326,20 +287,20 @@ func getDocsService(ctx context.Context, flags types.GlobalFlags) (*docsapi.Serv
 	return svc, client, reqCtx, nil
 }
 
-func readDocsRequests() ([]*docsapi.Request, error) {
-	if docsUpdateRequests == "" && docsUpdateFile == "" {
+func parseDocsRequests(requestsJSON, requestsFile string) ([]*docsapi.Request, error) {
+	if requestsJSON == "" && requestsFile == "" {
 		return nil, fmt.Errorf("requests required via --requests or --requests-file")
 	}
 
 	var raw []byte
-	if docsUpdateFile != "" {
-		data, err := os.ReadFile(docsUpdateFile)
+	if requestsFile != "" {
+		data, err := os.ReadFile(requestsFile)
 		if err != nil {
 			return nil, err
 		}
 		raw = data
 	} else {
-		raw = []byte(docsUpdateRequests)
+		raw = []byte(requestsJSON)
 	}
 
 	var requests []*docsapi.Request
@@ -351,4 +312,3 @@ func readDocsRequests() ([]*docsapi.Request, error) {
 	}
 	return requests, nil
 }
-

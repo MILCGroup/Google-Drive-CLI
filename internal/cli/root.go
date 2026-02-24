@@ -7,115 +7,159 @@ import (
 	"time"
 
 	"github.com/milcgroup/gdrv/internal/api"
-	"github.com/milcgroup/gdrv/internal/auth"
 	"github.com/milcgroup/gdrv/internal/logging"
 	"github.com/milcgroup/gdrv/internal/resolver"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/pkg/version"
-	"github.com/spf13/cobra"
 )
 
+// ============================================================
+// KONG FOUNDATION - new CLI architecture
+// ============================================================
+
+// Globals holds all persistent flags inherited by every command.
+// AfterApply runs before any command Run method.
+type Globals struct {
+	Profile             string         `help:"Authentication profile to use" default:"default" name:"profile"`
+	DriveID             string         `help:"Shared Drive ID to operate in" name:"drive-id"`
+	Output              string         `help:"Output format (json, table)" default:"json" name:"output"`
+	Quiet               bool           `help:"Suppress non-essential output" short:"q" name:"quiet"`
+	Verbose             bool           `help:"Enable verbose logging" short:"v" name:"verbose"`
+	Debug               bool           `help:"Enable debug output" name:"debug"`
+	Strict              bool           `help:"Convert warnings to errors" name:"strict"`
+	NoCache             bool           `help:"Bypass path resolution cache" name:"no-cache"`
+	CacheTTL            int            `help:"Path cache TTL in seconds" default:"300" name:"cache-ttl"`
+	IncludeSharedWithMe bool           `help:"Include shared-with-me items" name:"include-shared-with-me"`
+	Config              string         `help:"Path to configuration file" name:"config"`
+	LogFile             string         `help:"Path to log file" name:"log-file"`
+	DryRun              bool           `help:"Show what would be done without making changes" name:"dry-run"`
+	Force               bool           `help:"Force operation without confirmation" short:"f" name:"force"`
+	Yes                 bool           `help:"Answer yes to all prompts" short:"y" name:"yes"`
+	JSON                bool           `help:"Output in JSON format (alias for --output json)" name:"json"`
+	Logger              logging.Logger `kong:"-"`
+}
+
+// AfterApply replaces cobra PersistentPreRunE for kong commands.
+func (g *Globals) AfterApply() error {
+	if g.JSON {
+		g.Output = "json"
+	}
+
+	if g.Output != string(types.OutputFormatJSON) && g.Output != string(types.OutputFormatTable) {
+		return fmt.Errorf("invalid output format: %s (must be json or table)", g.Output)
+	}
+
+	logConfig := logging.LogConfig{
+		Level:           logging.INFO,
+		OutputFile:      g.LogFile,
+		EnableConsole:   !g.Quiet,
+		EnableDebug:     g.Debug,
+		RedactSensitive: true,
+		EnableColor:     true,
+		EnableTimestamp: true,
+	}
+	if g.Verbose {
+		logConfig.Level = logging.DEBUG
+	}
+	if g.Output == string(types.OutputFormatJSON) && !g.Verbose && !g.Debug {
+		logConfig.EnableConsole = false
+	}
+
+	var err error
+	g.Logger, err = logging.NewLogger(logConfig)
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	globalFlags = g.ToGlobalFlags()
+	logger = g.Logger
+
+	return nil
+}
+
+// ToGlobalFlags converts kong globals to legacy manager-compatible flags.
+func (g *Globals) ToGlobalFlags() types.GlobalFlags {
+	outputFormat := types.OutputFormatJSON
+	if g.Output == string(types.OutputFormatTable) {
+		outputFormat = types.OutputFormatTable
+	}
+
+	return types.GlobalFlags{
+		Profile:             g.Profile,
+		DriveID:             g.DriveID,
+		OutputFormat:        outputFormat,
+		Quiet:               g.Quiet,
+		Verbose:             g.Verbose,
+		Debug:               g.Debug,
+		Strict:              g.Strict,
+		NoCache:             g.NoCache,
+		CacheTTL:            g.CacheTTL,
+		IncludeSharedWithMe: g.IncludeSharedWithMe,
+		Config:              g.Config,
+		LogFile:             g.LogFile,
+		DryRun:              g.DryRun,
+		Force:               g.Force,
+		Yes:                 g.Yes,
+		JSON:                g.JSON,
+	}
+}
+
+// CLI is the kong root command tree.
+type CLI struct {
+	Globals
+
+	Version     VersionCmd      `cmd:"" help:"Print the version number"`
+	About       AboutCmd        `cmd:"" help:"Display Drive account information and API capabilities"`
+	Files       FilesCmd        `cmd:"" help:"File operations"`
+	Folders     FoldersCmd      `cmd:"" help:"Folder operations"`
+	Auth        AuthCmd         `cmd:"" help:"Authentication commands"`
+	Permissions PermissionsCmd  `cmd:"" aliases:"perm" help:"Permission operations"`
+	Drives      DrivesCmd       `cmd:"" help:"Manage Shared Drives"`
+	Sheets      SheetsCmd       `cmd:"" help:"Google Sheets operations"`
+	Docs        DocsCmd         `cmd:"" help:"Google Docs operations"`
+	Slides      SlidesCmd       `cmd:"" help:"Google Slides operations"`
+	Admin       AdminCmd        `cmd:"" help:"Google Workspace Admin SDK operations"`
+	Groups      GroupsCmd       `cmd:"" help:"Cloud Identity Groups operations (distinct from 'admin groups' which uses Admin SDK)"`
+	Changes     ChangesCmd      `cmd:"" help:"Drive Changes API operations"`
+	Labels      LabelsCmd       `cmd:"" help:"Drive Labels API operations"`
+	Activity    ActivityCmd     `cmd:"" help:"Drive Activity API operations"`
+	Forms       FormsCmd        `cmd:"" help:"Google Forms operations"`
+	People      PeopleCmd       `cmd:"" help:"Google People/Contacts operations"`
+	Chat        ChatCmd         `cmd:"" help:"Google Chat operations"`
+	Gmail       GmailCmd        `cmd:"" help:"Gmail operations"`
+	Calendar    CalendarCmd     `cmd:"" help:"Google Calendar operations"`
+	Tasks       TasksCmd        `cmd:"" help:"Google Tasks operations"`
+	AppScript   AppScriptCmd    `cmd:"" help:"Google Apps Script operations"`
+	Sync        SyncCmd         `cmd:"" help:"Sync local folders with Drive"`
+	Config      ConfigCmd       `cmd:"" help:"Configuration management"`
+	Completion  CompletionCmd   `cmd:"" help:"Generate shell completion scripts" hidden:""`
+	AI          AICmd           `cmd:"" help:"Google Generative AI (Gemini) operations"`
+	Meet        MeetCmd         `cmd:"" help:"Google Meet operations"`
+	Logging     CloudLoggingCmd `cmd:"" help:"Cloud Logging operations"`
+	Monitoring  MonitoringCmd   `cmd:"" help:"Cloud Monitoring operations"`
+	IAMAdmin    IAMAdminCmd     `cmd:"" aliases:"iam-admin" help:"IAM Admin operations"`
+}
+
+// VersionCmd prints the version.
+type VersionCmd struct{}
+
+func (v *VersionCmd) Run() error {
+	fmt.Println(version.Version)
+	return nil
+}
+
+// globalFlags and logger are set by Globals.AfterApply() during kong initialization
 var (
 	globalFlags types.GlobalFlags
 	logger      logging.Logger
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "gdrv",
-	Short: "Google Drive CLI - Command line interface for Google Drive",
-	Long: `gdrv is a command-line tool for interacting with Google Drive.
-It supports file operations, folder management, permissions, and more.
-
-All commands support JSON output for automation and scripting.`,
-	Version: version.Version,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if err := validateGlobalFlags(); err != nil {
-			return err
-		}
-
-		// Initialize logging
-		logConfig := logging.LogConfig{
-			Level:           logging.INFO,
-			OutputFile:      globalFlags.LogFile,
-			EnableConsole:   !globalFlags.Quiet,
-			EnableDebug:     globalFlags.Debug,
-			RedactSensitive: true,
-			EnableColor:     true,
-			EnableTimestamp: true,
-		}
-		if globalFlags.Verbose {
-			logConfig.Level = logging.DEBUG
-		}
-		if globalFlags.OutputFormat == types.OutputFormatJSON && !globalFlags.Verbose && !globalFlags.Debug {
-			logConfig.EnableConsole = false
-		}
-
-		var err error
-		logger, err = logging.NewLogger(logConfig)
-		if err != nil {
-			return fmt.Errorf("failed to initialize logger: %w", err)
-		}
-
-		return nil
-	},
-}
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print version and build information",
-	Long:  "Print the version, commit, build time, and build type (official/source) of gdrv",
-	Run: func(cmd *cobra.Command, args []string) {
-		v := version.Get()
-		buildSource := auth.GetBuildInfo()
-		fmt.Printf("%s [%s build]\n", v.String(), buildSource)
-	},
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringVar(&globalFlags.Profile, "profile", "default", "Authentication profile to use")
-	rootCmd.PersistentFlags().StringVar(&globalFlags.DriveID, "drive-id", "", "Shared Drive ID to operate in")
-	rootCmd.PersistentFlags().StringVar((*string)(&globalFlags.OutputFormat), "output", "json", "Output format (json, table)")
-	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Quiet, "quiet", "q", false, "Suppress non-essential output")
-	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Verbose, "verbose", "v", false, "Enable verbose logging")
-	rootCmd.PersistentFlags().BoolVar(&globalFlags.Debug, "debug", false, "Enable debug output")
-	rootCmd.PersistentFlags().BoolVar(&globalFlags.Strict, "strict", false, "Convert warnings to errors")
-	rootCmd.PersistentFlags().BoolVar(&globalFlags.NoCache, "no-cache", false, "Bypass path resolution cache")
-	rootCmd.PersistentFlags().IntVar(&globalFlags.CacheTTL, "cache-ttl", 300, "Path cache TTL in seconds")
-	rootCmd.PersistentFlags().BoolVar(&globalFlags.IncludeSharedWithMe, "include-shared-with-me", false, "Include shared-with-me items")
-	rootCmd.PersistentFlags().StringVar(&globalFlags.Config, "config", "", "Path to configuration file")
-	rootCmd.PersistentFlags().StringVar(&globalFlags.LogFile, "log-file", "", "Path to log file")
-	rootCmd.PersistentFlags().BoolVar(&globalFlags.DryRun, "dry-run", false, "Show what would be done without making changes")
-	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Force, "force", "f", false, "Force operation without confirmation")
-	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Yes, "yes", "y", false, "Answer yes to all prompts")
-	rootCmd.PersistentFlags().BoolVar(&globalFlags.JSON, "json", false, "Output in JSON format (alias for --output json)")
-
-	// Add subcommands
-	rootCmd.AddCommand(versionCmd)
-}
-
-func validateGlobalFlags() error {
-	// Handle --json flag as alias for --output json
-	if globalFlags.JSON {
-		globalFlags.OutputFormat = types.OutputFormatJSON
-	}
-
-	if globalFlags.OutputFormat != types.OutputFormatJSON && globalFlags.OutputFormat != types.OutputFormatTable {
-		return fmt.Errorf("invalid output format: %s", globalFlags.OutputFormat)
-	}
-	return nil
-}
-
-// Execute runs the root command
-func Execute() error {
-	return rootCmd.Execute()
-}
-
-// GetGlobalFlags returns the global flags
+// GetGlobalFlags returns the current global flags.
 func GetGlobalFlags() types.GlobalFlags {
 	return globalFlags
 }
 
-// GetLogger returns the global logger
+// GetLogger returns the current logger.
 func GetLogger() logging.Logger {
 	return logger
 }

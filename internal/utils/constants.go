@@ -33,6 +33,43 @@ const (
 	ScopeAdminLabelsReadonly         = "https://www.googleapis.com/auth/drive.admin.labels.readonly"
 	ScopeActivity                    = "https://www.googleapis.com/auth/drive.activity"
 	ScopeActivityReadonly            = "https://www.googleapis.com/auth/drive.activity.readonly"
+	ScopeChat                        = "https://www.googleapis.com/auth/chat"
+	ScopeChatReadonly                = "https://www.googleapis.com/auth/chat.readonly"
+
+	// Gmail scopes
+	ScopeGmailReadonly      = "https://www.googleapis.com/auth/gmail.readonly"
+	ScopeGmailSend          = "https://www.googleapis.com/auth/gmail.send"
+	ScopeGmailCompose       = "https://www.googleapis.com/auth/gmail.compose"
+	ScopeGmailModify        = "https://www.googleapis.com/auth/gmail.modify"
+	ScopeGmailLabels        = "https://www.googleapis.com/auth/gmail.labels"
+	ScopeGmailSettingsBasic = "https://www.googleapis.com/auth/gmail.settings.basic"
+	ScopeGmailFull          = "https://mail.google.com/" // restricted — batch-delete only
+
+	// Calendar scopes
+	ScopeCalendar         = "https://www.googleapis.com/auth/calendar"
+	ScopeCalendarReadonly = "https://www.googleapis.com/auth/calendar.readonly"
+
+	// People / Contacts scopes
+	ScopeContacts              = "https://www.googleapis.com/auth/contacts"
+	ScopeContactsReadonly      = "https://www.googleapis.com/auth/contacts.readonly"
+	ScopeContactsOtherReadonly = "https://www.googleapis.com/auth/contacts.other.readonly"
+	ScopeDirectoryReadonly     = "https://www.googleapis.com/auth/directory.readonly"
+
+	// Tasks scope
+	ScopeTasks = "https://www.googleapis.com/auth/tasks"
+
+	// Forms scopes
+	ScopeFormsBody              = "https://www.googleapis.com/auth/forms.body"
+	ScopeFormsBodyReadonly      = "https://www.googleapis.com/auth/forms.body.readonly"
+	ScopeFormsResponsesReadonly = "https://www.googleapis.com/auth/forms.responses.readonly"
+
+	// Apps Script scopes
+	ScopeScriptProjects         = "https://www.googleapis.com/auth/script.projects"
+	ScopeScriptProjectsReadonly = "https://www.googleapis.com/auth/script.projects.readonly"
+
+	// Cloud Identity Groups scopes
+	ScopeCloudIdentityGroups         = "https://www.googleapis.com/auth/cloud-identity.groups"
+	ScopeCloudIdentityGroupsReadonly = "https://www.googleapis.com/auth/cloud-identity.groups.readonly"
 )
 
 var (
@@ -101,6 +138,90 @@ var (
 		ScopeLabels,
 		ScopeActivity,
 		// Changes API uses standard Drive scopes
+	}
+
+	// Gmail presets
+	ScopesGmail = []string{
+		ScopeGmailSend,
+		ScopeGmailCompose,
+		ScopeGmailModify,
+		ScopeGmailLabels,
+		ScopeGmailSettingsBasic,
+	}
+	ScopesGmailReadonly = []string{
+		ScopeGmailReadonly,
+	}
+
+	// Calendar presets
+	ScopesCalendar = []string{
+		ScopeCalendar,
+	}
+	ScopesCalendarReadonly = []string{
+		ScopeCalendarReadonly,
+	}
+
+	// People preset
+	ScopesPeople = []string{
+		ScopeContacts,
+		ScopeContactsOtherReadonly,
+		ScopeDirectoryReadonly,
+	}
+
+	// Tasks preset
+	ScopesTasks = []string{
+		ScopeTasks,
+	}
+
+	// Forms preset
+	ScopesForms = []string{
+		ScopeFormsBody,
+		ScopeFormsResponsesReadonly,
+	}
+
+	// Apps Script preset
+	ScopesAppScript = []string{
+		ScopeScriptProjects,
+	}
+
+	// Cloud Identity Groups preset
+	ScopesGroups = []string{
+		ScopeCloudIdentityGroups,
+	}
+
+	// Suite-complete mega-preset: ALL existing + ALL new API scopes
+	ScopesSuiteComplete = []string{
+		// Drive
+		ScopeFull,
+		ScopeSheets,
+		ScopeDocs,
+		ScopeSlides,
+		ScopeLabels,
+		ScopeActivity,
+		ScopeAdminDirectoryUser,
+		ScopeAdminDirectoryGroup,
+		ScopeAdminLabels,
+		ScopeChat,
+		// Gmail (excludes mail.google.com — must be explicit)
+		ScopeGmailSend,
+		ScopeGmailCompose,
+		ScopeGmailModify,
+		ScopeGmailLabels,
+		ScopeGmailSettingsBasic,
+		// Calendar
+		ScopeCalendar,
+		// People
+		ScopeContacts,
+		ScopeContactsOtherReadonly,
+		ScopeDirectoryReadonly,
+		// Tasks
+		ScopeTasks,
+		// Forms
+		ScopeFormsBody,
+		ScopeFormsResponsesReadonly,
+		// Apps Script
+		ScopeScriptProjects,
+		// Cloud Identity Groups
+		ScopeCloudIdentityGroups,
 	}
 )
 

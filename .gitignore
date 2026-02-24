@@ -33,3 +33,7 @@ coverage.out
 .vscode/
 *.swp
 *.swo
+
+# Generated protobuf files
+pkg/gen/
+proto/
