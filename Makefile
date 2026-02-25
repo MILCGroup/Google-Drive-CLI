@@ -35,7 +35,7 @@ LDFLAGS = -ldflags "-X github.com/milcgroup/gdrv/pkg/version.Version=$(VERSION) 
 
 PLATFORMS = linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
-.PHONY: all build build-official build-all clean test deps tidy lint install help
+.PHONY: all build build-official build-all clean test deps tidy lint security checksums version install help format install-hooks
 
 all: deps build
 
@@ -130,6 +130,20 @@ version:
 run:
 	@$(GOBUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd/gdrv
 	@./$(BINARY_DIR)/$(BINARY_NAME) $(ARGS)
+
+format:
+	@echo "Formatting code..."
+	@gofmt -w -s .
+	@if command -v goimports >/dev/null 2>&1; then \
+		goimports -w .; \
+	else \
+		echo "goimports not installed. Install: go install golang.org/x/tools/cmd/goimports@latest"; \
+	fi
+
+install-hooks:
+	@echo "Installing git hooks..."
+	@git config core.hooksPath .githooks
+	@echo "Hooks installed from .githooks/"
 
 help:
 	@echo "Company Google Drive CLI (gdrv) Makefile"
