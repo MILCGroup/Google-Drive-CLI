@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
+  build:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -68,8 +68,28 @@ jobs:
             rm gdrv
           fi
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gdrv-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: gdrv-*
+          merge-multiple: true
+
       - name: Create Arch Linux PKGBUILD
-        if: matrix.os == 'linux' && matrix.arch == 'amd64'
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
           cat > dist/PKGBUILD << PKGBUILD_EOF
@@ -114,7 +134,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Homebrew Tap
-        if: matrix.os == 'darwin' && matrix.arch == 'arm64'
         env:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
