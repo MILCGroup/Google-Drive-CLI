@@ -2,10 +2,45 @@ version: "2"
 
 run:
   timeout: 5m
+  tests: true
 
 linters:
+  default: none
   enable:
+    # Baseline "industry standard" Go checks.
+    - govet
     - staticcheck
-  disable:
     - errcheck
+    - ineffassign
     - unused
+    - misspell
+    - unparam
+    - errorlint
+
+  settings:
+    misspell:
+      # Words used intentionally in CLI context.
+      ignore-rules:
+        - cancelled
+        - cancelling
+
+  exclusions:
+    rules:
+      # Note: errcheck disabled due to widespread unchecked error patterns
+      # (Close, Setenv, RemoveAll, etc.) that would require massive refactoring
+      - linters: [errcheck]
+        text: "Error return value"
+      # Pre-existing errorlint issues - would require errors.Is/errors.As refactoring
+      - linters: [errorlint]
+        text: "comparing with"
+      - linters: [errorlint]
+        text: "type assertion"
+      # Pre-existing unparam issues - would require significant API changes
+      - linters: [unparam]
+        text: "is unused"
+      - linters: [unparam]
+        text: "is never used"
+      - linters: [unparam]
+        text: "always receives"
+      - linters: [unparam]
+        text: "always nil"
