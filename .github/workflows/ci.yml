@@ -15,6 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
     strategy:
       fail-fast: false
       matrix:

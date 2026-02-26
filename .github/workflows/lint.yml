@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
@@ -23,7 +24,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
+          go-version: '1.24.13'
           cache: true
 
       - name: Run golangci-lint
@@ -35,6 +36,8 @@ jobs:
   go-fmt:
     name: go fmt
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
@@ -43,7 +46,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
+          go-version: '1.24.13'
           cache: true
 
       - name: Run go fmt check
@@ -61,6 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
@@ -69,7 +73,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
+          go-version: '1.24.13'
           cache: true
 
       - name: Run go vet
