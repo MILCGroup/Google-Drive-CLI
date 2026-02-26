@@ -133,6 +133,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Notify forks
+        env:
+          GH_TOKEN: ${{ secrets.FORKS_DISPATCH_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          PAGE=1
+          while true; do
+            FORKS=$(gh api "repos/$REPO/forks?per_page=100&page=$PAGE" --jq '.[].full_name')
+            [ -z "$FORKS" ] && break
+
+            for FORK in $FORKS; do
+              echo "Dispatching to $FORK"
+              gh api "repos/$FORK/dispatches" \
+                --method POST \
+                --field event_type=upstream-release \
+                --field "client_payload[tag]=$RELEASE_TAG" \
+                --field "client_payload[url]=$RELEASE_URL" \
+                --field "client_payload[upstream]=$REPO" \
+                2>&1 || echo "  Skipped $FORK (no permission or workflow not present)"
+            done
+
+            PAGE=$((PAGE + 1))
+          done
+
       - name: Update Homebrew Tap
         env:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
