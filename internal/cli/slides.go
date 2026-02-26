@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -74,7 +75,8 @@ func (cmd *SlidesListCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("slides.list", appErr.CLIError)
 			}
 			return out.WriteError("slides.list", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -139,7 +141,8 @@ func (cmd *SlidesGetCmd) Run(globals *Globals) error {
 
 	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("slides.get", appErr.CLIError)
 		}
 		return out.WriteError("slides.get", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -167,7 +170,8 @@ func (cmd *SlidesReadCmd) Run(globals *Globals) error {
 
 	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("slides.read", appErr.CLIError)
 		}
 		return out.WriteError("slides.read", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -197,7 +201,8 @@ func (cmd *SlidesCreateCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("slides.create", appErr.CLIError)
 			}
 			return out.WriteError("slides.create", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -250,7 +255,8 @@ func (cmd *SlidesUpdateCmd) Run(globals *Globals) error {
 
 	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("slides.update", appErr.CLIError)
 		}
 		return out.WriteError("slides.update", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -283,7 +289,8 @@ func (cmd *SlidesReplaceCmd) Run(globals *Globals) error {
 
 	presentationID, err := ResolveFileID(ctx, client, flags, cmd.PresentationID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("slides.replace", appErr.CLIError)
 		}
 		return out.WriteError("slides.replace", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())

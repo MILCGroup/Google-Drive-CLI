@@ -2,6 +2,7 @@ package iamadmin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	iam "cloud.google.com/go/iam/admin/apiv1"
@@ -48,7 +49,7 @@ func (m *Manager) ListServiceAccounts(ctx context.Context, reqCtx *types.Request
 	var accounts []types.ServiceAccount
 	for {
 		account, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

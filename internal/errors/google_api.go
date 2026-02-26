@@ -1,6 +1,8 @@
 package errors
 
 import (
+	"errors"
+
 	"github.com/dl-alexandre/gdrv/internal/logging"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
@@ -8,8 +10,8 @@ import (
 )
 
 func ClassifyGoogleAPIError(service string, err error, reqCtx *types.RequestContext, logger logging.Logger) error {
-	apiErr, ok := err.(*googleapi.Error)
-	if !ok {
+	var apiErr *googleapi.Error
+	if !errors.As(err, &apiErr) {
 		logger.Error("Non-API error",
 			logging.F("error", err.Error()),
 			logging.F("traceId", reqCtx.TraceID),

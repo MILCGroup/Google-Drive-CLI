@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,7 +92,8 @@ func (cmd *SyncInitCmd) Run(globals *Globals) error {
 
 	remoteID, err := ResolveFileID(ctx, client, flags, remotePath)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sync.init", appErr.CLIError)
 		}
 		return out.WriteError("sync.init", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())

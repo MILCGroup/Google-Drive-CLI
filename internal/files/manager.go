@@ -2,6 +2,7 @@ package files
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,12 +39,14 @@ type UploadOptions struct {
 	MimeType    string
 	Convert     bool
 	PinRevision bool
+	Quiet       bool // Suppress progress bar output
 }
 
 type UpdateContentOptions struct {
 	Name     string
 	MimeType string
 	Fields   string
+	Quiet    bool // Suppress progress bar output
 }
 
 // DownloadOptions configures file download
@@ -51,8 +54,9 @@ type DownloadOptions struct {
 	OutputPath   string
 	MimeType     string
 	Wait         bool
-	Timeout      int // in seconds
-	PollInterval int // in seconds
+	Timeout      int  // in seconds
+	PollInterval int  // in seconds
+	Quiet        bool // Suppress progress bar output
 }
 
 // ListOptions configures file listing
@@ -73,7 +77,11 @@ func (m *Manager) Upload(ctx context.Context, reqCtx *types.RequestContext, loca
 		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			fmt.Sprintf("Failed to open file: %s", err)).Build())
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	stat, err := file.Stat()
 	if err != nil {
@@ -130,7 +138,11 @@ func (m *Manager) UpdateContent(ctx context.Context, reqCtx *types.RequestContex
 		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			fmt.Sprintf("Failed to open file: %s", err)).Build())
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	metadata := &drive.File{}
 	if opts.Name != "" {
@@ -146,7 +158,8 @@ func (m *Manager) UpdateContent(ctx context.Context, reqCtx *types.RequestContex
 		call = call.Fields(googleapi.Field(opts.Fields))
 	}
 
-	result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) {
+	var result *drive.File
+	result, err = api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) {
 		return call.Do()
 	})
 	if err != nil {
@@ -175,7 +188,9 @@ func selectUploadType(size int64, metadata *drive.File) string {
 }
 
 func (m *Manager) simpleUpload(ctx context.Context, reqCtx *types.RequestContext, reader io.Reader, metadata *drive.File, opts UploadOptions) (*drive.File, error) {
-	call := m.client.Service().Files.Create(metadata).Media(reader)
+	// Wrap reader with progress tracking
+	progressReader := NewProgressReader(reader, -1, "Uploading...", opts.Quiet)
+	call := m.client.Service().Files.Create(metadata).Media(progressReader)
 	call = m.shaper.ShapeFilesCreate(call, reqCtx)
 
 	return api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) {
@@ -184,7 +199,9 @@ func (m *Manager) simpleUpload(ctx context.Context, reqCtx *types.RequestContext
 }
 
 func (m *Manager) multipartUpload(ctx context.Context, reqCtx *types.RequestContext, reader io.Reader, metadata *drive.File, opts UploadOptions) (*drive.File, error) {
-	call := m.client.Service().Files.Create(metadata).Media(reader)
+	// Wrap reader with progress tracking
+	progressReader := NewProgressReader(reader, -1, "Uploading...", opts.Quiet)
+	call := m.client.Service().Files.Create(metadata).Media(progressReader)
 	call = m.shaper.ShapeFilesCreate(call, reqCtx)
 
 	return api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) {
@@ -193,12 +210,22 @@ func (m *Manager) multipartUpload(ctx context.Context, reqCtx *types.RequestCont
 }
 
 func (m *Manager) resumableUpload(ctx context.Context, reqCtx *types.RequestContext, reader io.Reader, metadata *drive.File, size int64, opts UploadOptions) (*drive.File, error) {
-	call := m.client.Service().Files.Create(metadata).Media(reader)
+	// Wrap reader with progress tracking for known size
+	progressReader := NewProgressReader(reader, size, "Uploading...", opts.Quiet)
+	call := m.client.Service().Files.Create(metadata).Media(progressReader)
 	call = m.shaper.ShapeFilesCreate(call, reqCtx)
-	call = call.ProgressUpdater(func(current, total int64) {
-		// Progress callback - could be used to report upload progress
-		// For now, this is a placeholder for future enhancement
-	})
+
+	// For resumable uploads, we can use the ProgressUpdater callback
+	// to update the progress bar if the API supports it
+	if pr, ok := progressReader.(*ProgressReader); ok && !opts.Quiet {
+		call = call.ProgressUpdater(func(current, total int64) {
+			// The progress bar is already tracking via the reader,
+			// but we could add additional logic here if needed
+			_ = current
+			_ = total
+			_ = pr
+		})
+	}
 
 	return api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) {
 		return call.Do()
@@ -206,7 +233,7 @@ func (m *Manager) resumableUpload(ctx context.Context, reqCtx *types.RequestCont
 }
 
 // Download downloads a file from Drive
-func (m *Manager) Download(ctx context.Context, reqCtx *types.RequestContext, fileID string, opts DownloadOptions) error {
+func (m *Manager) Download(ctx context.Context, reqCtx *types.RequestContext, fileID string, opts DownloadOptions) (err error) {
 	reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)
 
 	// Get file metadata first with exportLinks included for Workspace files
@@ -238,17 +265,21 @@ func (m *Manager) Download(ctx context.Context, reqCtx *types.RequestContext, fi
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			fmt.Sprintf("Failed to create output file: %s", err)).Build())
 	}
-	defer outFile.Close()
+	defer func() {
+		if cerr := outFile.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	// Check if it's a Workspace file that needs export
 	if utils.IsWorkspaceMimeType(file.MimeType) {
 		return m.exportFile(ctx, reqCtx, fileID, file, opts, outFile)
 	}
 
-	return m.downloadBlob(ctx, reqCtx, fileID, outFile)
+	return m.downloadBlob(ctx, reqCtx, fileID, outFile, file.Size, opts.Quiet)
 }
 
-func (m *Manager) downloadBlob(ctx context.Context, reqCtx *types.RequestContext, fileID string, writer io.Writer) error {
+func (m *Manager) downloadBlob(ctx context.Context, reqCtx *types.RequestContext, fileID string, writer io.Writer, totalSize int64, quiet bool) (err error) {
 	call := m.client.Service().Files.Get(fileID)
 	call = m.shaper.ShapeFilesGet(call, reqCtx)
 
@@ -258,13 +289,25 @@ func (m *Manager) downloadBlob(ctx context.Context, reqCtx *types.RequestContext
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
 			fmt.Sprintf("Download failed: %s", err)).Build())
 	}
-	defer httpResp.Body.Close()
+	defer func() {
+		if cerr := httpResp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
-	_, err = io.Copy(writer, httpResp.Body)
+	// Wrap writer with progress tracking if we know the size
+	var progressWriter = writer
+	if totalSize > 0 {
+		progressWriter = NewProgressWriter(writer, totalSize, "Downloading...", quiet)
+	} else if httpResp.ContentLength > 0 {
+		progressWriter = NewProgressWriter(writer, httpResp.ContentLength, "Downloading...", quiet)
+	}
+
+	_, err = io.Copy(progressWriter, httpResp.Body)
 	return err
 }
 
-func (m *Manager) exportFile(ctx context.Context, reqCtx *types.RequestContext, fileID string, file *types.DriveFile, opts DownloadOptions, writer io.Writer) error {
+func (m *Manager) exportFile(ctx context.Context, reqCtx *types.RequestContext, fileID string, file *types.DriveFile, opts DownloadOptions, writer io.Writer) (err error) {
 	mimeType := opts.MimeType
 	if mimeType == "" {
 		mimeType = "application/pdf" // Default export format
@@ -297,7 +340,8 @@ func (m *Manager) exportFile(ctx context.Context, reqCtx *types.RequestContext, 
 
 	resp, err := call.Download()
 	if err != nil {
-		if apiErr, ok := err.(*googleapi.Error); ok {
+		var apiErr *googleapi.Error
+		if errors.As(err, &apiErr) {
 			// Check if this is a size limit error
 			if apiErr.Code == 403 {
 				for _, e := range apiErr.Errors {
@@ -326,7 +370,11 @@ func (m *Manager) exportFile(ctx context.Context, reqCtx *types.RequestContext, 
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
 			fmt.Sprintf("Export failed: %s", err)).Build())
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	// Check if response indicates long-running operation
 	if resp.StatusCode == 202 {
@@ -341,7 +389,13 @@ func (m *Manager) exportFile(ctx context.Context, reqCtx *types.RequestContext, 
 		return m.pollAndDownloadOperation(ctx, reqCtx, resp, opts, writer)
 	}
 
-	_, err = io.Copy(writer, resp.Body)
+	// Wrap writer with progress tracking if we know the size
+	var progressWriter = writer
+	if resp.ContentLength > 0 {
+		progressWriter = NewProgressWriter(writer, resp.ContentLength, "Exporting...", opts.Quiet)
+	}
+
+	_, err = io.Copy(progressWriter, resp.Body)
 	return err
 }
 
@@ -402,7 +456,11 @@ func (m *Manager) pollAndDownloadOperation(ctx context.Context, reqCtx *types.Re
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
 			fmt.Sprintf("Download from operation URI failed: %s", err)).Build())
 	}
-	defer downloadResp.Body.Close()
+	defer func() {
+		if cerr := downloadResp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	if downloadResp.StatusCode != http.StatusOK {
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,

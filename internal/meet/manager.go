@@ -2,6 +2,7 @@ package meet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	meetapi "cloud.google.com/go/apps/meet/apiv2"
@@ -27,7 +28,7 @@ func NewManager(ctx context.Context, opts ...option.ClientOption) (*Manager, err
 	conferenceRecordsClient, err := meetapi.NewConferenceRecordsClient(ctx, opts...)
 	if err != nil {
 		if spacesClient != nil {
-			spacesClient.Close()
+			_ = spacesClient.Close()
 		}
 		return nil, fmt.Errorf("failed to create conference records client: %w", err)
 	}
@@ -142,7 +143,7 @@ func (m *Manager) ListConferenceRecords(ctx context.Context, reqCtx *types.Reque
 	var records []types.MeetConferenceRecord
 	for {
 		record, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -183,7 +184,7 @@ func (m *Manager) ListParticipants(ctx context.Context, reqCtx *types.RequestCon
 	var participants []types.MeetParticipant
 	for {
 		participant, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

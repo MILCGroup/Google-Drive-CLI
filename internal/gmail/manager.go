@@ -303,9 +303,9 @@ func (m *Manager) ListLabels(ctx context.Context, reqCtx *types.RequestContext) 
 // CreateLabel creates a new user label.
 func (m *Manager) CreateLabel(ctx context.Context, reqCtx *types.RequestContext, name string) (*types.GmailLabel, error) {
 	label := &gmail.Label{
-		Name:                    name,
-		LabelListVisibility:     "labelShow",
-		MessageListVisibility:   "show",
+		Name:                  name,
+		LabelListVisibility:   "labelShow",
+		MessageListVisibility: "show",
 	}
 	call := m.service.Users.Labels.Create("me", label)
 
@@ -568,15 +568,15 @@ func composeMessage(from, to, cc, bcc, subject, body, htmlBody, inReplyTo string
 		textHeader := make(textproto.MIMEHeader)
 		textHeader.Set("Content-Type", "text/plain; charset=UTF-8")
 		textPart, _ := writer.CreatePart(textHeader)
-		fmt.Fprint(textPart, body)
+		_, _ = fmt.Fprint(textPart, body)
 
 		// HTML part.
 		htmlHeader := make(textproto.MIMEHeader)
 		htmlHeader.Set("Content-Type", "text/html; charset=UTF-8")
 		htmlPart, _ := writer.CreatePart(htmlHeader)
-		fmt.Fprint(htmlPart, htmlBody)
+		_, _ = fmt.Fprint(htmlPart, htmlBody)
 
-		writer.Close()
+		_ = writer.Close()
 	} else {
 		// Simple plain text message.
 		fmt.Fprintf(&buf, "Content-Type: text/plain; charset=UTF-8\r\n")

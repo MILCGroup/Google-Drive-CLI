@@ -132,7 +132,8 @@ type CLI struct {
 	AppScript   AppScriptCmd    `cmd:"" help:"Google Apps Script operations"`
 	Sync        SyncCmd         `cmd:"" help:"Sync local folders with Drive"`
 	Config      ConfigCmd       `cmd:"" help:"Configuration management"`
-	Completion  CompletionCmd   `cmd:"" help:"Generate shell completion scripts" hidden:""`
+	Cache       CacheCmd        `cmd:"" help:"Cache management"`
+	Completion  CompletionCmd   `cmd:"" help:"Generate shell completion scripts" `
 	AI          AICmd           `cmd:"" help:"Google Generative AI (Gemini) operations"`
 	Meet        MeetCmd         `cmd:"" help:"Google Meet operations"`
 	Logging     CloudLoggingCmd `cmd:"" help:"Cloud Logging operations"`

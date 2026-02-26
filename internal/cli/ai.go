@@ -57,7 +57,7 @@ func (cmd *AIModelsListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.models.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
@@ -81,7 +81,7 @@ func (cmd *AIModelsGetCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.models.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeGetByID
 
@@ -102,7 +102,7 @@ func (cmd *AIGenerateTextCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.generate.text", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 
@@ -123,7 +123,7 @@ func (cmd *AIGenerateStreamCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.generate.stream", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 

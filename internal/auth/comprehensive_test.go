@@ -245,7 +245,7 @@ func TestWriteMetadata_CreateDir(t *testing.T) {
 func TestReadMetadata_InvalidFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	metaPath := filepath.Join(tmpDir, "invalid.meta.json")
-	os.WriteFile(metaPath, []byte("invalid json"), 0600)
+	_ = os.WriteFile(metaPath, []byte("invalid json"), 0600)
 
 	_, err := readMetadata(metaPath)
 	if err == nil {
@@ -273,7 +273,7 @@ func TestLoadServiceAccount_InvalidKeyType(t *testing.T) {
 		"type": "invalid_type",
 	}
 	data, _ := json.Marshal(keyData)
-	os.WriteFile(keyFile, data, 0600)
+	_ = os.WriteFile(keyFile, data, 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "")
 	if err == nil {
@@ -291,7 +291,7 @@ func TestLoadServiceAccount_MissingFields(t *testing.T) {
 		"type": "service_account",
 	}
 	data, _ := json.Marshal(keyData)
-	os.WriteFile(keyFile, data, 0600)
+	_ = os.WriteFile(keyFile, data, 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "")
 	if err == nil {

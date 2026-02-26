@@ -69,7 +69,7 @@ func (cmd *MeetSpacesGetCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("meet.spaces.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeGetByID
 
@@ -90,7 +90,7 @@ func (cmd *MeetSpacesCreateCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("meet.spaces.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 
@@ -111,7 +111,7 @@ func (cmd *MeetSpacesEndConferenceCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("meet.spaces.end-conference", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 
@@ -134,7 +134,7 @@ func (cmd *MeetConferenceRecordsListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("meet.conference-records.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 

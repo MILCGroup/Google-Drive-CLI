@@ -71,6 +71,7 @@ func (f *OAuthFlow) GetAuthURL() string {
 	return f.config.AuthCodeURL(
 		f.state,
 		oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("prompt", "consent"),
 		oauth2.SetAuthURLParam("code_challenge", codeChallengeS256(f.codeVerifier)),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 	)
@@ -90,7 +91,7 @@ func (f *OAuthFlow) StartCallbackServer(ctx context.Context) {
 
 	go func() {
 		<-ctx.Done()
-		server.Close()
+		_ = server.Close()
 	}()
 }
 
@@ -100,7 +101,7 @@ func (f *OAuthFlow) handleCallback(w http.ResponseWriter, r *http.Request) {
 		f.errChan <- fmt.Errorf("invalid state parameter")
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, callbackErrorHTML("Invalid state parameter. Please try authenticating again."))
+		_, _ = fmt.Fprint(w, callbackErrorHTML("Invalid state parameter. Please try authenticating again."))
 		return
 	}
 
@@ -113,13 +114,13 @@ func (f *OAuthFlow) handleCallback(w http.ResponseWriter, r *http.Request) {
 		f.errChan <- fmt.Errorf("auth error: %s", errMsg)
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, callbackErrorHTML(errMsg))
+		_, _ = fmt.Fprint(w, callbackErrorHTML(errMsg))
 		return
 	}
 
 	f.codeChan <- code
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, callbackSuccessHTML(code))
+	_, _ = fmt.Fprint(w, callbackSuccessHTML(code))
 }
 
 func callbackSuccessHTML(code string) string {
@@ -259,10 +260,11 @@ func (f *OAuthFlow) ExchangeCode(ctx context.Context, code string) (*types.Crede
 }
 
 // Close cleans up resources
-func (f *OAuthFlow) Close() {
+func (f *OAuthFlow) Close() error {
 	if f.listener != nil {
-		f.listener.Close()
+		return f.listener.Close()
 	}
+	return nil
 }
 
 func generateState() (string, error) {
@@ -306,7 +308,12 @@ func (m *Manager) Authenticate(ctx context.Context, profile string, openBrowser 
 	if err != nil {
 		return nil, fmt.Errorf("failed to start local server: %w", err)
 	}
-	defer flow.Close()
+	defer func() {
+		if cerr := flow.Close(); cerr != nil {
+			// Log or handle close error if needed
+			_ = cerr
+		}
+	}()
 
 	authURL := flow.GetAuthURL()
 	flow.StartCallbackServer(ctx)

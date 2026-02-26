@@ -1,13 +1,22 @@
 package cli
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/dl-alexandre/gdrv/internal/api"
 	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/export"
 	"github.com/dl-alexandre/gdrv/internal/files"
 	"github.com/dl-alexandre/gdrv/internal/revisions"
+	"github.com/dl-alexandre/gdrv/internal/safety"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
 )
@@ -25,6 +34,9 @@ type FilesCmd struct {
 	Revisions     FilesRevisionsCmd     `cmd:"" help:"List file revisions"`
 	ListTrashed   FilesListTrashedCmd   `cmd:"list-trashed" help:"List trashed files"`
 	ExportFormats FilesExportFormatsCmd `cmd:"export-formats" help:"Show available export formats for a file"`
+	BatchUpload   FilesBatchUploadCmd   `cmd:"batch-upload" help:"Upload multiple files"`
+	BatchDownload FilesBatchDownloadCmd `cmd:"batch-download" help:"Download multiple files"`
+	BatchDelete   FilesBatchDeleteCmd   `cmd:"batch-delete" help:"Delete multiple files"`
 }
 
 type FilesListCmd struct {
@@ -116,6 +128,31 @@ type FilesExportFormatsCmd struct {
 	FileID string `arg:"" name:"file-id" help:"File ID or path"`
 }
 
+type FilesBatchUploadCmd struct {
+	Paths         []string `arg:"" name:"paths" help:"File paths to upload"`
+	FilesFrom     string   `help:"Read file list from JSON or text file" name:"files-from"`
+	Parent        string   `help:"Parent folder ID" name:"parent"`
+	Workers       int      `help:"Number of concurrent workers (1-10)" default:"3" name:"workers"`
+	ContinueOnErr bool     `help:"Continue on error" name:"continue-on-error"`
+}
+
+type FilesBatchDownloadCmd struct {
+	FileIDs       []string `arg:"" name:"file-ids" help:"File IDs to download"`
+	IDsFrom       string   `help:"Read file IDs from JSON or text file" name:"ids-from"`
+	OutputDir     string   `help:"Output directory" name:"output-dir"`
+	Workers       int      `help:"Number of concurrent workers (1-10)" default:"3" name:"workers"`
+	ContinueOnErr bool     `help:"Continue on error" name:"continue-on-error"`
+	MimeType      string   `help:"Export MIME type" name:"mime-type"`
+}
+
+type FilesBatchDeleteCmd struct {
+	FileIDs       []string `arg:"" name:"file-ids" help:"File IDs to delete"`
+	IDsFrom       string   `help:"Read file IDs from JSON or text file" name:"ids-from"`
+	Workers       int      `help:"Number of concurrent workers (1-10)" default:"3" name:"workers"`
+	ContinueOnErr bool     `help:"Continue on error" name:"continue-on-error"`
+	Permanent     bool     `help:"Permanently delete (skip trash)" name:"permanent"`
+}
+
 func getFileManager(ctx context.Context, flags types.GlobalFlags) (*files.Manager, *api.Client, *types.RequestContext, *OutputWriter, error) {
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
 	configDir := getConfigDir()
@@ -152,7 +189,8 @@ func (cmd *FilesListCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("files.list", appErr.CLIError)
 			}
 			return out.WriteError("files.list", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -202,7 +240,8 @@ func (cmd *FilesGetCmd) Run(globals *Globals) error {
 	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.get", appErr.CLIError)
 		}
 		return out.WriteError("files.get", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -231,7 +270,8 @@ func (cmd *FilesUploadCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("files.upload", appErr.CLIError)
 			}
 			return out.WriteError("files.upload", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -265,7 +305,8 @@ func (cmd *FilesDownloadCmd) Run(globals *Globals) error {
 	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.download", appErr.CLIError)
 		}
 		return out.WriteError("files.download", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -301,7 +342,8 @@ func (cmd *FilesDeleteCmd) Run(globals *Globals) error {
 	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.delete", appErr.CLIError)
 		}
 		return out.WriteError("files.delete", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -330,21 +372,21 @@ func (cmd *FilesCopyCmd) Run(globals *Globals) error {
 		return out.WriteError("files.copy", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.copy", appErr.CLIError)
 		}
 		return out.WriteError("files.copy", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
 	}
 
-	// Resolve parent path if provided
 	parentID := cmd.Parent
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("files.copy", appErr.CLIError)
 			}
 			return out.WriteError("files.copy", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -371,19 +413,19 @@ func (cmd *FilesMoveCmd) Run(globals *Globals) error {
 		return out.WriteError("files.move", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.move", appErr.CLIError)
 		}
 		return out.WriteError("files.move", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
 	}
 
-	// Resolve parent path
 	parentID, err := ResolveFileID(ctx, client, flags, cmd.Parent)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.move", appErr.CLIError)
 		}
 		return out.WriteError("files.move", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -408,10 +450,10 @@ func (cmd *FilesTrashCmd) Run(globals *Globals) error {
 		return out.WriteError("files.trash", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.trash", appErr.CLIError)
 		}
 		return out.WriteError("files.trash", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -436,10 +478,10 @@ func (cmd *FilesRestoreCmd) Run(globals *Globals) error {
 		return out.WriteError("files.restore", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.restore", appErr.CLIError)
 		}
 		return out.WriteError("files.restore", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -464,16 +506,15 @@ func (cmd *FilesRevisionsListCmd) Run(globals *Globals) error {
 		return out.WriteError("files.revisions", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.revisions", appErr.CLIError)
 		}
 		return out.WriteError("files.revisions", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
 	}
 
-	// Create revisions manager
 	revMgr := revisions.NewManager(client)
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
@@ -494,30 +535,27 @@ func (cmd *FilesRevisionsDownloadCmd) Run(globals *Globals) error {
 		return out.WriteError("files.revisions.download", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.revisions.download", appErr.CLIError)
 		}
 		return out.WriteError("files.revisions.download", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
 	}
 
-	revisionID := cmd.RevisionID
-
-	// Create revisions manager
 	revMgr := revisions.NewManager(client)
 	reqCtx.RequestType = types.RequestTypeDownloadOrExport
 
-	err = revMgr.Download(ctx, reqCtx, fileID, revisionID, revisions.DownloadOptions{
+	err = revMgr.Download(ctx, reqCtx, fileID, cmd.RevisionID, revisions.DownloadOptions{
 		OutputPath: cmd.OutputPath,
 	})
 	if err != nil {
 		return handleCLIError(out, "files.revisions.download", err)
 	}
 
-	out.Log("Downloaded revision %s to: %s", revisionID, cmd.OutputPath)
-	return out.WriteSuccess("files.revisions.download", map[string]string{"revisionId": revisionID, "path": cmd.OutputPath})
+	out.Log("Downloaded revision %s to: %s", cmd.RevisionID, cmd.OutputPath)
+	return out.WriteSuccess("files.revisions.download", map[string]string{"revisionId": cmd.RevisionID, "path": cmd.OutputPath})
 }
 
 func (cmd *FilesRevisionsRestoreCmd) Run(globals *Globals) error {
@@ -529,27 +567,24 @@ func (cmd *FilesRevisionsRestoreCmd) Run(globals *Globals) error {
 		return out.WriteError("files.revisions.restore", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.revisions.restore", appErr.CLIError)
 		}
 		return out.WriteError("files.revisions.restore", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
 	}
 
-	revisionID := cmd.RevisionID
-
-	// Create revisions manager
 	revMgr := revisions.NewManager(client)
 	reqCtx.RequestType = types.RequestTypeMutation
 
-	file, err := revMgr.Restore(ctx, reqCtx, fileID, revisionID)
+	file, err := revMgr.Restore(ctx, reqCtx, fileID, cmd.RevisionID)
 	if err != nil {
 		return handleCLIError(out, "files.revisions.restore", err)
 	}
 
-	out.Log("Restored file to revision: %s", revisionID)
+	out.Log("Restored file to revision: %s", cmd.RevisionID)
 	return out.WriteSuccess("files.revisions.restore", file)
 }
 
@@ -570,9 +605,7 @@ func (cmd *FilesListTrashedCmd) Run(globals *Globals) error {
 		Fields:    cmd.Fields,
 	}
 
-	// If --paginate flag is set, fetch all pages
 	if cmd.Paginate {
-		// Use ListAll with trashed query
 		opts.IncludeTrashed = true
 		if opts.Query != "" {
 			opts.Query = "trashed = true and (" + opts.Query + ")"
@@ -605,10 +638,10 @@ func (cmd *FilesExportFormatsCmd) Run(globals *Globals) error {
 		return out.WriteError("files.export-formats", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
 
-	// Resolve file ID from path if needed
 	fileID, err := ResolveFileID(ctx, client, flags, cmd.FileID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("files.export-formats", appErr.CLIError)
 		}
 		return out.WriteError("files.export-formats", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -635,4 +668,390 @@ func (cmd *FilesExportFormatsCmd) Run(globals *Globals) error {
 	}
 
 	return out.WriteSuccess("files.export-formats", result)
+}
+
+func (cmd *FilesBatchUploadCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
+
+	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("files.batch-upload", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+
+	var paths []string
+	paths = append(paths, cmd.Paths...)
+
+	if cmd.FilesFrom != "" {
+		filePaths, err := loadFileList(cmd.FilesFrom)
+		if err != nil {
+			return out.WriteError("files.batch-upload", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
+		}
+		paths = append(paths, filePaths...)
+	}
+
+	if len(paths) == 0 {
+		return out.WriteError("files.batch-upload", utils.NewCLIError(utils.ErrCodeInvalidArgument, "No files to upload. Provide file paths as arguments or use --files-from").Build())
+	}
+
+	parentID := cmd.Parent
+	if parentID != "" {
+		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
+		if err != nil {
+			return out.WriteError("files.batch-upload", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
+		}
+		parentID = resolvedID
+	}
+
+	reqCtx.RequestType = types.RequestTypeMutation
+
+	progressFunc := defaultProgressFunc("upload")
+	result, err := mgr.BatchUpload(ctx, reqCtx, paths, files.BatchUploadOptions{
+		ParentID:      parentID,
+		Workers:       cmd.Workers,
+		ContinueOnErr: cmd.ContinueOnErr,
+		ProgressFunc: func(index, total int, path string, success bool, err error) {
+			progressFunc(index, total, path, "", success, err)
+		},
+	})
+
+	if err != nil && !cmd.ContinueOnErr {
+		return handleCLIError(out, "files.batch-upload", err)
+	}
+
+	fmt.Printf("\n=== Batch Upload Summary ===\n")
+	fmt.Printf("Total: %d, Success: %d, Failed: %d\n", result.TotalCount, result.SuccessCount, result.FailedCount)
+
+	if len(result.Errors) > 0 {
+		fmt.Printf("\nErrors:\n")
+		for _, e := range result.Errors {
+			fmt.Printf("  - %s: %s\n", e.Path, e.Error)
+		}
+	}
+
+	return out.WriteSuccess("files.batch-upload", map[string]interface{}{
+		"summary": map[string]interface{}{
+			"total":   result.TotalCount,
+			"success": result.SuccessCount,
+			"failed":  result.FailedCount,
+		},
+		"files":  result.Files,
+		"errors": result.Errors,
+	})
+}
+
+func (cmd *FilesBatchDownloadCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
+
+	mgr, _, reqCtx, out, err := getFileManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("files.batch-download", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+
+	var fileIDs []string
+	fileIDs = append(fileIDs, cmd.FileIDs...)
+
+	if cmd.IDsFrom != "" {
+		ids, err := loadIDList(cmd.IDsFrom)
+		if err != nil {
+			return out.WriteError("files.batch-download", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
+		}
+		fileIDs = append(fileIDs, ids...)
+	}
+
+	if len(fileIDs) == 0 {
+		return out.WriteError("files.batch-download", utils.NewCLIError(utils.ErrCodeInvalidArgument, "No file IDs to download. Provide IDs as arguments or use --ids-from").Build())
+	}
+
+	reqCtx.RequestType = types.RequestTypeDownloadOrExport
+
+	progressFunc := defaultProgressFunc("download")
+	result, err := mgr.BatchDownload(ctx, reqCtx, fileIDs, files.BatchDownloadOptions{
+		OutputDir:     cmd.OutputDir,
+		Workers:       cmd.Workers,
+		ContinueOnErr: cmd.ContinueOnErr,
+		MimeType:      cmd.MimeType,
+		ProgressFunc: func(index, total int, id, name string, success bool, err error) {
+			progressFunc(index, total, id, name, success, err)
+		},
+	})
+
+	if err != nil && !cmd.ContinueOnErr {
+		return handleCLIError(out, "files.batch-download", err)
+	}
+
+	fmt.Printf("\n=== Batch Download Summary ===\n")
+	fmt.Printf("Total: %d, Success: %d, Failed: %d\n", result.TotalCount, result.SuccessCount, result.FailedCount)
+
+	if len(result.Errors) > 0 {
+		fmt.Printf("\nErrors:\n")
+		for _, e := range result.Errors {
+			fmt.Printf("  - %s: %s\n", e.ID, e.Error)
+		}
+	}
+
+	return out.WriteSuccess("files.batch-download", map[string]interface{}{
+		"summary": map[string]interface{}{
+			"total":   result.TotalCount,
+			"success": result.SuccessCount,
+			"failed":  result.FailedCount,
+		},
+		"files":  result.Files,
+		"errors": result.Errors,
+	})
+}
+
+func (cmd *FilesBatchDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	ctx := context.Background()
+
+	mgr, client, reqCtx, out, err := getFileManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("files.batch-delete", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+
+	var fileIDs []string
+	fileIDs = append(fileIDs, cmd.FileIDs...)
+
+	if cmd.IDsFrom != "" {
+		ids, err := loadIDList(cmd.IDsFrom)
+		if err != nil {
+			return out.WriteError("files.batch-delete", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
+		}
+		fileIDs = append(fileIDs, ids...)
+	}
+
+	if len(fileIDs) == 0 {
+		return out.WriteError("files.batch-delete", utils.NewCLIError(utils.ErrCodeInvalidArgument, "No file IDs to delete. Provide IDs as arguments or use --ids-from").Build())
+	}
+
+	safetyOpts := safety.Default()
+	safetyOpts.Yes = globals.Yes
+	if globals.DryRun {
+		safetyOpts.DryRun = true
+	}
+
+	if !globals.Yes && !globals.DryRun {
+		names := make([]string, 0, len(fileIDs))
+		for _, id := range fileIDs {
+			file, err := mgr.Get(ctx, reqCtx, id, "id,name")
+			if err != nil {
+				resolvedID, resolveErr := ResolveFileID(ctx, client, flags, id)
+				if resolveErr != nil {
+					names = append(names, fmt.Sprintf("%s (unable to resolve)", id))
+					continue
+				}
+				file, err = mgr.Get(ctx, reqCtx, resolvedID, "id,name")
+				if err != nil {
+					names = append(names, fmt.Sprintf("%s (error: %s)", id, err.Error()))
+					continue
+				}
+			}
+			names = append(names, file.Name)
+		}
+
+		operation := "trash"
+		if cmd.Permanent {
+			operation = "permanently delete"
+		}
+		confirmed, err := safety.ConfirmDestructive(names, operation, safetyOpts)
+		if err != nil {
+			return out.WriteError("files.batch-delete", utils.NewCLIError(utils.ErrCodeInvalidArgument, err.Error()).Build())
+		}
+		if !confirmed {
+			return out.WriteSuccess("files.batch-delete", map[string]string{"status": "cancelled"})
+		}
+	}
+
+	reqCtx.RequestType = types.RequestTypeMutation
+
+	progressFunc := defaultProgressFunc("delete")
+	result, err := mgr.BatchDelete(ctx, reqCtx, fileIDs, files.BatchDeleteOptions{
+		Permanent:     cmd.Permanent,
+		Workers:       cmd.Workers,
+		ContinueOnErr: cmd.ContinueOnErr,
+		SafetyOpts:    safetyOpts,
+		DryRun:        globals.DryRun,
+		ProgressFunc: func(index, total int, id string, success bool, err error) {
+			progressFunc(index, total, id, "", success, err)
+		},
+	})
+
+	if globals.DryRun {
+		fmt.Printf("\n=== Dry Run Mode ===\n")
+		fmt.Printf("Would %s %d file(s):\n", map[bool]string{true: "permanently delete", false: "trash"}[cmd.Permanent], len(fileIDs))
+		for _, id := range fileIDs {
+			file, _ := mgr.Get(ctx, reqCtx, id, "id,name")
+			if file != nil {
+				fmt.Printf("  - %s (%s)\n", file.Name, id)
+			} else {
+				fmt.Printf("  - %s\n", id)
+			}
+		}
+		fmt.Printf("\nNo files were actually deleted.\n")
+		return out.WriteSuccess("files.batch-delete", map[string]string{"status": "dry-run", "count": fmt.Sprintf("%d", len(fileIDs))})
+	}
+
+	if err != nil && !cmd.ContinueOnErr {
+		return handleCLIError(out, "files.batch-delete", err)
+	}
+
+	action := "trashed"
+	if cmd.Permanent {
+		action = "deleted"
+	}
+	fmt.Printf("\n=== Batch Delete Summary ===\n")
+	fmt.Printf("Total: %d, Success: %d, Failed: %d\n", result.TotalCount, result.SuccessCount, result.FailedCount)
+
+	if len(result.Errors) > 0 {
+		fmt.Printf("\nErrors:\n")
+		for _, e := range result.Errors {
+			fmt.Printf("  - %s: %s\n", e.ID, e.Error)
+		}
+	}
+
+	return out.WriteSuccess("files.batch-delete", map[string]interface{}{
+		"summary": map[string]interface{}{
+			"total":   result.TotalCount,
+			"success": result.SuccessCount,
+			"failed":  result.FailedCount,
+			"action":  action,
+		},
+		"deletedIDs": result.DeletedIDs,
+		"errors":     result.Errors,
+	})
+}
+
+// loadFileList loads file paths from a JSON or text file
+func loadFileList(path string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file list: %w", err)
+	}
+
+	// Try JSON first
+	var jsonPaths []string
+	if err := json.Unmarshal(data, &jsonPaths); err == nil {
+		return jsonPaths, nil
+	}
+
+	// Try JSON object with "files" field
+	var jsonObj struct {
+		Files []string `json:"files"`
+	}
+	if err := json.Unmarshal(data, &jsonObj); err == nil && len(jsonObj.Files) > 0 {
+		return jsonObj.Files, nil
+	}
+
+	// Fall back to line-by-line text file
+	var paths []string
+	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			paths = append(paths, line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to parse file list: %w", err)
+	}
+
+	return paths, nil
+}
+
+// loadIDList loads file IDs from a JSON or text file
+func loadIDList(path string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read ID list: %w", err)
+	}
+
+	// Try JSON first
+	var jsonIDs []string
+	if err := json.Unmarshal(data, &jsonIDs); err == nil {
+		return jsonIDs, nil
+	}
+
+	// Try JSON object with "ids" field
+	var jsonObj struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.Unmarshal(data, &jsonObj); err == nil && len(jsonObj.IDs) > 0 {
+		return jsonObj.IDs, nil
+	}
+
+	// Fall back to line-by-line text file
+	var ids []string
+	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			ids = append(ids, line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to parse ID list: %w", err)
+	}
+
+	return ids, nil
+}
+
+// defaultProgressFunc creates a default progress function that prints to stdout
+func defaultProgressFunc(operation string) func(index, total int, idOrPath, name string, success bool, err error) {
+	startTime := time.Now()
+	var mu sync.Mutex
+	var lastProgress int
+
+	return func(index, total int, idOrPath, name string, success bool, err error) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		// Only print progress at certain intervals to avoid spam
+		progress := (index * 100) / total
+		if progress != lastProgress || index == total || index == 1 {
+			lastProgress = progress
+
+			elapsed := time.Since(startTime)
+			var eta time.Duration
+			if index > 0 {
+				rate := elapsed / time.Duration(index)
+				remaining := total - index
+				eta = rate * time.Duration(remaining)
+			}
+
+			status := "✓"
+			if !success {
+				status = "✗"
+			}
+
+			display := idOrPath
+			if name != "" {
+				display = name
+			}
+
+			fmt.Printf("\r[%3d%%] %s %s (%d/%d) - ETA: %s",
+				progress, status, display, index, total, formatDuration(eta))
+
+			if index == total {
+				fmt.Println() // New line at end
+			}
+		}
+	}
+}
+
+// formatDuration formats a duration in a human-readable way
+func formatDuration(d time.Duration) string {
+	if d < time.Second {
+		return "<1s"
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	}
+	return fmt.Sprintf("%dh%dm", int(d.Hours()), int(d.Minutes())%60)
 }

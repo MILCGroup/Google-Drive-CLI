@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -67,7 +68,8 @@ func (cmd *DocsListCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("docs.list", appErr.CLIError)
 			}
 			return out.WriteError("docs.list", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -132,7 +134,8 @@ func (cmd *DocsGetCmd) Run(globals *Globals) error {
 
 	documentID, err := ResolveFileID(ctx, client, flags, cmd.DocumentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("docs.get", appErr.CLIError)
 		}
 		return out.WriteError("docs.get", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -160,7 +163,8 @@ func (cmd *DocsReadCmd) Run(globals *Globals) error {
 
 	documentID, err := ResolveFileID(ctx, client, flags, cmd.DocumentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("docs.read", appErr.CLIError)
 		}
 		return out.WriteError("docs.read", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -190,7 +194,8 @@ func (cmd *DocsCreateCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("docs.create", appErr.CLIError)
 			}
 			return out.WriteError("docs.create", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -243,7 +248,8 @@ func (cmd *DocsUpdateCmd) Run(globals *Globals) error {
 
 	documentID, err := ResolveFileID(ctx, client, flags, cmd.DocumentID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("docs.update", appErr.CLIError)
 		}
 		return out.WriteError("docs.update", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())

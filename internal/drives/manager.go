@@ -2,8 +2,11 @@ package drives
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
 	"github.com/dl-alexandre/gdrv/internal/api"
+	"github.com/dl-alexandre/gdrv/internal/cache"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
@@ -11,61 +14,87 @@ import (
 
 // Manager handles Shared Drive operations
 type Manager struct {
-	client *api.Client
-	shaper *api.RequestShaper
+	client     *api.Client
+	shaper     *api.RequestShaper
+	cacheMgr   *cache.Manager
+	defaultTTL time.Duration
+}
+
+// ManagerOptions contains configuration options for the drives manager
+type ManagerOptions struct {
+	CacheMgr   *cache.Manager
+	DefaultTTL time.Duration
 }
 
 // NewManager creates a new drives manager
-func NewManager(client *api.Client) *Manager {
-	return &Manager{
-		client: client,
-		shaper: api.NewRequestShaper(client),
+func NewManager(client *api.Client, opts ...ManagerOptions) *Manager {
+	m := &Manager{
+		client:     client,
+		shaper:     api.NewRequestShaper(client),
+		defaultTTL: 5 * time.Minute,
+	}
+
+	if len(opts) > 0 && opts[0].CacheMgr != nil {
+		m.cacheMgr = opts[0].CacheMgr
+		if opts[0].DefaultTTL > 0 {
+			m.defaultTTL = opts[0].DefaultTTL
+		}
+	}
+
+	return m
+}
+
+// SetCacheManager sets the cache manager for this instance
+func (m *Manager) SetCacheManager(cacheMgr *cache.Manager, ttl time.Duration) {
+	m.cacheMgr = cacheMgr
+	if ttl > 0 {
+		m.defaultTTL = ttl
 	}
 }
 
 // SharedDrive represents a Shared Drive with metadata
 type SharedDrive struct {
-	ID                    string            `json:"id"`
-	Name                  string            `json:"name"`
-	Kind                  string            `json:"kind,omitempty"`
-	ColorRgb              string            `json:"colorRgb,omitempty"`
-	BackgroundImageLink   string            `json:"backgroundImageLink,omitempty"`
-	ThemeID               string            `json:"themeId,omitempty"`
-	CreatedTime           string            `json:"createdTime,omitempty"`
-	Hidden                bool              `json:"hidden,omitempty"`
-	Capabilities          *DriveCapabilities `json:"capabilities,omitempty"`
-	Restrictions          *DriveRestrictions `json:"restrictions,omitempty"`
-	OrgUnitID             string            `json:"orgUnitId,omitempty"`
+	ID                  string             `json:"id"`
+	Name                string             `json:"name"`
+	Kind                string             `json:"kind,omitempty"`
+	ColorRgb            string             `json:"colorRgb,omitempty"`
+	BackgroundImageLink string             `json:"backgroundImageLink,omitempty"`
+	ThemeID             string             `json:"themeId,omitempty"`
+	CreatedTime         string             `json:"createdTime,omitempty"`
+	Hidden              bool               `json:"hidden,omitempty"`
+	Capabilities        *DriveCapabilities `json:"capabilities,omitempty"`
+	Restrictions        *DriveRestrictions `json:"restrictions,omitempty"`
+	OrgUnitID           string             `json:"orgUnitId,omitempty"`
 }
 
 // DriveCapabilities represents capabilities for a Shared Drive
 type DriveCapabilities struct {
-	CanAddChildren                       bool `json:"canAddChildren,omitempty"`
+	CanAddChildren                                   bool `json:"canAddChildren,omitempty"`
 	CanChangeCopyRequiresWriterPermissionRestriction bool `json:"canChangeCopyRequiresWriterPermissionRestriction,omitempty"`
-	CanChangeDomainUsersOnlyRestriction  bool `json:"canChangeDomainUsersOnlyRestriction,omitempty"`
-	CanChangeDriveBackground             bool `json:"canChangeDriveBackground,omitempty"`
-	CanChangeDriveMembersOnlyRestriction bool `json:"canChangeDriveMembersOnlyRestriction,omitempty"`
-	CanComment                           bool `json:"canComment,omitempty"`
-	CanCopy                              bool `json:"canCopy,omitempty"`
-	CanDeleteDrive                       bool `json:"canDeleteDrive,omitempty"`
-	CanDownload                          bool `json:"canDownload,omitempty"`
-	CanEdit                              bool `json:"canEdit,omitempty"`
-	CanListChildren                      bool `json:"canListChildren,omitempty"`
-	CanManageMembers                     bool `json:"canManageMembers,omitempty"`
-	CanReadRevisions                     bool `json:"canReadRevisions,omitempty"`
-	CanRename                            bool `json:"canRename,omitempty"`
-	CanRenameDrive                       bool `json:"canRenameDrive,omitempty"`
-	CanResetDriveRestrictions            bool `json:"canResetDriveRestrictions,omitempty"`
-	CanShare                             bool `json:"canShare,omitempty"`
-	CanTrashChildren                     bool `json:"canTrashChildren,omitempty"`
+	CanChangeDomainUsersOnlyRestriction              bool `json:"canChangeDomainUsersOnlyRestriction,omitempty"`
+	CanChangeDriveBackground                         bool `json:"canChangeDriveBackground,omitempty"`
+	CanChangeDriveMembersOnlyRestriction             bool `json:"canChangeDriveMembersOnlyRestriction,omitempty"`
+	CanComment                                       bool `json:"canComment,omitempty"`
+	CanCopy                                          bool `json:"canCopy,omitempty"`
+	CanDeleteDrive                                   bool `json:"canDeleteDrive,omitempty"`
+	CanDownload                                      bool `json:"canDownload,omitempty"`
+	CanEdit                                          bool `json:"canEdit,omitempty"`
+	CanListChildren                                  bool `json:"canListChildren,omitempty"`
+	CanManageMembers                                 bool `json:"canManageMembers,omitempty"`
+	CanReadRevisions                                 bool `json:"canReadRevisions,omitempty"`
+	CanRename                                        bool `json:"canRename,omitempty"`
+	CanRenameDrive                                   bool `json:"canRenameDrive,omitempty"`
+	CanResetDriveRestrictions                        bool `json:"canResetDriveRestrictions,omitempty"`
+	CanShare                                         bool `json:"canShare,omitempty"`
+	CanTrashChildren                                 bool `json:"canTrashChildren,omitempty"`
 }
 
 // DriveRestrictions represents restrictions for a Shared Drive
 type DriveRestrictions struct {
-	AdminManagedRestrictions             bool `json:"adminManagedRestrictions,omitempty"`
-	CopyRequiresWriterPermission         bool `json:"copyRequiresWriterPermission,omitempty"`
-	DomainUsersOnly                      bool `json:"domainUsersOnly,omitempty"`
-	DriveMembersOnly                     bool `json:"driveMembersOnly,omitempty"`
+	AdminManagedRestrictions     bool `json:"adminManagedRestrictions,omitempty"`
+	CopyRequiresWriterPermission bool `json:"copyRequiresWriterPermission,omitempty"`
+	DomainUsersOnly              bool `json:"domainUsersOnly,omitempty"`
+	DriveMembersOnly             bool `json:"driveMembersOnly,omitempty"`
 }
 
 // ListResult contains shared drive listing results
@@ -106,8 +135,18 @@ func (m *Manager) List(ctx context.Context, reqCtx *types.RequestContext, pageSi
 
 // Get retrieves a Shared Drive by ID with full metadata
 func (m *Manager) Get(ctx context.Context, reqCtx *types.RequestContext, driveID string, fields string) (*SharedDrive, error) {
+	// Check cache first (only if not requesting specific fields)
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() && fields == "" {
+		if data, found := m.cacheMgr.GetDriveRaw(driveID); found {
+			var drive SharedDrive
+			if err := json.Unmarshal(data, &drive); err == nil {
+				return &drive, nil
+			}
+		}
+	}
+
 	call := m.client.Service().Drives.Get(driveID)
-	
+
 	// Apply fields mask if specified
 	if fields != "" {
 		call = call.Fields(googleapi.Field(fields))
@@ -120,7 +159,16 @@ func (m *Manager) Get(ctx context.Context, reqCtx *types.RequestContext, driveID
 		return nil, err
 	}
 
-	return mapDriveToSharedDrive(result), nil
+	drive := mapDriveToSharedDrive(result)
+
+	// Cache the result (only if using default fields)
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() && fields == "" {
+		if data, err := json.Marshal(drive); err == nil {
+			_ = m.cacheMgr.SetDriveRaw(driveID, data, m.defaultTTL)
+		}
+	}
+
+	return drive, nil
 }
 
 // GetDriveRootID returns the root ID for a Shared Drive, which is the drive ID itself
@@ -147,24 +195,24 @@ func mapDriveToSharedDrive(d *drive.Drive) *SharedDrive {
 	// Map capabilities
 	if d.Capabilities != nil {
 		sd.Capabilities = &DriveCapabilities{
-			CanAddChildren:                       d.Capabilities.CanAddChildren,
+			CanAddChildren: d.Capabilities.CanAddChildren,
 			CanChangeCopyRequiresWriterPermissionRestriction: d.Capabilities.CanChangeCopyRequiresWriterPermissionRestriction,
-			CanChangeDomainUsersOnlyRestriction:  d.Capabilities.CanChangeDomainUsersOnlyRestriction,
-			CanChangeDriveBackground:             d.Capabilities.CanChangeDriveBackground,
-			CanChangeDriveMembersOnlyRestriction: d.Capabilities.CanChangeDriveMembersOnlyRestriction,
-			CanComment:                           d.Capabilities.CanComment,
-			CanCopy:                              d.Capabilities.CanCopy,
-			CanDeleteDrive:                       d.Capabilities.CanDeleteDrive,
-			CanDownload:                          d.Capabilities.CanDownload,
-			CanEdit:                              d.Capabilities.CanEdit,
-			CanListChildren:                      d.Capabilities.CanListChildren,
-			CanManageMembers:                     d.Capabilities.CanManageMembers,
-			CanReadRevisions:                     d.Capabilities.CanReadRevisions,
-			CanRename:                            d.Capabilities.CanRename,
-			CanRenameDrive:                       d.Capabilities.CanRenameDrive,
-			CanResetDriveRestrictions:            d.Capabilities.CanResetDriveRestrictions,
-			CanShare:                             d.Capabilities.CanShare,
-			CanTrashChildren:                     d.Capabilities.CanTrashChildren,
+			CanChangeDomainUsersOnlyRestriction:              d.Capabilities.CanChangeDomainUsersOnlyRestriction,
+			CanChangeDriveBackground:                         d.Capabilities.CanChangeDriveBackground,
+			CanChangeDriveMembersOnlyRestriction:             d.Capabilities.CanChangeDriveMembersOnlyRestriction,
+			CanComment:                                       d.Capabilities.CanComment,
+			CanCopy:                                          d.Capabilities.CanCopy,
+			CanDeleteDrive:                                   d.Capabilities.CanDeleteDrive,
+			CanDownload:                                      d.Capabilities.CanDownload,
+			CanEdit:                                          d.Capabilities.CanEdit,
+			CanListChildren:                                  d.Capabilities.CanListChildren,
+			CanManageMembers:                                 d.Capabilities.CanManageMembers,
+			CanReadRevisions:                                 d.Capabilities.CanReadRevisions,
+			CanRename:                                        d.Capabilities.CanRename,
+			CanRenameDrive:                                   d.Capabilities.CanRenameDrive,
+			CanResetDriveRestrictions:                        d.Capabilities.CanResetDriveRestrictions,
+			CanShare:                                         d.Capabilities.CanShare,
+			CanTrashChildren:                                 d.Capabilities.CanTrashChildren,
 		}
 	}
 

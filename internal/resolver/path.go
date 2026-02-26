@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -504,7 +505,8 @@ func (r *PathResolver) getFileByID(ctx context.Context, reqCtx *types.RequestCon
 
 // isPermissionError checks if an error is a permission-related error
 func isPermissionError(err error) bool {
-	if appErr, ok := err.(*utils.AppError); ok {
+	var appErr *utils.AppError
+	if errors.As(err, &appErr) {
 		return appErr.CLIError.Code == utils.ErrCodePermissionDenied
 	}
 	return false
@@ -685,4 +687,3 @@ func (r *PathResolver) getDomainPriority(domain SearchDomain) int {
 		return 4
 	}
 }
-

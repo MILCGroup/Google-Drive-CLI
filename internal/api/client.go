@@ -2,12 +2,13 @@ package api
 
 import (
 	"context"
+	"errors"
 	"math"
 	"math/rand"
 	"strconv"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/errors"
+	gdrvErrors "github.com/dl-alexandre/gdrv/internal/errors"
 	"github.com/dl-alexandre/gdrv/internal/logging"
 	"github.com/dl-alexandre/gdrv/internal/types"
 	"github.com/dl-alexandre/gdrv/internal/utils"
@@ -134,7 +135,8 @@ func ExecuteWithRetry[T any](ctx context.Context, client *Client, reqCtx *types.
 
 // isRetryable checks if an error is retryable
 func isRetryable(err error) bool {
-	if apiErr, ok := err.(*googleapi.Error); ok {
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) {
 		switch apiErr.Code {
 		case 429, 500, 502, 503, 504:
 			return true
@@ -146,7 +148,8 @@ func isRetryable(err error) bool {
 // calculateBackoff calculates the retry delay with exponential backoff
 func calculateBackoff(baseDelay time.Duration, attempt int, err error) time.Duration {
 	// Check for Retry-After header
-	if apiErr, ok := err.(*googleapi.Error); ok {
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) {
 		retryAfter := apiErr.Header.Get("Retry-After")
 		if retryAfter != "" {
 			// Try to parse as seconds (integer)
@@ -185,7 +188,7 @@ func calculateBackoff(baseDelay time.Duration, attempt int, err error) time.Dura
 
 // classifyError converts API errors to CLI errors
 func classifyError(err error, reqCtx *types.RequestContext, logger logging.Logger) error {
-	return errors.ClassifyGoogleAPIError("drive", err, reqCtx, logger)
+	return gdrvErrors.ClassifyGoogleAPIError("drive", err, reqCtx, logger)
 }
 
 // Service returns the underlying Drive service

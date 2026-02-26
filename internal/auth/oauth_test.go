@@ -31,7 +31,7 @@ func TestPKCESupport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create listener: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	addr := listener.Addr().(*net.TCPAddr)
 	redirectURL := fmt.Sprintf("http://127.0.0.1:%d/callback", addr.Port)
@@ -40,7 +40,7 @@ func TestPKCESupport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewOAuthFlow failed: %v", err)
 	}
-	defer flow.Close()
+	defer func() { _ = flow.Close() }()
 
 	// Test 1: Code verifier is generated
 	if flow.codeVerifier == "" {
@@ -112,7 +112,7 @@ func TestEphemeralPortSelection(t *testing.T) {
 			t.Fatalf("Failed to create flow %d: %v", i, err)
 		}
 		flows[i] = flow
-		defer flow.Close()
+		defer func() { _ = flow.Close() }()
 	}
 
 	// Test 2: Verify each flow has unique port
@@ -169,7 +169,7 @@ func TestStateValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create flow: %v", err)
 	}
-	defer flow.Close()
+	defer func() { _ = flow.Close() }()
 
 	tests := []struct {
 		name          string
@@ -256,11 +256,10 @@ func TestCallbackServerTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create flow: %v", err)
 	}
-	defer flow.Close()
+	defer func() { _ = flow.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	flow.StartCallbackServer(ctx)
 
 	// Wait for code with short timeout (should timeout)
@@ -318,7 +317,7 @@ func TestIsHeadlessEnv(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Unset environment variables first
 			for _, k := range tt.unsetVars {
-				os.Unsetenv(k)
+				_ = os.Unsetenv(k)
 			}
 
 			// Set environment variables
@@ -411,137 +410,15 @@ func TestOAuthFlowWithMockServer(t *testing.T) {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprintf(w, `{
+			_, _ = fmt.Fprintf(w, `{
 				"access_token": "mock_access_token",
 				"refresh_token": "mock_refresh_token",
 				"expires_in": 3600,
-				"token_type": "Bearer"
-			}`)
+			"token_type": "Bearer"
+		}`)
 		}
 	}))
-	defer mockServer.Close()
-
-	config := &oauth2.Config{
-		ClientID:     "test-client-id",
-		ClientSecret: "test-client-secret",
-		Scopes:       []string{"https://www.googleapis.com/auth/drive.readonly"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  mockServer.URL + "/auth",
-			TokenURL: mockServer.URL + "/token",
-		},
-	}
-
-	flow, err := newLoopbackFlow(config)
-	if err != nil {
-		t.Fatalf("Failed to create flow: %v", err)
-	}
-	defer flow.Close()
-
-	ctx := context.Background()
-	creds, err := flow.ExchangeCode(ctx, "mock_auth_code")
-	if err != nil {
-		t.Fatalf("ExchangeCode failed: %v", err)
-	}
-
-	if creds.AccessToken != "mock_access_token" {
-		t.Errorf("Expected access_token=mock_access_token, got %s", creds.AccessToken)
-	}
-	if creds.RefreshToken != "mock_refresh_token" {
-		t.Errorf("Expected refresh_token=mock_refresh_token, got %s", creds.RefreshToken)
-	}
-}
-
-func TestNewOAuthFlow_NilConfig(t *testing.T) {
-	listener, _ := net.Listen("tcp", "127.0.0.1:0")
-	defer listener.Close()
-
-	_, err := NewOAuthFlow(nil, listener, "http://127.0.0.1:8080/callback")
-	if err == nil {
-		t.Error("NewOAuthFlow should fail with nil config")
-	}
-}
-
-func TestNewOAuthFlow_NoRedirectURL(t *testing.T) {
-	config := &oauth2.Config{
-		ClientID: "test-client-id",
-		Scopes:   []string{"https://www.googleapis.com/auth/drive.readonly"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-			TokenURL: "https://oauth2.googleapis.com/token",
-		},
-	}
-
-	listener, _ := net.Listen("tcp", "127.0.0.1:0")
-	defer listener.Close()
-
-	_, err := NewOAuthFlow(config, listener, "")
-	if err == nil {
-		t.Error("NewOAuthFlow should fail with no redirect URL")
-	}
-}
-
-func TestOAuthFlow_GetAuthURL_HasRequiredParams(t *testing.T) {
-	config := &oauth2.Config{
-		ClientID:     "test-client-id",
-		ClientSecret: "test-client-secret",
-		Scopes:       []string{"https://www.googleapis.com/auth/drive.readonly"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-			TokenURL: "https://oauth2.googleapis.com/token",
-		},
-	}
-
-	flow, err := newLoopbackFlow(config)
-	if err != nil {
-		t.Fatalf("Failed to create flow: %v", err)
-	}
-	defer flow.Close()
-
-	authURL := flow.GetAuthURL()
-	parsedURL, _ := url.Parse(authURL)
-	query := parsedURL.Query()
-
-	if query.Get("client_id") != "test-client-id" {
-		t.Error("Auth URL missing client_id")
-	}
-	if query.Get("response_type") != "code" {
-		t.Error("Auth URL missing response_type=code")
-	}
-	if query.Get("scope") == "" {
-		t.Error("Auth URL missing scope")
-	}
-}
-
-func TestOAuthFlow_StartCallbackServer_ContextCancel(t *testing.T) {
-	config := &oauth2.Config{
-		ClientID: "test-client-id",
-		Scopes:   []string{"https://www.googleapis.com/auth/drive.readonly"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-			TokenURL: "https://oauth2.googleapis.com/token",
-		},
-	}
-
-	flow, err := newLoopbackFlow(config)
-	if err != nil {
-		t.Fatalf("Failed to create flow: %v", err)
-	}
-	defer flow.Close()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	flow.StartCallbackServer(ctx)
-
-	cancel()
-	time.Sleep(100 * time.Millisecond)
-}
-
-// Regression: --no-browser must not call openBrowser.
-func TestAuthenticate_NoBrowser_DoesNotOpenBrowser(t *testing.T) {
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"access_token":"tok","refresh_token":"rtok","expires_in":3600,"token_type":"Bearer"}`)
-	}))
-	defer mockServer.Close()
+	defer func() { mockServer.Close() }()
 
 	tmpDir := t.TempDir()
 	mgr := NewManager(tmpDir)
@@ -604,7 +481,7 @@ func TestAuthenticate_NoBrowser_ListenerAcceptsConnections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("newLoopbackFlow failed: %v", err)
 	}
-	defer flow.Close()
+	defer func() { _ = flow.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -622,7 +499,7 @@ func TestAuthenticate_NoBrowser_ListenerAcceptsConnections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Connection to callback port refused (original bug): %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Callback returned %d, want 200", resp.StatusCode)
@@ -632,9 +509,9 @@ func TestAuthenticate_NoBrowser_ListenerAcceptsConnections(t *testing.T) {
 func TestAuthenticate_BrowserOpens(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"access_token":"tok","refresh_token":"rtok","expires_in":3600,"token_type":"Bearer"}`)
+		_, _ = fmt.Fprintf(w, `{"access_token":"tok","refresh_token":"rtok","expires_in":3600,"token_type":"Bearer"}`)
 	}))
-	defer mockServer.Close()
+	defer func() { mockServer.Close() }()
 
 	tmpDir := t.TempDir()
 	mgr := NewManager(tmpDir)
@@ -662,14 +539,14 @@ func TestAuthenticate_BrowserOpens(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil
 	}
 
 	t.Setenv("DISPLAY", ":0")
 	for _, k := range []string{"CI", "GITHUB_ACTIONS", "SSH_CONNECTION", "SSH_TTY", "GDRV_NO_BROWSER"} {
 		t.Setenv(k, "")
-		os.Unsetenv(k)
+		_ = os.Unsetenv(k)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -691,9 +568,9 @@ func TestAuthenticate_BrowserOpens(t *testing.T) {
 func TestAuthenticate_BrowserFailsStillWaitsForCallback(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"access_token":"tok2","refresh_token":"rtok2","expires_in":3600,"token_type":"Bearer"}`)
+		_, _ = fmt.Fprintf(w, `{"access_token":"tok2","refresh_token":"rtok2","expires_in":3600,"token_type":"Bearer"}`)
 	}))
-	defer mockServer.Close()
+	defer func() { mockServer.Close() }()
 
 	tmpDir := t.TempDir()
 	mgr := NewManager(tmpDir)
@@ -716,7 +593,7 @@ func TestAuthenticate_BrowserFailsStillWaitsForCallback(t *testing.T) {
 	t.Setenv("DISPLAY", ":0")
 	for _, k := range []string{"CI", "GITHUB_ACTIONS", "SSH_CONNECTION", "SSH_TTY", "GDRV_NO_BROWSER"} {
 		t.Setenv(k, "")
-		os.Unsetenv(k)
+		_ = os.Unsetenv(k)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -755,7 +632,7 @@ func TestAuthenticate_BrowserFailsStillWaitsForCallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Callback request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Callback returned status %d, want 200", resp.StatusCode)

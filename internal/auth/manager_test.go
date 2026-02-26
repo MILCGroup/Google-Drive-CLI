@@ -589,7 +589,7 @@ func TestManager_LoadCredentials_InvalidExpiryDate(t *testing.T) {
 
 	// Manually create a credential file with invalid expiry date
 	credDir := filepath.Join(tmpDir, "credentials")
-	os.MkdirAll(credDir, 0700)
+	_ = os.MkdirAll(credDir, 0700)
 
 	stored := types.StoredCredentials{
 		Profile:     "bad-expiry",
@@ -601,7 +601,7 @@ func TestManager_LoadCredentials_InvalidExpiryDate(t *testing.T) {
 
 	data, _ := json.Marshal(stored)
 	credFile := filepath.Join(credDir, "bad-expiry.json")
-	os.WriteFile(credFile, data, 0600)
+	_ = os.WriteFile(credFile, data, 0600)
 
 	// Should fail to parse invalid expiry date
 	_, err := mgr.LoadCredentials("bad-expiry")
@@ -1073,7 +1073,7 @@ func TestManager_LoadServiceAccount_EmptyKeyFile(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "key.json")
-	os.WriteFile(keyFile, []byte(""), 0600)
+	_ = os.WriteFile(keyFile, []byte(""), 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "")
 	if err == nil {
@@ -1087,7 +1087,7 @@ func TestManager_LoadServiceAccount_NoScopes(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "key.json")
-	os.WriteFile(keyFile, []byte("{}"), 0600)
+	_ = os.WriteFile(keyFile, []byte("{}"), 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{}, "")
 	if err == nil {
@@ -1101,7 +1101,7 @@ func TestManager_LoadServiceAccount_InvalidImpersonateUser(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "key.json")
-	os.WriteFile(keyFile, []byte("{}"), 0600)
+	_ = os.WriteFile(keyFile, []byte("{}"), 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "invalid-user-no-at-sign")
 	if err == nil {
@@ -1115,7 +1115,7 @@ func TestManager_LoadServiceAccount_InvalidJSON(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "key.json")
-	os.WriteFile(keyFile, []byte("invalid json {"), 0600)
+	_ = os.WriteFile(keyFile, []byte("invalid json {"), 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "")
 	if err == nil {
@@ -1130,7 +1130,7 @@ func TestManager_LoadServiceAccount_WrongType(t *testing.T) {
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "key.json")
 	keyData := `{"type": "oauth2", "client_id": "test"}`
-	os.WriteFile(keyFile, []byte(keyData), 0600)
+	_ = os.WriteFile(keyFile, []byte(keyData), 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "")
 	if err == nil {
@@ -1145,7 +1145,7 @@ func TestManager_LoadServiceAccount_MissingClientEmail(t *testing.T) {
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "key.json")
 	keyData := `{"type": "service_account", "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA0Z3VS5JJcds3s/0Ej3Ej5Ej3Ej5Ej3Ej5Ej3Ej5Ej3Ej5\n-----END RSA PRIVATE KEY-----"}`
-	os.WriteFile(keyFile, []byte(keyData), 0600)
+	_ = os.WriteFile(keyFile, []byte(keyData), 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "")
 	if err == nil {
@@ -1160,7 +1160,7 @@ func TestManager_LoadServiceAccount_MissingPrivateKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "key.json")
 	keyData := `{"type": "service_account", "client_email": "test@example.iam.gserviceaccount.com"}`
-	os.WriteFile(keyFile, []byte(keyData), 0600)
+	_ = os.WriteFile(keyFile, []byte(keyData), 0600)
 
 	_, err := mgr.LoadServiceAccount(ctx, keyFile, []string{utils.ScopeFile}, "")
 	if err == nil {

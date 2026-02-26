@@ -66,7 +66,7 @@ func (cmd *IAMAdminServiceAccountsListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("iamadmin.service-accounts.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
@@ -90,7 +90,7 @@ func (cmd *IAMAdminServiceAccountsCreateCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("iamadmin.service-accounts.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 
@@ -111,7 +111,7 @@ func (cmd *IAMAdminRolesListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("iamadmin.roles.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 

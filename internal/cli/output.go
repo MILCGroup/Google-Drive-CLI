@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -177,7 +178,8 @@ func (w *OutputWriter) writePermissionTable(perms []*types.Permission) error {
 // and writes it directly; otherwise it wraps it as an unknown error.
 // This replaces the repeated 4-line error handling pattern across all CLI commands.
 func handleCLIError(w *OutputWriter, command string, err error) error {
-	if appErr, ok := err.(*utils.AppError); ok {
+	var appErr *utils.AppError
+	if errors.As(err, &appErr) {
 		return w.WriteError(command, appErr.CLIError)
 	}
 	return w.WriteError(command, utils.NewCLIError(utils.ErrCodeUnknown, err.Error()).Build())

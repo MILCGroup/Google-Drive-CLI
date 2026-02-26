@@ -68,7 +68,10 @@ func TestProperty_ErrorStructure_RequiredFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appErr := classifyError(tt.err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+			var appErr *utils.AppError
+			if !errors.As(classifyError(tt.err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+				t.Fatalf("Expected *utils.AppError, got %T", classifyError(tt.err, reqCtx, logging.NewNoOpLogger()))
+			}
 
 			if appErr.CLIError.Code == "" {
 				t.Error("CLIError.Code is empty")
@@ -124,7 +127,10 @@ func TestProperty_ErrorStructure_ContextInclusion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appErr := classifyError(tt.err, tt.reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+			var appErr *utils.AppError
+			if !errors.As(classifyError(tt.err, tt.reqCtx, logging.NewNoOpLogger()), &appErr) {
+				t.Fatalf("Expected *utils.AppError, got %T", classifyError(tt.err, tt.reqCtx, logging.NewNoOpLogger()))
+			}
 
 			if appErr.CLIError.Context == nil {
 				t.Fatal("CLIError.Context is nil")
@@ -171,7 +177,10 @@ func TestProperty_ErrorStructure_HTTPStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(string(rune(tt.httpCode)), func(t *testing.T) {
 			err := &googleapi.Error{Code: tt.httpCode, Message: "Test"}
-			appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+			var appErr *utils.AppError
+			if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+				t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+			}
 
 			if tt.shouldHave && appErr.CLIError.HTTPStatus == 0 {
 				t.Errorf("HTTPStatus not set for %d error", tt.httpCode)
@@ -206,7 +215,10 @@ func TestProperty_ErrorStructure_DriveReason(t *testing.T) {
 				Message: "Error",
 				Errors:  []googleapi.ErrorItem{{Reason: tt.reason}},
 			}
-			appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+			var appErr *utils.AppError
+			if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+				t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+			}
 
 			if tt.shouldHave && appErr.CLIError.DriveReason == "" {
 				t.Error("DriveReason not set")
@@ -239,7 +251,10 @@ func TestProperty_ErrorStructure_RetryableFlag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appErr := classifyError(tt.err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+			var appErr *utils.AppError
+			if !errors.As(classifyError(tt.err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+				t.Fatalf("Expected *utils.AppError, got %T", classifyError(tt.err, reqCtx, logging.NewNoOpLogger()))
+			}
 
 			if appErr.CLIError.Retryable != tt.wantRetryable {
 				t.Errorf("Retryable = %v, want %v", appErr.CLIError.Retryable, tt.wantRetryable)
@@ -404,7 +419,7 @@ func TestProperty_RetryLogic_ContextCancellation(t *testing.T) {
 		return "", &googleapi.Error{Code: 503, Message: "Service Unavailable"}
 	})
 
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Errorf("Expected context.Canceled, got %v", err)
 	}
 

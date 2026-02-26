@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -446,7 +447,8 @@ func (cmd *AuthDiagnoseCmd) Run(globals *Globals) error {
 		}
 		_, refreshErr := mgr.RefreshCredentials(context.Background(), creds)
 		if refreshErr != nil {
-			if appErr, ok := refreshErr.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(refreshErr, &appErr) {
 				diagnostics["refreshCheck"] = map[string]interface{}{
 					"success": false,
 					"error":   appErr.CLIError,

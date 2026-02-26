@@ -79,7 +79,7 @@ func (cmd *CloudLoggingEntriesListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("logging.entries.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
@@ -103,7 +103,7 @@ func (cmd *CloudLoggingSinksListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("logging.sinks.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 

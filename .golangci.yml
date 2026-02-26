@@ -26,15 +26,6 @@ linters:
 
   exclusions:
     rules:
-      # Note: errcheck disabled due to widespread unchecked error patterns
-      # (Close, Setenv, RemoveAll, etc.) that would require massive refactoring
-      - linters: [errcheck]
-        text: "Error return value"
-      # Pre-existing errorlint issues - would require errors.Is/errors.As refactoring
-      - linters: [errorlint]
-        text: "comparing with"
-      - linters: [errorlint]
-        text: "type assertion"
       # Pre-existing unparam issues - would require significant API changes
       - linters: [unparam]
         text: "is unused"
