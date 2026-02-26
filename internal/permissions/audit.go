@@ -22,6 +22,7 @@ func (m *Manager) AuditPublic(ctx context.Context, reqCtx *types.RequestContext,
 		return false
 	})
 }
+
 // AuditExternal finds all files shared with external domains
 func (m *Manager) AuditExternal(ctx context.Context, reqCtx *types.RequestContext, opts types.AuditOptions) (*types.AuditResult, error) {
 	if opts.InternalDomain == "" {
@@ -45,6 +46,7 @@ func (m *Manager) AuditExternal(ctx context.Context, reqCtx *types.RequestContex
 		return false
 	})
 }
+
 // AuditAnyoneWithLink finds all files with "anyone with link" access
 func (m *Manager) AuditAnyoneWithLink(ctx context.Context, reqCtx *types.RequestContext, opts types.AuditOptions) (*types.AuditResult, error) {
 	query := "visibility = 'anyoneWithLink'"
@@ -57,6 +59,7 @@ func (m *Manager) AuditAnyoneWithLink(ctx context.Context, reqCtx *types.Request
 		return false
 	})
 }
+
 // AuditUser finds all files accessible by a specific user email
 func (m *Manager) AuditUser(ctx context.Context, reqCtx *types.RequestContext, email string, opts types.AuditOptions) (*types.AuditResult, error) {
 	if email == "" {

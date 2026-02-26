@@ -63,10 +63,10 @@ func TestGetConvenienceFormat(t *testing.T) {
 
 func TestGetAvailableFormats(t *testing.T) {
 	tests := []struct {
-		name       string
-		mimeType   string
-		wantErr    bool
-		wantCount  int
+		name      string
+		mimeType  string
+		wantErr   bool
+		wantCount int
 	}{
 		{"Google Docs", MimeTypeGoogleDocs, false, 8},
 		{"Google Sheets", MimeTypeGoogleSheets, false, 6},
@@ -92,10 +92,10 @@ func TestGetAvailableFormats(t *testing.T) {
 
 func TestValidateExportFormat(t *testing.T) {
 	tests := []struct {
-		name       string
-		source     string
-		target     string
-		wantErr    bool
+		name    string
+		source  string
+		target  string
+		wantErr bool
 	}{
 		{"Docs to PDF", MimeTypeGoogleDocs, "application/pdf", false},
 		{"Docs to DOCX", MimeTypeGoogleDocs, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", false},
@@ -156,20 +156,20 @@ func TestGetMimeTypeForWorkspaceType(t *testing.T) {
 func TestMimeTypeValidation_Property(t *testing.T) {
 	// Property 23: MIME Type Validation
 	// Validates that export format validation rejects invalid MIME type combinations
-	
+
 	workspaceTypes := []string{
 		MimeTypeGoogleDocs,
 		MimeTypeGoogleSheets,
 		MimeTypeGoogleSlides,
 		MimeTypeGoogleDrawing,
 	}
-	
+
 	invalidTargets := []string{
 		"application/unknown",
 		"text/invalid",
 		"image/invalid",
 	}
-	
+
 	for _, source := range workspaceTypes {
 		for _, target := range invalidTargets {
 			err := ValidateExportFormat(source, target)
@@ -183,7 +183,7 @@ func TestMimeTypeValidation_Property(t *testing.T) {
 func TestFormatConvenienceMapping_Property(t *testing.T) {
 	// Property 24: Format Convenience Mapping
 	// Validates that convenience format mappings are correctly applied
-	
+
 	tests := []struct {
 		shorthand string
 		mimeType  string
@@ -193,7 +193,7 @@ func TestFormatConvenienceMapping_Property(t *testing.T) {
 		{"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
 		{"pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"},
 	}
-	
+
 	for _, tt := range tests {
 		got, err := GetConvenienceFormat(tt.shorthand)
 		if err != nil {
@@ -203,7 +203,7 @@ func TestFormatConvenienceMapping_Property(t *testing.T) {
 		if got != tt.mimeType {
 			t.Errorf("GetConvenienceFormat(%q) = %q, want %q", tt.shorthand, got, tt.mimeType)
 		}
-		
+
 		// Test case insensitivity
 		upperShorthand := strings.ToUpper(tt.shorthand)
 		got, err = GetConvenienceFormat(upperShorthand)

@@ -135,4 +135,3 @@ func (r *TaskMutationResult) Rows() [][]string {
 func (r *TaskMutationResult) EmptyMessage() string {
 	return "No result"
 }
-

@@ -33,9 +33,9 @@ type Options struct {
 }
 
 type State struct {
-	LocalRoot    string
-	RemoteRootID string
-	LocalEntries map[string]scanner.LocalEntry
+	LocalRoot     string
+	RemoteRootID  string
+	LocalEntries  map[string]scanner.LocalEntry
 	RemoteEntries map[string]scanner.RemoteEntry
 }
 

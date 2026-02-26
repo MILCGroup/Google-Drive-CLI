@@ -162,9 +162,9 @@ func (e *Engine) Plan(ctx context.Context, cfg index.SyncConfig, opts Options, r
 func (e *Engine) Apply(ctx context.Context, cfg index.SyncConfig, plan Plan, opts Options, reqCtx *types.RequestContext) (Result, error) {
 	exec := executor.New(e.filesMgr, e.foldersMgr)
 	state := executor.State{
-		LocalRoot:    cfg.LocalRoot,
-		RemoteRootID: cfg.RemoteRootID,
-		LocalEntries: plan.Local,
+		LocalRoot:     cfg.LocalRoot,
+		RemoteRootID:  cfg.RemoteRootID,
+		LocalEntries:  plan.Local,
 		RemoteEntries: plan.Remote,
 	}
 	state, summary, err := exec.Apply(ctx, reqCtx, plan.Actions, state, executor.Options{
@@ -210,18 +210,18 @@ func buildIndexEntries(configID string, local map[string]scanner.LocalEntry, rem
 		localEntry, localOK := local[p]
 		remoteEntry, remoteOK := remote[p]
 		entry := index.SyncEntry{
-			ConfigID:     configID,
-			RelativePath: p,
-			IsDir:        localEntry.IsDir || remoteEntry.IsDir,
-			LocalMTime:   localEntry.ModTime,
-			LocalSize:    localEntry.Size,
-			ContentHash:  localEntry.Hash,
-			RemoteMTime:  remoteEntry.ModifiedTime,
-			RemoteSize:   remoteEntry.Size,
-			RemoteMD5:    remoteEntry.MD5Checksum,
+			ConfigID:       configID,
+			RelativePath:   p,
+			IsDir:          localEntry.IsDir || remoteEntry.IsDir,
+			LocalMTime:     localEntry.ModTime,
+			LocalSize:      localEntry.Size,
+			ContentHash:    localEntry.Hash,
+			RemoteMTime:    remoteEntry.ModifiedTime,
+			RemoteSize:     remoteEntry.Size,
+			RemoteMD5:      remoteEntry.MD5Checksum,
 			RemoteMimeType: remoteEntry.MimeType,
-			DriveFileID:  remoteEntry.ID,
-			DriveParentID: remoteEntry.ParentID,
+			DriveFileID:    remoteEntry.ID,
+			DriveParentID:  remoteEntry.ParentID,
 		}
 		if !localOK {
 			entry.LocalMTime = 0

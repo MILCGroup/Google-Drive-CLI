@@ -193,7 +193,7 @@ func (l *FileLogger) SetLevel(level LogLevel) {
 func (l *FileLogger) Close() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	if l.file != nil {
 		return l.file.Close()
 	}

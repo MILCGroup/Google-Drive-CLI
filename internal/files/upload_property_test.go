@@ -46,7 +46,7 @@ func TestProperty_UploadTypeSelection_FileSizeThreshold(t *testing.T) {
 func TestProperty_UploadTypeSelection_MetadataPresence(t *testing.T) {
 	// Property: Files with metadata use multipart (if under size threshold)
 	// Property: Files without metadata use simple (if under size threshold)
-	
+
 	size := int64(1024) // 1KB - well under threshold
 
 	tests := []struct {
@@ -134,17 +134,17 @@ func TestProperty_UploadTypeSelection_SizeOverridesMetadata(t *testing.T) {
 func TestProperty_UploadTypeSelection_Consistency(t *testing.T) {
 	// Property: Same input always produces same output (deterministic)
 	// Run 100 iterations to verify consistency
-	
+
 	metadata := &drive.File{Name: "test.txt"}
 	sizes := []int64{
-		1024,                                      // Small
-		int64(utils.UploadSimpleMaxBytes),         // At threshold
-		int64(utils.UploadSimpleMaxBytes) + 1,     // Just over threshold
+		1024,                                  // Small
+		int64(utils.UploadSimpleMaxBytes),     // At threshold
+		int64(utils.UploadSimpleMaxBytes) + 1, // Just over threshold
 	}
 
 	for _, size := range sizes {
 		firstResult := selectUploadType(size, metadata)
-		
+
 		// Run 100 iterations
 		for i := 0; i < 100; i++ {
 			result := selectUploadType(size, metadata)
@@ -157,7 +157,7 @@ func TestProperty_UploadTypeSelection_Consistency(t *testing.T) {
 
 func TestProperty_UploadTypeSelection_EdgeCases(t *testing.T) {
 	// Property: Edge cases are handled correctly
-	
+
 	tests := []struct {
 		name           string
 		size           int64
@@ -185,7 +185,7 @@ func TestProperty_UploadTypeSelection_EdgeCases(t *testing.T) {
 func TestProperty_UploadTypeSelection_RandomInputs(t *testing.T) {
 	// Property: All valid inputs produce valid outputs
 	// Valid outputs: "simple", "multipart", "resumable"
-	
+
 	validOutputs := map[string]bool{
 		"simple":    true,
 		"multipart": true,
@@ -194,9 +194,9 @@ func TestProperty_UploadTypeSelection_RandomInputs(t *testing.T) {
 
 	// Test with 100 random combinations
 	testCases := []struct {
-		size     int64
-		hasName  bool
-		hasMime  bool
+		size      int64
+		hasName   bool
+		hasMime   bool
 		hasParent bool
 	}{
 		// Systematically cover combinations

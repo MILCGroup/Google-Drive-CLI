@@ -14,7 +14,7 @@ import (
 // TestCreate tests folder creation with mocks
 func TestCreate(t *testing.T) {
 	tests := []struct {
-		name      string
+		name       string
 		folderName string
 		parentID   string
 		setupMock  func(*mocks.MockFilesService)

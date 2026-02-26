@@ -373,7 +373,7 @@ func TestGetFieldMask(t *testing.T) {
 			// Verify exportLinks is only included when requested
 			hasExportLinks := contains(mask, "exportLinks")
 			if hasExportLinks != tt.includeExportLinks {
-				t.Errorf("Expected exportLinks=%v, got %v in mask: %s", 
+				t.Errorf("Expected exportLinks=%v, got %v in mask: %s",
 					tt.includeExportLinks, hasExportLinks, mask)
 			}
 		})
@@ -414,10 +414,10 @@ func TestParseBool(t *testing.T) {
 
 // Helper function
 func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 && 
-		(s == substr || len(s) >= len(substr) && 
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		len(s) > len(substr) && containsInner(s, substr)))
+	return len(s) > 0 && len(substr) > 0 &&
+		(s == substr || len(s) >= len(substr) &&
+			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+				len(s) > len(substr) && containsInner(s, substr)))
 }
 
 func containsInner(s, substr string) bool {

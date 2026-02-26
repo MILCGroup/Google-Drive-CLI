@@ -231,13 +231,13 @@ func (s *RemoteScanner) listChildren(ctx context.Context, reqCtx *types.RequestC
 		}
 		for _, f := range list.Files {
 			file := &types.DriveFile{
-				ID:          f.Id,
-				Name:        f.Name,
-				MimeType:    f.MimeType,
-				Size:        f.Size,
-				MD5Checksum: f.Md5Checksum,
-				Parents:     f.Parents,
-				ResourceKey: f.ResourceKey,
+				ID:           f.Id,
+				Name:         f.Name,
+				MimeType:     f.MimeType,
+				Size:         f.Size,
+				MD5Checksum:  f.Md5Checksum,
+				Parents:      f.Parents,
+				ResourceKey:  f.ResourceKey,
 				ModifiedTime: f.ModifiedTime,
 			}
 			results = append(results, file)

@@ -102,10 +102,10 @@ func Compute(snapshot Snapshot, mode Mode, includeDeletes bool) Result {
 				if prevOK && prevEntry.IsDir {
 					if includeDeletes && remoteDeleted {
 						actions = append(actions, Action{
-							Type:   ActionDeleteLocal,
-							Path:   path,
-							Local:  localPtr,
-							Prev:   prevPtr,
+							Type:  ActionDeleteLocal,
+							Path:  path,
+							Local: localPtr,
+							Prev:  prevPtr,
 						})
 					}
 					continue

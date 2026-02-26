@@ -336,7 +336,7 @@ func TestFormatFileSize(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := formatFileSize(tt.bytes, tt.mimeType)
 			if got != tt.want {
-				t.Errorf("formatFileSize(%d, %s) = %s, want %s", 
+				t.Errorf("formatFileSize(%d, %s) = %s, want %s",
 					tt.bytes, tt.mimeType, got, tt.want)
 			}
 		})
@@ -421,7 +421,7 @@ func TestTruncateString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := truncateString(tt.input, tt.maxLen)
 			if got != tt.want {
-				t.Errorf("truncateString(%q, %d) = %q, want %q", 
+				t.Errorf("truncateString(%q, %d) = %q, want %q",
 					tt.input, tt.maxLen, got, tt.want)
 			}
 		})

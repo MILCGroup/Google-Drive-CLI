@@ -201,4 +201,3 @@ func convertRunResponse(op *script.Operation) *types.ScriptRunResult {
 
 	return result
 }
-

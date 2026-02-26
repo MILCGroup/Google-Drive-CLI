@@ -121,6 +121,7 @@ func (m *Manager) AnalyzeFolder(ctx context.Context, reqCtx *types.RequestContex
 
 	return analysis, nil
 }
+
 // GenerateReport generates a detailed permission report for a file or folder
 func (m *Manager) GenerateReport(ctx context.Context, reqCtx *types.RequestContext, fileID string, internalDomain string) (*types.PermissionReport, error) {
 	reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, fileID)

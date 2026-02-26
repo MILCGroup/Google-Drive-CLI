@@ -102,6 +102,7 @@ func (m *Manager) BulkRemovePublic(ctx context.Context, reqCtx *types.RequestCon
 
 	return result, nil
 }
+
 // BulkUpdateRole updates permissions from one role to another in a folder
 func (m *Manager) BulkUpdateRole(ctx context.Context, reqCtx *types.RequestContext, fromRole, toRole string, opts types.BulkOptions) (*types.BulkOperationResult, error) {
 	if opts.FolderID == "" {
@@ -199,6 +200,7 @@ func (m *Manager) BulkUpdateRole(ctx context.Context, reqCtx *types.RequestConte
 
 	return result, nil
 }
+
 // SearchByEmail finds all files accessible by a specific email address
 func (m *Manager) SearchByEmail(ctx context.Context, reqCtx *types.RequestContext, opts types.SearchOptions) (*types.AuditResult, error) {
 	if opts.Email == "" {
@@ -219,6 +221,7 @@ func (m *Manager) SearchByEmail(ctx context.Context, reqCtx *types.RequestContex
 
 	return m.AuditUser(ctx, reqCtx, opts.Email, auditOpts)
 }
+
 // SearchByRole finds all files with a specific permission role
 func (m *Manager) SearchByRole(ctx context.Context, reqCtx *types.RequestContext, opts types.SearchOptions) (*types.AuditResult, error) {
 	if opts.Role == "" {

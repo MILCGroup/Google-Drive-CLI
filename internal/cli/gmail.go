@@ -770,4 +770,3 @@ func (cmd *GmailAttachmentGetCmd) Run(globals *Globals) error {
 	out.Log("Downloaded attachment to: %s", outputPath)
 	return out.WriteSuccess("gmail.attachment.get", meta)
 }
-

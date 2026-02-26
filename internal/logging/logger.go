@@ -101,14 +101,14 @@ type Logger interface {
 // NoOpLogger is a logger that does nothing
 type NoOpLogger struct{}
 
-func (l *NoOpLogger) Debug(msg string, fields ...Field)         {}
-func (l *NoOpLogger) Info(msg string, fields ...Field)          {}
-func (l *NoOpLogger) Warn(msg string, fields ...Field)          {}
-func (l *NoOpLogger) Error(msg string, fields ...Field)         {}
-func (l *NoOpLogger) WithTraceID(traceID string) Logger         { return l }
-func (l *NoOpLogger) WithContext(ctx context.Context) Logger    { return l }
-func (l *NoOpLogger) SetLevel(level LogLevel)                   {}
-func (l *NoOpLogger) Close() error                              { return nil }
+func (l *NoOpLogger) Debug(msg string, fields ...Field)      {}
+func (l *NoOpLogger) Info(msg string, fields ...Field)       {}
+func (l *NoOpLogger) Warn(msg string, fields ...Field)       {}
+func (l *NoOpLogger) Error(msg string, fields ...Field)      {}
+func (l *NoOpLogger) WithTraceID(traceID string) Logger      { return l }
+func (l *NoOpLogger) WithContext(ctx context.Context) Logger { return l }
+func (l *NoOpLogger) SetLevel(level LogLevel)                {}
+func (l *NoOpLogger) Close() error                           { return nil }
 
 // NewNoOpLogger creates a new no-op logger
 func NewNoOpLogger() Logger {

@@ -273,4 +273,3 @@ func (cr *ContactResult) Rows() [][]string {
 func (cr *ContactResult) EmptyMessage() string {
 	return "No result"
 }
-

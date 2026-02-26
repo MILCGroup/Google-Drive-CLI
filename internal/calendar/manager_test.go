@@ -318,10 +318,10 @@ func TestConvertAttendees(t *testing.T) {
 
 func TestDetectConflicts(t *testing.T) {
 	tests := []struct {
-		name       string
-		events     []types.CalendarEvent
-		wantCount  int
-		wantFirst  string
+		name        string
+		events      []types.CalendarEvent
+		wantCount   int
+		wantFirst   string
 		wantOverlap int
 	}{
 		{

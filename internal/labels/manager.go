@@ -298,4 +298,3 @@ func (m *Manager) DisableLabel(ctx context.Context, reqCtx *types.RequestContext
 
 	return convertLabel(result), nil
 }
-

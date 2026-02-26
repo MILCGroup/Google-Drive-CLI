@@ -184,15 +184,15 @@ func (l *GmailLabelList) EmptyMessage() string {
 }
 
 type GmailFilter struct {
-	ID                   string   `json:"id"`
-	CriteriaFrom         string   `json:"criteriaFrom"`
-	CriteriaTo           string   `json:"criteriaTo"`
-	CriteriaSubject      string   `json:"criteriaSubject"`
-	CriteriaQuery        string   `json:"criteriaQuery"`
-	CriteriaHasAttachment bool    `json:"criteriaHasAttachment"`
-	ActionAddLabelIDs    []string `json:"actionAddLabelIds"`
-	ActionRemoveLabelIDs []string `json:"actionRemoveLabelIds"`
-	ActionForward        string   `json:"actionForward"`
+	ID                    string   `json:"id"`
+	CriteriaFrom          string   `json:"criteriaFrom"`
+	CriteriaTo            string   `json:"criteriaTo"`
+	CriteriaSubject       string   `json:"criteriaSubject"`
+	CriteriaQuery         string   `json:"criteriaQuery"`
+	CriteriaHasAttachment bool     `json:"criteriaHasAttachment"`
+	ActionAddLabelIDs     []string `json:"actionAddLabelIds"`
+	ActionRemoveLabelIDs  []string `json:"actionRemoveLabelIds"`
+	ActionForward         string   `json:"actionForward"`
 }
 
 func (f *GmailFilter) Headers() []string {
