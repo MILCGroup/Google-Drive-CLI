@@ -81,6 +81,7 @@ jobs:
     needs: test
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
@@ -120,6 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
@@ -143,6 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
