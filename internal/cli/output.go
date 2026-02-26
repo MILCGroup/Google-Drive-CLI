@@ -10,6 +10,7 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/google/uuid"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // OutputWriter handles CLI output formatting
@@ -114,33 +115,32 @@ func (w *OutputWriter) renderTable(renderer types.TableRenderer) error {
 		return nil
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(renderer.Headers())
-	table.SetBorder(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	for _, row := range rows {
-		table.Append(row)
+	table := tablewriter.NewTable(os.Stdout)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Header.Alignment.Global = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
+	})
+	table.Header(renderer.Headers())
+	if err := table.Bulk(rows); err != nil {
+		return err
 	}
-
-	table.Render()
-	return nil
+	return table.Render()
 }
 
 func (w *OutputWriter) writeFileTable(files []*types.DriveFile) error {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Name", "Type", "Size", "Modified"})
-	table.SetBorder(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table := tablewriter.NewTable(os.Stdout)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Header.Alignment.Global = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
+	})
 
+	data := make([][]interface{}, 0, len(files))
 	for _, f := range files {
 		size := "-"
 		if f.Size > 0 {
 			size = formatSize(f.Size)
 		}
-		table.Append([]string{
+		data = append(data, []interface{}{
 			truncate(f.ID, 15),
 			truncate(f.Name, 40),
 			truncate(f.MimeType, 30),
@@ -149,15 +149,21 @@ func (w *OutputWriter) writeFileTable(files []*types.DriveFile) error {
 		})
 	}
 
-	table.Render()
-	return nil
+	table.Header([]string{"ID", "Name", "Type", "Size", "Modified"})
+	if err := table.Bulk(data); err != nil {
+		return err
+	}
+	return table.Render()
 }
 
 func (w *OutputWriter) writePermissionTable(perms []*types.Permission) error {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Type", "Role", "Email/Domain"})
-	table.SetBorder(false)
+	table := tablewriter.NewTable(os.Stdout)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Header.Alignment.Global = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
+	})
 
+	data := make([][]interface{}, 0, len(perms))
 	for _, p := range perms {
 		identity := p.EmailAddress
 		if identity == "" {
@@ -166,11 +172,14 @@ func (w *OutputWriter) writePermissionTable(perms []*types.Permission) error {
 		if identity == "" {
 			identity = "-"
 		}
-		table.Append([]string{p.ID, p.Type, p.Role, identity})
+		data = append(data, []interface{}{p.ID, p.Type, p.Role, identity})
 	}
 
-	table.Render()
-	return nil
+	table.Header([]string{"ID", "Type", "Role", "Email/Domain"})
+	if err := table.Bulk(data); err != nil {
+		return err
+	}
+	return table.Render()
 }
 
 // handleCLIError converts an error into a structured CLI error output.

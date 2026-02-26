@@ -12,18 +12,19 @@ import (
 	"github.com/dl-alexandre/gdrv/internal/utils"
 	"github.com/google/uuid"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // OutputFormatter handles output formatting for CLI commands
 type OutputFormatter struct {
-	format          types.OutputFormat
-	quiet           bool
-	verbose         bool
-	includeTraceID  bool
-	colorOutput     bool
-	writer          io.Writer
-	errorWriter     io.Writer
-	warnings        []types.CLIWarning
+	format         types.OutputFormat
+	quiet          bool
+	verbose        bool
+	includeTraceID bool
+	colorOutput    bool
+	writer         io.Writer
+	errorWriter    io.Writer
+	warnings       []types.CLIWarning
 }
 
 // OutputOptions configures the output formatter
@@ -38,14 +39,14 @@ type OutputOptions struct {
 // NewOutputFormatter creates a new output formatter
 func NewOutputFormatter(opts OutputOptions) *OutputFormatter {
 	return &OutputFormatter{
-		format:          opts.Format,
-		quiet:           opts.Quiet,
-		verbose:         opts.Verbose,
-		includeTraceID:  opts.IncludeTraceID,
-		colorOutput:     opts.ColorOutput,
-		writer:          os.Stdout,
-		errorWriter:     os.Stderr,
-		warnings:        []types.CLIWarning{},
+		format:         opts.Format,
+		quiet:          opts.Quiet,
+		verbose:        opts.Verbose,
+		includeTraceID: opts.IncludeTraceID,
+		colorOutput:    opts.ColorOutput,
+		writer:         os.Stdout,
+		errorWriter:    os.Stderr,
+		warnings:       []types.CLIWarning{},
 	}
 }
 
@@ -194,24 +195,16 @@ func (f *OutputFormatter) renderTable(renderer types.TableRenderer) error {
 		return nil
 	}
 
-	table := tablewriter.NewWriter(f.writer)
-	table.SetHeader(renderer.Headers())
-	table.SetBorder(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetHeaderLine(false)
-	table.SetTablePadding("\t")
-	table.SetNoWhiteSpace(true)
-
-	for _, row := range rows {
-		table.Append(row)
+	table := tablewriter.NewTable(f.writer)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Header.Alignment.Global = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
+	})
+	table.Header(renderer.Headers())
+	if err := table.Bulk(rows); err != nil {
+		return err
 	}
-
-	table.Render()
-	return nil
+	return table.Render()
 }
 
 // writeFileTable writes file data as a table
@@ -225,25 +218,17 @@ func (f *OutputFormatter) writeFileTable(files []*types.DriveFile) error {
 		return nil
 	}
 
-	table := tablewriter.NewWriter(f.writer)
-	
-	// Configure table appearance
-	table.SetHeader([]string{"ID", "Name", "Type", "Size", "Modified"})
-	table.SetBorder(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetHeaderLine(false)
-	table.SetTablePadding("\t")
-	table.SetNoWhiteSpace(true)
+	table := tablewriter.NewTable(f.writer)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Header.Alignment.Global = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
+	})
 
+	data := make([][]interface{}, 0, len(files))
 	for _, file := range files {
 		size := formatFileSize(file.Size, file.MimeType)
 		modTime := formatTime(file.ModifiedTime)
-		
-		table.Append([]string{
+		data = append(data, []interface{}{
 			truncateString(file.ID, 20),
 			truncateString(file.Name, 50),
 			formatMimeType(file.MimeType),
@@ -252,8 +237,11 @@ func (f *OutputFormatter) writeFileTable(files []*types.DriveFile) error {
 		})
 	}
 
-	table.Render()
-	return nil
+	table.Header([]string{"ID", "Name", "Type", "Size", "Modified"})
+	if err := table.Bulk(data); err != nil {
+		return err
+	}
+	return table.Render()
 }
 
 // writePermissionTable writes permission data as a table
@@ -267,20 +255,20 @@ func (f *OutputFormatter) writePermissionTable(perms []*types.Permission) error 
 		return nil
 	}
 
-	table := tablewriter.NewWriter(f.writer)
-	table.SetHeader([]string{"ID", "Type", "Role", "Identity", "Display Name"})
-	table.SetBorder(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table := tablewriter.NewTable(f.writer)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Header.Alignment.Global = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
+	})
 
+	data := make([][]interface{}, 0, len(perms))
 	for _, perm := range perms {
 		identity := getPermissionIdentity(perm)
 		displayName := perm.DisplayName
 		if displayName == "" {
 			displayName = "-"
 		}
-		
-		table.Append([]string{
+		data = append(data, []interface{}{
 			truncateString(perm.ID, 20),
 			perm.Type,
 			perm.Role,
@@ -289,25 +277,32 @@ func (f *OutputFormatter) writePermissionTable(perms []*types.Permission) error 
 		})
 	}
 
-	table.Render()
-	return nil
+	table.Header([]string{"ID", "Type", "Role", "Identity", "Display Name"})
+	if err := table.Bulk(data); err != nil {
+		return err
+	}
+	return table.Render()
 }
 
 // writeKeyValueTable writes a generic key-value table
 func (f *OutputFormatter) writeKeyValueTable(data map[string]interface{}) error {
-	table := tablewriter.NewWriter(f.writer)
-	table.SetHeader([]string{"Key", "Value"})
-	table.SetBorder(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table := tablewriter.NewTable(f.writer)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Header.Alignment.Global = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
+	})
 
+	rows := make([][]interface{}, 0, len(data))
 	for key, value := range data {
 		valueStr := fmt.Sprintf("%v", value)
-		table.Append([]string{key, valueStr})
+		rows = append(rows, []interface{}{key, valueStr})
 	}
 
-	table.Render()
-	return nil
+	table.Header([]string{"Key", "Value"})
+	if err := table.Bulk(rows); err != nil {
+		return err
+	}
+	return table.Render()
 }
 
 // Log writes a message to stderr unless quiet mode is enabled
