@@ -27,6 +27,9 @@ jobs:
           go-version: '1.24.13'
           cache: true
 
+      - name: Configure GOTOOLCHAIN
+        run: echo "GOTOOLCHAIN=auto" >> $GITHUB_ENV
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9.2.0
         with:
@@ -48,6 +51,9 @@ jobs:
         with:
           go-version: '1.24.13'
           cache: true
+
+      - name: Configure GOTOOLCHAIN
+        run: echo "GOTOOLCHAIN=auto" >> $GITHUB_ENV
 
       - name: Run go fmt check
         run: |
@@ -75,6 +81,9 @@ jobs:
         with:
           go-version: '1.24.13'
           cache: true
+
+      - name: Configure GOTOOLCHAIN
+        run: echo "GOTOOLCHAIN=auto" >> $GITHUB_ENV
 
       - name: Run go vet
         run: go vet ./...
