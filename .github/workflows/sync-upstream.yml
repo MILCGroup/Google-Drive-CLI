@@ -124,6 +124,12 @@ jobs:
           if [ -n "$EXISTING" ]; then
             echo "PR #${EXISTING} already exists for ${BRANCH} — skipping."
           else
+            DIFF_COUNT=$(git rev-list --count "master..$BRANCH")
+            if [ "$DIFF_COUNT" -eq 0 ]; then
+              echo "No commits between master and $BRANCH — skipping PR creation."
+              exit 0
+            fi
+
             gh pr create \
               --title "$TITLE" \
               --body-file /tmp/pr_body.md \
