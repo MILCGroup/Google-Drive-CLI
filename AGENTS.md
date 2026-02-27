@@ -217,6 +217,8 @@ These files contain company-specific modifications and **must never be replaced*
 | `internal/auth/oauth_client_defaults.go` | Pre-bundled OAuth credentials |
 | `AGENTS.md` | This documentation file |
 | `README.md` | Fork-specific README (maintain fork branding) |
+| `.github/workflows/sync-upstream.yml` | Fork sync automation (MILC-specific) |
+| `.github/workflows/opencode.yml` | OpenCode agent workflow (MILC-specific) |
 
 ### Merge Procedure
 
@@ -258,7 +260,49 @@ make test
 git tag v$(git describe upstream/main --tags)-fork-$(git tag -l "v*-fork-*" | wc -l | xargs -I {} echo $(({} + 1)))
 ```
 
-### Post-Merge Checklist
+### Common Conflict Patterns (Documented Divergence)
+
+These conflicts will **recur with every upstream sync** due to fundamental differences:
+
+| Conflict Type | Resolution Strategy | Files Affected |
+|--------------|---------------------|----------------|
+| **Import Path Divergence** | Keep ours: `github.com/milcgroup/gdrv` | All `*.go` files |
+| **OAuth Requirements** | Keep ours: `GDRV_REQUIRE_CUSTOM_OAUTH` | `.github/workflows/ci.yml`, `.github/workflows/release.yml` |
+| **Fork Dispatch Feature** | Keep ours: Notify forks step | `.github/workflows/release.yml` |
+| **Documentation Branding** | Keep ours: MILC references | `README.md`, `AGENTS.md` |
+
+#### Automated Resolution Script
+
+```bash
+# After git merge upstream/main, run this to resolve recurring conflicts:
+
+# 1. Keep fork-specific documentation
+git checkout --ours AGENTS.md README.md
+git add AGENTS.md README.md
+
+# 2. Keep our module path in Go files (convert all upstream imports)
+find . -name "*.go" -exec grep -l "github.com/dl-alexandre/gdrv" {} \; | \
+  xargs -I {} sed -i '' 's|github.com/dl-alexandre/gdrv|github.com/milcgroup/gdrv|g' {}
+
+# 3. Keep our workflow configurations (resolve manually via ours/theirs)
+# - ci.yml: Keep GDRV_REQUIRE_CUSTOM_OAUTH + GOTOOLCHAIN, adopt their action versions
+# - release.yml: Keep version verification + notify forks
+
+# 4. Stage all resolved files
+git add -A
+```
+
+#### Why These Conflicts Recur
+
+1. **Import Paths**: Upstream uses `dl-alexandre/gdrv`, fork uses `milcgroup/gdrv`. Module identity is fundamental and cannot be shared.
+
+2. **OAuth Requirements**: Upstream builds require `GDRV_CLIENT_ID` and `GDRV_CLIENT_SECRET` env vars to bundle credentials at build time. Our fork enforces `GDRV_REQUIRE_CUSTOM_OAUTH=1` for CI to ensure we're testing with proper credentials.
+
+3. **Fork Dispatch**: The `Notify forks` step in `release.yml` is a MILC-specific addition that dispatches release events to downstream forks. Upstream doesn't have this.
+
+4. **Homebrew Tap**: The release workflow updates `dl-alexandre/tap` - this is intentionally kept pointing upstream so users get the official formula.
+
+### Post-Merge Verification Checklist
 
 After merging upstream changes:
 
