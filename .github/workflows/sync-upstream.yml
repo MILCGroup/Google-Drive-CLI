@@ -130,9 +130,17 @@ jobs:
               exit 0
             fi
 
-            gh pr create \
+            if ! gh pr create \
               --title "$TITLE" \
               --body-file /tmp/pr_body.md \
               --base master \
-              --head "$BRANCH"
+              --head "$BRANCH" \
+              2>/tmp/pr_error.log; then
+              if grep -q "No commits between" /tmp/pr_error.log; then
+                echo "No effective changes for $BRANCH — skipping PR creation."
+                exit 0
+              fi
+              cat /tmp/pr_error.log
+              exit 1
+            fi
           fi
