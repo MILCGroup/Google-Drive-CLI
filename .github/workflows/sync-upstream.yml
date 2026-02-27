@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   sync:
@@ -66,6 +67,25 @@ jobs:
             git merge --abort
             git reset --hard upstream/master
           }
+
+          if [ "$CONFLICT" = "true" ]; then
+            NOTE_DIR=".github/upstream-sync"
+            NOTE_FILE="$NOTE_DIR/conflict-${RELEASE_TAG:-$(date +%Y-%m-%d)}.md"
+            mkdir -p "$NOTE_DIR"
+            {
+              echo "# Upstream Sync Conflict"
+              echo ""
+              echo "Branch: $BRANCH"
+              echo "Triggered by release tag: ${RELEASE_TAG:-manual}"
+              echo ""
+              echo "Automatic merge from upstream/master had conflicts."
+              echo "This marker commit forces a PR so conflicts can be resolved manually"
+              echo "or with OpenCode automation."
+            } > "$NOTE_FILE"
+            git add "$NOTE_FILE"
+            git commit -m "chore(sync): record merge conflicts for ${RELEASE_TAG:-manual}"
+          fi
+
           git push origin "$BRANCH"
 
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
@@ -91,7 +111,14 @@ jobs:
             if [ "$CONFLICT" = "true" ]; then
               echo ""
               echo "> [!WARNING]"
-              echo "> Automatic merge failed. This branch is reset to upstream — resolve conflicts before merging."
+              echo "> Automatic merge failed. Resolve conflicts manually or use OpenCode automation."
+              echo ""
+              echo "### Optional OpenCode prompt"
+              echo ""
+              echo "Use this prompt with OPENCODE_ZEN_API_KEY in org secrets:"
+              echo '```'
+              echo "Resolve merge conflicts for this upstream sync PR while preserving fork purpose: keep MILC-specific customizations and configuration while staying aligned with dl-alexandre/Google-Drive-CLI upstream behavior."
+              echo '```'
             fi
             echo ""
             echo "### Commits included"
@@ -124,10 +151,53 @@ jobs:
           if [ -n "$EXISTING" ]; then
             echo "PR #${EXISTING} already exists for ${BRANCH} — skipping."
           else
-            gh pr create \
+            DIFF_COUNT=$(git rev-list --count "master..$BRANCH")
+            if [ "$DIFF_COUNT" -eq 0 ]; then
+              echo "No commits between master and $BRANCH — skipping PR creation."
+              exit 0
+            fi
+
+            if ! gh pr create \
               --title "$TITLE" \
               --body-file /tmp/pr_body.md \
               --base master \
               --head "$BRANCH" \
-              --label "upstream-sync"
+              2>/tmp/pr_error.log; then
+              if grep -q "No commits between" /tmp/pr_error.log; then
+                ISSUE_TITLE="sync conflict: ${RELEASE_TAG:-manual} requires manual resolution"
+                EXISTING_ISSUE=$(gh issue list --state open --search "$ISSUE_TITLE in:title" --json number --jq '.[0].number')
+                if [ -n "$EXISTING_ISSUE" ]; then
+                  echo "Issue #${EXISTING_ISSUE} already exists — skipping issue creation."
+                  exit 0
+                fi
+
+                {
+                  echo "## Upstream sync needs manual resolution"
+                  echo ""
+                  echo "A sync run was triggered but a PR could not be created automatically due to branch diff constraints."
+                  echo ""
+                  echo "- Branch: $BRANCH"
+                  echo "- Release tag: ${RELEASE_TAG:-manual}"
+                  echo "- Upstream: ${{ github.event.client_payload.upstream }}"
+                  echo ""
+                  echo "### Next steps"
+                  echo "1. Resolve merge conflicts manually, or"
+                  echo "2. Use OpenCode with OPENCODE_ZEN_API_KEY to automate conflict resolution"
+                  echo ""
+                  echo "Suggested prompt:"
+                  echo '```'
+                  echo "Resolve merge conflicts for this upstream sync while preserving fork purpose: keep MILC-specific customizations and configuration while staying aligned with dl-alexandre/Google-Drive-CLI upstream behavior."
+                  echo '```'
+                } > /tmp/issue_body.md
+
+                if gh issue create -R "$GITHUB_REPOSITORY" --title "$ISSUE_TITLE" --body-file /tmp/issue_body.md; then
+                  echo "Created fallback issue for manual/AI conflict resolution."
+                else
+                  echo "Could not create issue in $GITHUB_REPOSITORY (issues may be disabled)."
+                fi
+                exit 0
+              fi
+              cat /tmp/pr_error.log
+              exit 1
+            fi
           fi
