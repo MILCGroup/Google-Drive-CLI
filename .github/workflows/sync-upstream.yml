@@ -176,13 +176,13 @@ jobs:
                   echo ""
                   echo "A sync run was triggered but a PR could not be created automatically due to branch diff constraints."
                   echo ""
-                  echo "- Branch: \\`$BRANCH\\`"
-                  echo "- Release tag: \\`${RELEASE_TAG:-manual}\\`"
-                  echo "- Upstream: \\`${{ github.event.client_payload.upstream }}\\`"
+                  echo "- Branch: $BRANCH"
+                  echo "- Release tag: ${RELEASE_TAG:-manual}"
+                  echo "- Upstream: ${{ github.event.client_payload.upstream }}"
                   echo ""
                   echo "### Next steps"
                   echo "1. Resolve merge conflicts manually, or"
-                  echo "2. Use OpenCode with \\`OPENCODE_ZEN_API_KEY\\` to automate conflict resolution"
+                  echo "2. Use OpenCode with OPENCODE_ZEN_API_KEY to automate conflict resolution"
                   echo ""
                   echo "Suggested prompt:"
                   echo '```'
@@ -190,8 +190,11 @@ jobs:
                   echo '```'
                 } > /tmp/issue_body.md
 
-                gh issue create --title "$ISSUE_TITLE" --body-file /tmp/issue_body.md
-                echo "Created fallback issue for manual/AI conflict resolution."
+                if gh issue create -R "$GITHUB_REPOSITORY" --title "$ISSUE_TITLE" --body-file /tmp/issue_body.md; then
+                  echo "Created fallback issue for manual/AI conflict resolution."
+                else
+                  echo "Could not create issue in $GITHUB_REPOSITORY (issues may be disabled)."
+                fi
                 exit 0
               fi
               cat /tmp/pr_error.log
