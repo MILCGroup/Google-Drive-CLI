@@ -2,6 +2,16 @@
 
 For detailed release notes and version history, please see the [GitHub Releases](https://github.com/dl-alexandre/Google-Drive-CLI/releases) page.
 
+## v1.0.3 (2026-02-27)
+
+### Fixes
+- **Style**: Applied `go fmt` formatting to 5 files to fix CI linting
+  - `internal/api/client.go`
+  - `internal/auth/oauth_client_defaults.go`
+  - `internal/cli/output.go`
+  - `internal/cli/sync.go`
+  - `internal/config/output.go`
+
 ## v1.0.2 (2026-02-27)
 
 ### Fork-Specific Changes
