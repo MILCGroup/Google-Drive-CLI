@@ -12,8 +12,7 @@ jobs:
   dependency-drift:
     name: Dependency Drift
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: OAuth credentials are pre-bundled - no env vars needed
 
     steps:
       - name: Checkout code
@@ -40,8 +39,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: OAuth credentials are pre-bundled - no env vars needed
 
     steps:
       - name: Checkout code
@@ -69,8 +67,7 @@ jobs:
   coverage-trend:
     name: Coverage Trend
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: OAuth credentials are pre-bundled - no env vars needed
 
     steps:
       - name: Checkout code

@@ -4,7 +4,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/dl-alexandre/gdrv/internal/sync/diff"
+	"github.com/milcgroup/gdrv/internal/sync/diff"
 )
 
 type Policy string

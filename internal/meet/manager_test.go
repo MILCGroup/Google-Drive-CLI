@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/apps/meet/apiv2/meetpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

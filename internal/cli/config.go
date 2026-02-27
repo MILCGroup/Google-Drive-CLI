@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dl-alexandre/gdrv/internal/config"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/config"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 type ConfigCmd struct {

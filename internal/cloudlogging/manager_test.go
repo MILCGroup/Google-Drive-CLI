@@ -6,7 +6,7 @@ import (
 
 	logging "cloud.google.com/go/logging/apiv2"
 	"cloud.google.com/go/logging/apiv2/loggingpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	monitoredrespb "google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"

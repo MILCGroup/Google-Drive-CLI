@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/safety"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/safety"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 // BatchUploadOptions configures batch upload operations

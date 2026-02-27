@@ -1,4 +1,4 @@
-module github.com/dl-alexandre/gdrv
+module github.com/milcgroup/gdrv
 
 go 1.24.0
 

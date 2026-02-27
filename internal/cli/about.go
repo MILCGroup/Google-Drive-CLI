@@ -3,8 +3,8 @@ package cli
 import (
 	"path/filepath"
 
-	"github.com/dl-alexandre/gdrv/internal/config"
-	"github.com/dl-alexandre/gdrv/pkg/version"
+	"github.com/milcgroup/gdrv/internal/config"
+	"github.com/milcgroup/gdrv/pkg/version"
 )
 
 // AboutCmd implements the `gdrv about` command.

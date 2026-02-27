@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

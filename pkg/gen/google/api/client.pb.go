@@ -1575,7 +1575,7 @@ const file_google_api_client_proto_rawDesc = "" +
 	"\foauth_scopes\x12\x1f.google.protobuf.ServiceOptions\x18\x9a\b \x01(\tR\voauthScopes:D\n" +
 	"\vapi_version\x12\x1f.google.protobuf.ServiceOptions\x18\xc1\xba\xab\xfa\x01 \x01(\tR\n" +
 	"apiVersionB\x97\x01\n" +
-	"\x0ecom.google.apiB\vClientProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
+	"\x0ecom.google.apiB\vClientProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
 	"Google.Api\xca\x02\n" +
 	"Google\\Api\xe2\x02\x16Google\\Api\\GPBMetadata\xea\x02\vGoogle::Apib\x06proto3"
 

@@ -8,12 +8,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/files"
-	sheetsmgr "github.com/dl-alexandre/gdrv/internal/sheets"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/files"
+	sheetsmgr "github.com/milcgroup/gdrv/internal/sheets"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 	sheetsapi "google.golang.org/api/sheets/v4"
 )

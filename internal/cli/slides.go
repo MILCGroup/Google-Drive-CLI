@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/files"
-	slidesmgr "github.com/dl-alexandre/gdrv/internal/slides"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/files"
+	slidesmgr "github.com/milcgroup/gdrv/internal/slides"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 	slidesapi "google.golang.org/api/slides/v1"
 )

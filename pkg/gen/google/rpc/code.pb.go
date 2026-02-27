@@ -278,7 +278,7 @@ const file_google_rpc_code_proto_rawDesc = "" +
 	"\bINTERNAL\x10\r\x12\x0f\n" +
 	"\vUNAVAILABLE\x10\x0e\x12\r\n" +
 	"\tDATA_LOSS\x10\x0fB\x95\x01\n" +
-	"\x0ecom.google.rpcB\tCodeProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/rpc\xa2\x02\x03GRX\xaa\x02\n" +
+	"\x0ecom.google.rpcB\tCodeProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/rpc\xa2\x02\x03GRX\xaa\x02\n" +
 	"Google.Rpc\xca\x02\n" +
 	"Google\\Rpc\xe2\x02\x16Google\\Rpc\\GPBMetadata\xea\x02\vGoogle::Rpcb\x06proto3"
 

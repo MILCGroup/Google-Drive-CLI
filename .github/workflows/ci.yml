@@ -97,10 +97,11 @@ jobs:
       - name: Verify version metadata
         run: |
           make build
-          VERSION="$(./bin/gdrv version)"
-          test -n "$VERSION"
-          test "$VERSION" != "dev"
-          echo "$VERSION"
+          VERSION_OUT="$(./bin/gdrv version)"
+          echo "$VERSION_OUT"
+          # Ensure ldflags were applied and version output is not the default placeholder.
+          test -n "$VERSION_OUT"
+          echo "$VERSION_OUT" | grep -qvE "^(gdrv )?dev( |$)"
 
       - name: Generate checksums
         run: make checksums

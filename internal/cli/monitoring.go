@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	monitoringmgr "github.com/dl-alexandre/gdrv/internal/monitoring"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	monitoringmgr "github.com/milcgroup/gdrv/internal/monitoring"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/option"
 )
 

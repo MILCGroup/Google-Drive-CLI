@@ -3,7 +3,7 @@ package chat
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/chat/v1"
 )
 

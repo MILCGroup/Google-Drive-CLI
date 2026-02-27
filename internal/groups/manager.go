@@ -3,8 +3,8 @@ package groups
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/types"
 	cloudidentity "google.golang.org/api/cloudidentity/v1"
 )
 

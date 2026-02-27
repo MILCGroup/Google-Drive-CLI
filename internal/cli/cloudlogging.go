@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	loggingmgr "github.com/dl-alexandre/gdrv/internal/cloudlogging"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	loggingmgr "github.com/milcgroup/gdrv/internal/cloudlogging"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/option"
 )
 

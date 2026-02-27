@@ -3,7 +3,7 @@ package labels
 import (
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/drivelabels/v2"
 )

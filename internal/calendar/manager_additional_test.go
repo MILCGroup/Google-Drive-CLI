@@ -3,7 +3,7 @@ package calendar
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	calendarapi "google.golang.org/api/calendar/v3"
 )
 

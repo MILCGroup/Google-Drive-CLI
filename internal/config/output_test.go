@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 func TestOutputFormatterJSON(t *testing.T) {

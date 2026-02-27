@@ -3,9 +3,9 @@ package conflict
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/sync/diff"
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
-	"github.com/dl-alexandre/gdrv/internal/sync/scanner"
+	"github.com/milcgroup/gdrv/internal/sync/diff"
+	"github.com/milcgroup/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/sync/scanner"
 )
 
 func TestPolicyConstants(t *testing.T) {

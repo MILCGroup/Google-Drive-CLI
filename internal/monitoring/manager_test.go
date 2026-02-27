@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoredrespb "google.golang.org/genproto/googleapis/api/monitoredres"
 	"google.golang.org/protobuf/types/known/timestamppb"

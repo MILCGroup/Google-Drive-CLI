@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"golang.org/x/oauth2"
 )
 

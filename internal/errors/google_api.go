@@ -3,9 +3,9 @@ package errors
 import (
 	"errors"
 
-	"github.com/dl-alexandre/gdrv/internal/logging"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/logging"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/googleapi"
 )
 

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/folders"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/folders"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // TestIntegration_FolderOperations_CreationDeletion tests folder creation and deletion workflow

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // Manager provides high-level caching for Google Drive operations

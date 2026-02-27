@@ -12,8 +12,7 @@ jobs:
   benchmark:
     name: Benchmark gdrv
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: OAuth credentials are pre-bundled - no env vars needed
 
     steps:
       - name: Checkout code

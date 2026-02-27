@@ -61,7 +61,7 @@ const file_google_api_annotations_proto_rawDesc = "" +
 	"\x1cgoogle/api/annotations.proto\x12\n" +
 	"google.api\x1a\x15google/api/http.proto\x1a google/protobuf/descriptor.proto:K\n" +
 	"\x04http\x12\x1e.google.protobuf.MethodOptions\x18\xb0ʼ\" \x01(\v2\x14.google.api.HttpRuleR\x04httpB\x9c\x01\n" +
-	"\x0ecom.google.apiB\x10AnnotationsProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
+	"\x0ecom.google.apiB\x10AnnotationsProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
 	"Google.Api\xca\x02\n" +
 	"Google\\Api\xe2\x02\x16Google\\Api\\GPBMetadata\xea\x02\vGoogle::Apib\x06proto3"
 

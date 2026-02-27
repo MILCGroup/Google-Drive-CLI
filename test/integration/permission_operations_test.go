@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/permissions"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/permissions"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // TestIntegration_PermissionOperations_CreationListingDeletion tests permission creation, listing, and deletion

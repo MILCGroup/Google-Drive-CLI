@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/config"
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/config"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // TestIntegration_ConfigOutput_ConfigurationLoading tests configuration loading and validation

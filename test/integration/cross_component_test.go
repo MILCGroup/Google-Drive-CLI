@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/folders"
-	"github.com/dl-alexandre/gdrv/internal/permissions"
-	"github.com/dl-alexandre/gdrv/internal/resolver"
-	"github.com/dl-alexandre/gdrv/internal/revisions"
-	"github.com/dl-alexandre/gdrv/internal/safety"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/folders"
+	"github.com/milcgroup/gdrv/internal/permissions"
+	"github.com/milcgroup/gdrv/internal/resolver"
+	"github.com/milcgroup/gdrv/internal/revisions"
+	"github.com/milcgroup/gdrv/internal/safety"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // TestIntegration_CrossComponent_PathResolverWithSharedDrives tests path resolver with Shared Drives

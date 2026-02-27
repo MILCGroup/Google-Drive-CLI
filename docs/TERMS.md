@@ -4,7 +4,7 @@
 
 ## MIT License
 
-Open source software provided as-is. Licensed under MIT: https://github.com/dl-alexandre/Google-Drive-CLI/blob/master/LICENSE
+Open source software provided as-is. Licensed under MIT. See LICENSE file for details.
 
 ## No Warranty
 

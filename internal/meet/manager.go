@@ -7,7 +7,7 @@ import (
 
 	meetapi "cloud.google.com/go/apps/meet/apiv2"
 	"cloud.google.com/go/apps/meet/apiv2/meetpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )

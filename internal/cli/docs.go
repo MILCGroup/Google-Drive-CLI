@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	docsmgr "github.com/dl-alexandre/gdrv/internal/docs"
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	docsmgr "github.com/milcgroup/gdrv/internal/docs"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	docsapi "google.golang.org/api/docs/v1"
 	"google.golang.org/api/drive/v3"
 )

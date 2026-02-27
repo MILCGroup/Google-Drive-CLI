@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 func TestOAuthClientSecretHintBySource(t *testing.T) {

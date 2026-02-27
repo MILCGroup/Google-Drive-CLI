@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dl-alexandre/gdrv/internal/cache"
-	"github.com/dl-alexandre/gdrv/internal/config"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/cache"
+	"github.com/milcgroup/gdrv/internal/config"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 // CacheCmd provides cache management commands

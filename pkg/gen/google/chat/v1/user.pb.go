@@ -21,7 +21,7 @@
 package chatv1
 
 import (
-	_ "github.com/dl-alexandre/gdrv/pkg/gen/google/api"
+	_ "github.com/milcgroup/gdrv/pkg/gen/google/api"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -211,7 +211,7 @@ const file_google_chat_v1_user_proto_rawDesc = "" +
 	"\x10TYPE_UNSPECIFIED\x10\x00\x12\t\n" +
 	"\x05HUMAN\x10\x01\x12\a\n" +
 	"\x03BOT\x10\x02B\xb5\x01\n" +
-	"\x12com.google.chat.v1B\tUserProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\tUserProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_user_proto_rawDescOnce sync.Once

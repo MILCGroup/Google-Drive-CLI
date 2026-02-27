@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/dl-alexandre/gdrv/internal/cli"
-	"github.com/dl-alexandre/gdrv/pkg/version"
+	"github.com/milcgroup/gdrv/internal/cli"
+	"github.com/milcgroup/gdrv/pkg/version"
 )
 
 func main() {
