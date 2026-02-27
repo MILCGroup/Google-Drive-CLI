@@ -1,11 +1,12 @@
 package errors
 
 import (
+	stderrors "errors"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"golang.org/x/oauth2"
 )
 
@@ -19,8 +20,8 @@ func TestClassifyAuthRefreshErrorInvalidGrant(t *testing.T) {
 	}
 
 	err := ClassifyAuthRefreshError(retrieveErr)
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected AppError, got %T", err)
 	}
 	if appErr.CLIError.Code != utils.ErrCodeAuthExpired {
@@ -41,8 +42,8 @@ func TestClassifyAuthRefreshErrorInvalidClient(t *testing.T) {
 	}
 
 	err := ClassifyAuthRefreshError(retrieveErr)
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected AppError, got %T", err)
 	}
 	if appErr.CLIError.Code != utils.ErrCodeAuthRequired {

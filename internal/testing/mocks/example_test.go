@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/testing/mocks"
-	testhelpers "github.com/dl-alexandre/gdrv/internal/testing"
+	testhelpers "github.com/milcgroup/gdrv/internal/testing"
+	"github.com/milcgroup/gdrv/internal/testing/mocks"
 	"google.golang.org/api/drive/v3"
 )
 

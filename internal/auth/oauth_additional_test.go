@@ -23,7 +23,7 @@ func TestOAuthFlow_WaitForCode_ErrorChannel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create flow: %v", err)
 	}
-	defer flow.Close()
+	defer func() { _ = flow.Close() }()
 
 	flow.errChan <- testError("test error")
 
@@ -50,7 +50,7 @@ func TestOAuthFlow_WaitForCode_CodeChannel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create flow: %v", err)
 	}
-	defer flow.Close()
+	defer func() { _ = flow.Close() }()
 
 	flow.codeChan <- "test-code"
 
@@ -65,7 +65,7 @@ func TestOAuthFlow_WaitForCode_CodeChannel(t *testing.T) {
 
 func TestOAuthFlow_ExchangeCode_InvalidCode(t *testing.T) {
 	mockServer := httptest.NewServer(nil)
-	defer mockServer.Close()
+	defer func() { mockServer.Close() }()
 
 	config := &oauth2.Config{
 		ClientID:     "test-client-id",
@@ -81,7 +81,7 @@ func TestOAuthFlow_ExchangeCode_InvalidCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create flow: %v", err)
 	}
-	defer flow.Close()
+	defer func() { _ = flow.Close() }()
 
 	ctx := context.Background()
 	_, err = flow.ExchangeCode(ctx, "invalid-code")
@@ -105,7 +105,7 @@ func TestOAuthFlow_Close(t *testing.T) {
 		t.Fatalf("Failed to create flow: %v", err)
 	}
 
-	flow.Close()
+	_ = flow.Close()
 }
 
 func testError(msg string) error {

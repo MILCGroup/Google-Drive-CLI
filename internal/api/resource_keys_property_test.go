@@ -11,7 +11,7 @@ import (
 
 func TestProperty_ResourceKeyHeaderFormatting_SingleKey(t *testing.T) {
 	// Property: Single resource key is formatted as "fileId/key"
-	
+
 	tests := []struct {
 		fileID string
 		key    string
@@ -29,10 +29,10 @@ func TestProperty_ResourceKeyHeaderFormatting_SingleKey(t *testing.T) {
 		t.Run(tt.fileID, func(t *testing.T) {
 			mgr := NewResourceKeyManager()
 			mgr.AddKey(tt.fileID, tt.key, "test")
-			
+
 			header := mgr.BuildHeader([]string{tt.fileID})
 			expected := tt.fileID + "/" + tt.key
-			
+
 			if header != expected {
 				t.Errorf("BuildHeader([%s]) = %s, want %s", tt.fileID, header, expected)
 			}
@@ -42,7 +42,7 @@ func TestProperty_ResourceKeyHeaderFormatting_SingleKey(t *testing.T) {
 
 func TestProperty_ResourceKeyHeaderFormatting_MultipleKeys(t *testing.T) {
 	// Property: Multiple resource keys are comma-separated
-	
+
 	mgr := NewResourceKeyManager()
 	mgr.AddKey("file1", "key1", "test")
 	mgr.AddKey("file2", "key2", "test")
@@ -87,7 +87,7 @@ func TestProperty_ResourceKeyHeaderFormatting_MultipleKeys(t *testing.T) {
 
 func TestProperty_ResourceKeyHeaderFormatting_NoKeys(t *testing.T) {
 	// Property: No keys produces empty header
-	
+
 	mgr := NewResourceKeyManager()
 
 	tests := []struct {
@@ -111,13 +111,13 @@ func TestProperty_ResourceKeyHeaderFormatting_NoKeys(t *testing.T) {
 
 func TestProperty_ResourceKeyHeaderFormatting_MixedKeys(t *testing.T) {
 	// Property: Only files with keys are included in header
-	
+
 	mgr := NewResourceKeyManager()
 	mgr.AddKey("file1", "key1", "test")
 	mgr.AddKey("file3", "key3", "test")
 
 	header := mgr.BuildHeader([]string{"file1", "file2", "file3"})
-	
+
 	// Should only include file1 and file3
 	expected := "file1/key1,file3/key3"
 	if header != expected {
@@ -127,13 +127,13 @@ func TestProperty_ResourceKeyHeaderFormatting_MixedKeys(t *testing.T) {
 
 func TestProperty_ResourceKeyHeaderFormatting_NoSlash(t *testing.T) {
 	// Property: Header never contains double slashes or trailing slashes
-	
+
 	mgr := NewResourceKeyManager()
 	mgr.AddKey("file1", "key1", "test")
 	mgr.AddKey("file2", "key2", "test")
 
 	header := mgr.BuildHeader([]string{"file1", "file2"})
-	
+
 	if strings.Contains(header, "//") {
 		t.Errorf("Header contains double slash: %s", header)
 	}
@@ -147,13 +147,13 @@ func TestProperty_ResourceKeyHeaderFormatting_NoSlash(t *testing.T) {
 
 func TestProperty_ResourceKeyHeaderFormatting_NoCommaEdges(t *testing.T) {
 	// Property: Header never starts or ends with comma, no double commas
-	
+
 	mgr := NewResourceKeyManager()
 	mgr.AddKey("file1", "key1", "test")
 	mgr.AddKey("file2", "key2", "test")
 
 	header := mgr.BuildHeader([]string{"file1", "file2"})
-	
+
 	if strings.HasPrefix(header, ",") {
 		t.Errorf("Header has leading comma: %s", header)
 	}
@@ -171,7 +171,7 @@ func TestProperty_ResourceKeyHeaderFormatting_NoCommaEdges(t *testing.T) {
 
 func TestProperty_ResourceKeyExtraction_StandardURLs(t *testing.T) {
 	// Property: Standard Google Drive URL formats are parsed correctly
-	
+
 	tests := []struct {
 		name       string
 		url        string
@@ -212,11 +212,11 @@ func TestProperty_ResourceKeyExtraction_StandardURLs(t *testing.T) {
 	}
 
 	mgr := NewResourceKeyManager()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fileID, key, ok := mgr.ParseFromURL(tt.url)
-			
+
 			if ok != tt.wantOK {
 				t.Errorf("ParseFromURL(%s) ok = %v, want %v", tt.url, ok, tt.wantOK)
 			}
@@ -232,7 +232,7 @@ func TestProperty_ResourceKeyExtraction_StandardURLs(t *testing.T) {
 
 func TestProperty_ResourceKeyExtraction_InvalidURLs(t *testing.T) {
 	// Property: Invalid URLs return ok=false
-	
+
 	tests := []string{
 		"not a url",
 		"http://example.com",
@@ -244,7 +244,7 @@ func TestProperty_ResourceKeyExtraction_InvalidURLs(t *testing.T) {
 	}
 
 	mgr := NewResourceKeyManager()
-	
+
 	for _, url := range tests {
 		t.Run(url, func(t *testing.T) {
 			_, _, ok := mgr.ParseFromURL(url)
@@ -257,9 +257,9 @@ func TestProperty_ResourceKeyExtraction_InvalidURLs(t *testing.T) {
 
 func TestProperty_ResourceKeyExtraction_URLVariations(t *testing.T) {
 	// Property: URL variations (http vs https, www, query params) are handled
-	
+
 	mgr := NewResourceKeyManager()
-	
+
 	tests := []struct {
 		name       string
 		url        string
@@ -310,12 +310,12 @@ func TestProperty_ResourceKeyExtraction_URLVariations(t *testing.T) {
 
 func TestProperty_ResourceKeyExtraction_Consistency(t *testing.T) {
 	// Property: Same URL always produces same result (deterministic)
-	
+
 	mgr := NewResourceKeyManager()
 	url := "https://drive.google.com/file/d/ABC123/view?resourcekey=KEY456"
-	
+
 	firstFileID, firstKey, firstOK := mgr.ParseFromURL(url)
-	
+
 	// Run 100 iterations
 	for i := 0; i < 100; i++ {
 		fileID, key, ok := mgr.ParseFromURL(url)
@@ -328,9 +328,9 @@ func TestProperty_ResourceKeyExtraction_Consistency(t *testing.T) {
 
 func TestProperty_ResourceKeyExtraction_SpecialCharacters(t *testing.T) {
 	// Property: File IDs and keys with special characters are handled
-	
+
 	mgr := NewResourceKeyManager()
-	
+
 	tests := []struct {
 		name       string
 		url        string

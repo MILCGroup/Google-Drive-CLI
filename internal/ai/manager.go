@@ -2,12 +2,13 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
 	generativelanguage "cloud.google.com/go/ai/generativelanguage/apiv1"
 	"cloud.google.com/go/ai/generativelanguage/apiv1/generativelanguagepb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -27,7 +28,7 @@ func NewManager(ctx context.Context, opts ...option.ClientOption) (*Manager, err
 
 	modelClient, err := generativelanguage.NewModelClient(ctx, opts...)
 	if err != nil {
-		genClient.Close()
+		_ = genClient.Close()
 		return nil, fmt.Errorf("failed to create model client: %w", err)
 	}
 
@@ -63,7 +64,7 @@ func (m *Manager) ListModels(ctx context.Context, reqCtx *types.RequestContext, 
 	var models []types.AIModel
 	for {
 		model, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -157,7 +158,7 @@ func (m *Manager) StreamGenerateContent(ctx context.Context, reqCtx *types.Reque
 
 		for {
 			resp, err := stream.Recv()
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return
 			}
 			if err != nil {

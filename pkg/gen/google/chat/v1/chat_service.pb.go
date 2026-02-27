@@ -21,7 +21,7 @@
 package chatv1
 
 import (
-	_ "github.com/dl-alexandre/gdrv/pkg/gen/google/api"
+	_ "github.com/milcgroup/gdrv/pkg/gen/google/api"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -84,7 +84,7 @@ const file_google_chat_v1_chat_service_proto_rawDesc = "" +
 	"\x0fListSpaceEvents\x12&.google.chat.v1.ListSpaceEventsRequest\x1a'.google.chat.v1.ListSpaceEventsResponse\"9\xdaA\rparent,filter\x82\xd3\xe4\x93\x02#\x12!/v1/{parent=spaces/*}/spaceEvents\x12\xc0\x01\n" +
 	"\x1bGetSpaceNotificationSetting\x122.google.chat.v1.GetSpaceNotificationSettingRequest\x1a(.google.chat.v1.SpaceNotificationSetting\"C\xdaA\x04name\x82\xd3\xe4\x93\x026\x124/v1/{name=users/*/spaces/*/spaceNotificationSetting}\x12\xa0\x02\n" +
 	"\x1eUpdateSpaceNotificationSetting\x125.google.chat.v1.UpdateSpaceNotificationSettingRequest\x1a(.google.chat.v1.SpaceNotificationSetting\"\x9c\x01\xdaA&space_notification_setting,update_mask\x82\xd3\xe4\x93\x02m:\x1aspace_notification_setting2O/v1/{space_notification_setting.name=users/*/spaces/*/spaceNotificationSetting}\x1a\xd6\f\xcaA\x13chat.googleapis.com\xd2A\xbc\fhttps://www.googleapis.com/auth/chat.admin.delete,https://www.googleapis.com/auth/chat.admin.memberships,https://www.googleapis.com/auth/chat.admin.memberships.readonly,https://www.googleapis.com/auth/chat.admin.spaces,https://www.googleapis.com/auth/chat.admin.spaces.readonly,https://www.googleapis.com/auth/chat.app.delete,https://www.googleapis.com/auth/chat.app.memberships,https://www.googleapis.com/auth/chat.app.messages.readonly,https://www.googleapis.com/auth/chat.app.spaces,https://www.googleapis.com/auth/chat.app.spaces.create,https://www.googleapis.com/auth/chat.bot,https://www.googleapis.com/auth/chat.customemojis,https://www.googleapis.com/auth/chat.customemojis.readonly,https://www.googleapis.com/auth/chat.delete,https://www.googleapis.com/auth/chat.import,https://www.googleapis.com/auth/chat.memberships,https://www.googleapis.com/auth/chat.memberships.app,https://www.googleapis.com/auth/chat.memberships.readonly,https://www.googleapis.com/auth/chat.messages,https://www.googleapis.com/auth/chat.messages.create,https://www.googleapis.com/auth/chat.messages.reactions,https://www.googleapis.com/auth/chat.messages.reactions.create,https://www.googleapis.com/auth/chat.messages.reactions.readonly,https://www.googleapis.com/auth/chat.messages.readonly,https://www.googleapis.com/auth/chat.spaces,https://www.googleapis.com/auth/chat.spaces.create,https://www.googleapis.com/auth/chat.spaces.readonly,https://www.googleapis.com/auth/chat.users.readstate,https://www.googleapis.com/auth/chat.users.readstate.readonly,https://www.googleapis.com/auth/chat.users.spacesettingsB\xbc\x01\n" +
-	"\x12com.google.chat.v1B\x10ChatServiceProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\x10ChatServiceProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var file_google_chat_v1_chat_service_proto_goTypes = []any{
 	(*CreateMessageRequest)(nil),                  // 0: google.chat.v1.CreateMessageRequest

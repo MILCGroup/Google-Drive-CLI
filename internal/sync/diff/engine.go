@@ -3,8 +3,8 @@ package diff
 import (
 	"sort"
 
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
-	"github.com/dl-alexandre/gdrv/internal/sync/scanner"
+	"github.com/milcgroup/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/sync/scanner"
 )
 
 type Snapshot struct {
@@ -102,10 +102,10 @@ func Compute(snapshot Snapshot, mode Mode, includeDeletes bool) Result {
 				if prevOK && prevEntry.IsDir {
 					if includeDeletes && remoteDeleted {
 						actions = append(actions, Action{
-							Type:   ActionDeleteLocal,
-							Path:   path,
-							Local:  localPtr,
-							Prev:   prevPtr,
+							Type:  ActionDeleteLocal,
+							Path:  path,
+							Local: localPtr,
+							Prev:  prevPtr,
 						})
 					}
 					continue

@@ -11,19 +11,19 @@ type CalendarAttendee struct {
 }
 
 type CalendarEvent struct {
-	ID           string             `json:"id"`
-	Summary      string             `json:"summary"`
-	Description  string             `json:"description,omitempty"`
-	Location     string             `json:"location,omitempty"`
-	Start        string             `json:"start"`
-	End          string             `json:"end"`
-	Status       string             `json:"status,omitempty"`
-	Creator      string             `json:"creator,omitempty"`
-	Organizer    string             `json:"organizer,omitempty"`
-	Attendees    []CalendarAttendee `json:"attendees,omitempty"`
-	HangoutLink  string             `json:"hangoutLink,omitempty"`
-	HtmlLink     string             `json:"htmlLink,omitempty"`
-	Recurrence   []string           `json:"recurrence,omitempty"`
+	ID          string             `json:"id"`
+	Summary     string             `json:"summary"`
+	Description string             `json:"description,omitempty"`
+	Location    string             `json:"location,omitempty"`
+	Start       string             `json:"start"`
+	End         string             `json:"end"`
+	Status      string             `json:"status,omitempty"`
+	Creator     string             `json:"creator,omitempty"`
+	Organizer   string             `json:"organizer,omitempty"`
+	Attendees   []CalendarAttendee `json:"attendees,omitempty"`
+	HangoutLink string             `json:"hangoutLink,omitempty"`
+	HtmlLink    string             `json:"htmlLink,omitempty"`
+	Recurrence  []string           `json:"recurrence,omitempty"`
 }
 
 func (e *CalendarEvent) Headers() []string {

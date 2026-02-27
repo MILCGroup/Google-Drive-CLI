@@ -1186,7 +1186,7 @@ const file_google_chat_v1_widgets_proto_rawDesc = "" +
 	"\n" +
 	"VIDEO_PLAY\x10\x1dB\x06\n" +
 	"\x04dataB\xb8\x01\n" +
-	"\x12com.google.chat.v1B\fWidgetsProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\fWidgetsProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_widgets_proto_rawDescOnce sync.Once

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 func captureStderr(t *testing.T, fn func()) string {

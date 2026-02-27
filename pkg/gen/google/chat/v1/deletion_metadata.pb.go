@@ -179,7 +179,7 @@ const file_google_chat_v1_deletion_metadata_proto_rawDesc = "" +
 	"\x0fCREATOR_VIA_APP\x10\x05\x12\x17\n" +
 	"\x13SPACE_OWNER_VIA_APP\x10\x06\x12\x10\n" +
 	"\fSPACE_MEMBER\x10\aB\xc1\x01\n" +
-	"\x12com.google.chat.v1B\x15DeletionMetadataProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\x15DeletionMetadataProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_deletion_metadata_proto_rawDescOnce sync.Once

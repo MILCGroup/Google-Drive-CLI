@@ -7,7 +7,7 @@ import (
 
 // CompletionCmd generates shell completion scripts for gdrv.
 type CompletionCmd struct {
-	Shell string `arg:"" help:"Shell type (bash, zsh, fish)" enum:"bash,zsh,fish"`
+	Shell string `arg:"" help:"Shell type (bash, zsh, fish, powershell)" enum:"bash,zsh,fish,powershell"`
 }
 
 // Run writes the completion script for the requested shell to stdout.
@@ -21,6 +21,9 @@ func (cmd *CompletionCmd) Run(_ *Globals) error {
 		return err
 	case "fish":
 		_, err := fmt.Fprint(os.Stdout, fishCompletionScript)
+		return err
+	case "powershell":
+		_, err := fmt.Fprint(os.Stdout, powershellCompletionScript)
 		return err
 	default:
 		return fmt.Errorf("unsupported shell: %s", cmd.Shell)
@@ -270,4 +273,75 @@ complete -c gdrv -l dry-run   -d "Show what would be done without making changes
 complete -c gdrv -s f -l force   -d "Force operation without confirmation"
 complete -c gdrv -s y -l yes     -d "Answer yes to all prompts"
 complete -c gdrv -l json      -d "Output in JSON format"
+`
+
+const powershellCompletionScript = `# gdrv PowerShell completion script
+# Add to your PowerShell profile:
+#   gdrv completion powershell | Out-String | Invoke-Expression
+#
+# To install permanently:
+#   gdrv completion powershell > $PROFILE.CurrentUserCurrentHost
+
+function _gdrv_completer {
+    param($wordToComplete, $commandAst, $cursorPosition)
+
+    $commands = @(
+        'files', 'folders', 'auth', 'permissions', 'drives', 'sheets', 'docs', 'slides',
+        'admin', 'groups', 'changes', 'labels', 'activity', 'chat', 'forms', 'people',
+        'gmail', 'calendar', 'tasks', 'appscript', 'ai', 'meet', 'logging', 'monitoring',
+        'iamadmin', 'sync', 'config', 'about', 'version', 'completion'
+    )
+
+    $parts = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $parts = $parts[1..($parts.Length-1)]  # Remove 'gdrv' itself
+
+    # First level completion
+    if ($parts.Count -eq 0 -or ($parts.Count -eq 1 -and -not $wordToComplete.Contains(' '))) {
+        $commands | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+            [System.Management.Automation.CompletionResult]::new($_, $_, 'Command', $_)
+        }
+        return
+    }
+
+    # Second level completion
+    $subcommands = switch ($parts[0]) {
+        'files' { @('list', 'list-trashed', 'get', 'upload', 'download', 'delete', 'copy', 'move', 'trash', 'restore', 'revisions', 'search', 'export', 'touch') }
+        'folders' { @('list', 'create', 'delete', 'move', 'empty-tree') }
+        'auth' { @('login', 'device', 'service-account', 'status', 'profiles', 'logout') }
+        'permissions' { @('list', 'create', 'update', 'delete', 'public', 'audit', 'analyze', 'report', 'bulk', 'search') }
+        'drives' { @('list', 'get') }
+        'sheets' { @('list', 'list-by-label', 'get', 'create', 'batch-update', 'values') }
+        'docs' { @('list', 'get', 'create', 'read', 'update') }
+        'slides' { @('list', 'get', 'create', 'read', 'update', 'replace') }
+        'admin' { @('users', 'groups') }
+        'groups' { @('list', 'get', 'create', 'update', 'delete', 'list-members', 'add-member', 'remove-member') }
+        'changes' { @('list', 'start-page-token', 'watch', 'stop') }
+        'labels' { @('list', 'get', 'create', 'publish', 'disable', 'file') }
+        'activity' { @('query') }
+        'chat' { @('spaces', 'messages', 'members') }
+        'forms' { @('list', 'get', 'create') }
+        'people' { @('list', 'get', 'create', 'delete') }
+        'gmail' { @('list', 'get', 'send', 'draft') }
+        'calendar' { @('list', 'get', 'create', 'update', 'delete', 'events') }
+        'tasks' { @('lists', 'tasklists') }
+        'appscript' { @('list', 'get', 'create', 'deploy', 'run') }
+        'ai' { @('generate', 'chat') }
+        'meet' { @('spaces', 'conferences') }
+        'logging' { @('logs', 'sinks') }
+        'monitoring' { @('metrics', 'alerts', 'dashboards') }
+        'iamadmin' { @('roles', 'permissions') }
+        'config' { @('show', 'set', 'reset') }
+        'completion' { @('bash', 'zsh', 'fish', 'powershell') }
+        default { @() }
+    }
+
+    if ($parts.Count -eq 1 -or ($parts.Count -eq 2 -and -not $wordToComplete.Contains(' ') -and $parts[1] -eq $wordToComplete)) {
+        $subcommands | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+            [System.Management.Automation.CompletionResult]::new($_, $_, 'Command', $_)
+        }
+        return
+    }
+}
+
+Register-ArgumentCompleter -Native -CommandName gdrv -ScriptBlock _gdrv_completer
 `

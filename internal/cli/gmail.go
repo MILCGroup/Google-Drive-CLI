@@ -4,11 +4,11 @@ import (
 	"context"
 	"os"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	gmailmgr "github.com/dl-alexandre/gdrv/internal/gmail"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	gmailmgr "github.com/milcgroup/gdrv/internal/gmail"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	gmailapi "google.golang.org/api/gmail/v1"
 )
 
@@ -770,4 +770,3 @@ func (cmd *GmailAttachmentGetCmd) Run(globals *Globals) error {
 	out.Log("Downloaded attachment to: %s", outputPath)
 	return out.WriteSuccess("gmail.attachment.get", meta)
 }
-

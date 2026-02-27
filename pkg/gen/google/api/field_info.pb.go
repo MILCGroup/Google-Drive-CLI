@@ -279,7 +279,7 @@ const file_google_api_field_info_proto_rawDesc = "" +
 	"\ttype_name\x18\x01 \x01(\tR\btypeName:W\n" +
 	"\n" +
 	"field_info\x12\x1d.google.protobuf.FieldOptions\x18\xcc\xf1\xf9\x8a\x01 \x01(\v2\x15.google.api.FieldInfoR\tfieldInfoB\x9a\x01\n" +
-	"\x0ecom.google.apiB\x0eFieldInfoProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
+	"\x0ecom.google.apiB\x0eFieldInfoProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
 	"Google.Api\xca\x02\n" +
 	"Google\\Api\xe2\x02\x16Google\\Api\\GPBMetadata\xea\x02\vGoogle::Apib\x06proto3"
 

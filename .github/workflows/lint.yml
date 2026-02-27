@@ -1,0 +1,77 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  golangci-lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    env:
+      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24.13'
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: v2.8.0
+          args: --timeout=5m
+
+  go-fmt:
+    name: go fmt
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24.13'
+
+      - name: Run go fmt check
+        run: |
+          fmt_output=$(go fmt ./...)
+          if [ -n "$fmt_output" ]; then
+            echo "The following files need formatting:"
+            echo "$fmt_output"
+            exit 1
+          fi
+          echo "All files are properly formatted"
+
+  go-vet:
+    name: go vet
+    runs-on: ubuntu-latest
+    env:
+      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24.13'
+
+      - name: Run go vet
+        run: go vet ./...

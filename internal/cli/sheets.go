@@ -3,16 +3,17 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/files"
-	sheetsmgr "github.com/dl-alexandre/gdrv/internal/sheets"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/files"
+	sheetsmgr "github.com/milcgroup/gdrv/internal/sheets"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 	sheetsapi "google.golang.org/api/sheets/v4"
 )
@@ -97,7 +98,8 @@ func (cmd *SheetsListCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("sheets.list", appErr.CLIError)
 			}
 			return out.WriteError("sheets.list", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -162,7 +164,8 @@ func (cmd *SheetsGetCmd) Run(globals *Globals) error {
 
 	spreadsheetID, err := ResolveFileID(ctx, client, flags, cmd.SpreadsheetID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sheets.get", appErr.CLIError)
 		}
 		return out.WriteError("sheets.get", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -192,7 +195,8 @@ func (cmd *SheetsCreateCmd) Run(globals *Globals) error {
 	if parentID != "" {
 		resolvedID, err := ResolveFileID(ctx, client, flags, parentID)
 		if err != nil {
-			if appErr, ok := err.(*utils.AppError); ok {
+			var appErr *utils.AppError
+			if errors.As(err, &appErr) {
 				return out.WriteError("sheets.create", appErr.CLIError)
 			}
 			return out.WriteError("sheets.create", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -245,7 +249,8 @@ func (cmd *SheetsBatchUpdateCmd) Run(globals *Globals) error {
 
 	spreadsheetID, err := ResolveFileID(ctx, client, flags, cmd.SpreadsheetID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sheets.batch-update", appErr.CLIError)
 		}
 		return out.WriteError("sheets.batch-update", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -273,7 +278,8 @@ func (cmd *SheetsValuesGetCmd) Run(globals *Globals) error {
 
 	spreadsheetID, err := ResolveFileID(ctx, client, flags, cmd.SpreadsheetID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sheets.values.get", appErr.CLIError)
 		}
 		return out.WriteError("sheets.values.get", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -306,7 +312,8 @@ func (cmd *SheetsValuesUpdateCmd) Run(globals *Globals) error {
 
 	spreadsheetID, err := ResolveFileID(ctx, client, flags, cmd.SpreadsheetID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sheets.values.update", appErr.CLIError)
 		}
 		return out.WriteError("sheets.values.update", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -339,7 +346,8 @@ func (cmd *SheetsValuesAppendCmd) Run(globals *Globals) error {
 
 	spreadsheetID, err := ResolveFileID(ctx, client, flags, cmd.SpreadsheetID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sheets.values.append", appErr.CLIError)
 		}
 		return out.WriteError("sheets.values.append", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())
@@ -371,7 +379,8 @@ func (cmd *SheetsValuesClearCmd) Run(globals *Globals) error {
 
 	spreadsheetID, err := ResolveFileID(ctx, client, flags, cmd.SpreadsheetID)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sheets.values.clear", appErr.CLIError)
 		}
 		return out.WriteError("sheets.values.clear", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())

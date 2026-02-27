@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 const (
@@ -34,6 +34,15 @@ type Config struct {
 
 	// CacheTTL is the default path cache TTL in seconds
 	CacheTTL int `json:"cacheTTL"`
+
+	// CacheEnabled controls whether caching is enabled
+	CacheEnabled bool `json:"cacheEnabled"`
+
+	// CacheType is the type of cache to use ("memory" or "sqlite")
+	CacheType string `json:"cacheType"`
+
+	// MaxCacheSize is the maximum number of entries in the cache
+	MaxCacheSize int `json:"maxCacheSize"`
 
 	// IncludeExportLinks controls whether to include export links by default
 	IncludeExportLinks bool `json:"includeExportLinks"`
@@ -79,6 +88,9 @@ func DefaultConfig() *Config {
 		DefaultOutputFormat: types.OutputFormatJSON,
 		DefaultFields:       FieldMaskStandard,
 		CacheTTL:            300, // 5 minutes
+		CacheEnabled:        true,
+		CacheType:           "memory",
+		MaxCacheSize:        10000,
 		IncludeExportLinks:  false,
 		MaxRetries:          3,
 		RetryBaseDelay:      1000, // 1 second
@@ -141,6 +153,17 @@ func (c *Config) loadFromEnv() {
 	if v := os.Getenv(EnvPrefix + "CACHE_TTL"); v != "" {
 		if ttl, err := strconv.Atoi(v); err == nil {
 			c.CacheTTL = ttl
+		}
+	}
+	if v := os.Getenv(EnvPrefix + "CACHE_ENABLED"); v != "" {
+		c.CacheEnabled = parseBool(v)
+	}
+	if v := os.Getenv(EnvPrefix + "CACHE_TYPE"); v != "" {
+		c.CacheType = v
+	}
+	if v := os.Getenv(EnvPrefix + "MAX_CACHE_SIZE"); v != "" {
+		if size, err := strconv.Atoi(v); err == nil {
+			c.MaxCacheSize = size
 		}
 	}
 	if v := os.Getenv(EnvPrefix + "INCLUDE_EXPORT_LINKS"); v != "" {
@@ -210,14 +233,14 @@ func (c *Config) Save() error {
 // Validate validates the configuration
 func (c *Config) Validate() error {
 	// Validate output format
-	if c.DefaultOutputFormat != types.OutputFormatJSON && 
+	if c.DefaultOutputFormat != types.OutputFormatJSON &&
 		c.DefaultOutputFormat != types.OutputFormatTable {
 		return fmt.Errorf("invalid output format: %s (must be 'json' or 'table')", c.DefaultOutputFormat)
 	}
 
 	// Validate field mask preset
-	if c.DefaultFields != FieldMaskMinimal && 
-		c.DefaultFields != FieldMaskStandard && 
+	if c.DefaultFields != FieldMaskMinimal &&
+		c.DefaultFields != FieldMaskStandard &&
 		c.DefaultFields != FieldMaskFull {
 		return fmt.Errorf("invalid field mask preset: %s (must be 'minimal', 'standard', or 'full')", c.DefaultFields)
 	}
@@ -225,6 +248,16 @@ func (c *Config) Validate() error {
 	// Validate cache TTL
 	if c.CacheTTL < 0 {
 		return fmt.Errorf("cache TTL must be non-negative, got: %d", c.CacheTTL)
+	}
+
+	// Validate cache type
+	if c.CacheType != "" && c.CacheType != "memory" && c.CacheType != "sqlite" {
+		return fmt.Errorf("invalid cache type: %s (must be 'memory' or 'sqlite')", c.CacheType)
+	}
+
+	// Validate max cache size
+	if c.MaxCacheSize < 0 || c.MaxCacheSize > 1000000 {
+		return fmt.Errorf("max cache size must be between 0 and 1000000, got: %d", c.MaxCacheSize)
 	}
 
 	// Validate max retries

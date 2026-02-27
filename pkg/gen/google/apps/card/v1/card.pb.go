@@ -21,7 +21,7 @@
 package cardv1
 
 import (
-	_type "github.com/dl-alexandre/gdrv/pkg/gen/google/type"
+	_type "github.com/milcgroup/gdrv/pkg/gen/google/type"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -6851,7 +6851,7 @@ const file_google_apps_card_v1_card_proto_rawDesc = "" +
 	"\aenabled\x18\x04 \x01(\bB\x02\x18\x01R\aenabled\x12\x1a\n" +
 	"\bdisabled\x18\x06 \x01(\bR\bdisabled\x12\x19\n" +
 	"\balt_text\x18\x05 \x01(\tR\aaltTextB\xd4\x01\n" +
-	"\x17com.google.apps.card.v1B\tCardProtoP\x01Z?github.com/dl-alexandre/gdrv/pkg/gen/google/apps/card/v1;cardv1\xa2\x02\x03GAC\xaa\x02\x13Google.Apps.Card.V1\xca\x02\x13Google\\Apps\\Card\\V1\xe2\x02\x1fGoogle\\Apps\\Card\\V1\\GPBMetadata\xea\x02\x16Google::Apps::Card::V1b\x06proto3"
+	"\x17com.google.apps.card.v1B\tCardProtoP\x01Z?github.com/milcgroup/gdrv/pkg/gen/google/apps/card/v1;cardv1\xa2\x02\x03GAC\xaa\x02\x13Google.Apps.Card.V1\xca\x02\x13Google\\Apps\\Card\\V1\xe2\x02\x1fGoogle\\Apps\\Card\\V1\\GPBMetadata\xea\x02\x16Google::Apps::Card::V1b\x06proto3"
 
 var (
 	file_google_apps_card_v1_card_proto_rawDescOnce sync.Once

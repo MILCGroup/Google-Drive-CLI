@@ -2,11 +2,12 @@ package iamadmin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	iam "cloud.google.com/go/iam/admin/apiv1"
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -48,7 +49,7 @@ func (m *Manager) ListServiceAccounts(ctx context.Context, reqCtx *types.Request
 	var accounts []types.ServiceAccount
 	for {
 		account, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

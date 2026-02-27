@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/chat/v1"

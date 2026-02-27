@@ -2,11 +2,12 @@ package cloudlogging
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	logging "cloud.google.com/go/logging/apiv2"
 	"cloud.google.com/go/logging/apiv2/loggingpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -27,14 +28,14 @@ func NewManager(ctx context.Context, opts ...option.ClientOption) (*Manager, err
 
 	configClient, err := logging.NewConfigClient(ctx, opts...)
 	if err != nil {
-		client.Close()
+		_ = client.Close()
 		return nil, fmt.Errorf("failed to create config client: %w", err)
 	}
 
 	metricsClient, err := logging.NewMetricsClient(ctx, opts...)
 	if err != nil {
-		client.Close()
-		configClient.Close()
+		_ = client.Close()
+		_ = configClient.Close()
 		return nil, fmt.Errorf("failed to create metrics client: %w", err)
 	}
 
@@ -79,7 +80,7 @@ func (m *Manager) ListLogEntries(ctx context.Context, reqCtx *types.RequestConte
 	var entries []types.LogEntry
 	for {
 		entry, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -104,7 +105,7 @@ func (m *Manager) ListLogs(ctx context.Context, reqCtx *types.RequestContext, pa
 	var logs []string
 	for {
 		log, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -140,7 +141,7 @@ func (m *Manager) ListSinks(ctx context.Context, reqCtx *types.RequestContext, p
 	var sinks []types.LogSink
 	for {
 		sink, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -180,7 +181,7 @@ func (m *Manager) ListMetrics(ctx context.Context, reqCtx *types.RequestContext,
 	var metrics []types.LogMetric
 	for {
 		metric, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

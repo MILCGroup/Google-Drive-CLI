@@ -274,7 +274,7 @@ func TestSafeExecuteWithError(t *testing.T) {
 	}
 
 	err := SafeExecute(tracker, opID, operation)
-	if err != expectedErr {
+	if !errors.Is(err, expectedErr) {
 		t.Errorf("Expected error %v, got %v", expectedErr, err)
 	}
 

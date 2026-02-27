@@ -121,7 +121,7 @@ const file_google_rpc_status_proto_rawDesc = "" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12.\n" +
 	"\adetails\x18\x03 \x03(\v2\x14.google.protobuf.AnyR\adetailsB\x9a\x01\n" +
-	"\x0ecom.google.rpcB\vStatusProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/rpc\xf8\x01\x01\xa2\x02\x03GRX\xaa\x02\n" +
+	"\x0ecom.google.rpcB\vStatusProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/rpc\xf8\x01\x01\xa2\x02\x03GRX\xaa\x02\n" +
 	"Google.Rpc\xca\x02\n" +
 	"Google\\Rpc\xe2\x02\x16Google\\Rpc\\GPBMetadata\xea\x02\vGoogle::Rpcb\x06proto3"
 

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/logging"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/logging"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 )

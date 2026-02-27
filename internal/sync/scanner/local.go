@@ -10,8 +10,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/dl-alexandre/gdrv/internal/sync/exclude"
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/sync/exclude"
+	"github.com/milcgroup/gdrv/internal/sync/index"
 )
 
 func ScanLocal(ctx context.Context, root string, matcher *exclude.Matcher, prev map[string]index.SyncEntry) (map[string]LocalEntry, error) {
@@ -100,10 +100,14 @@ func hashFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
+	if _, err = io.Copy(h, f); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"golang.org/x/oauth2"
 )
 
@@ -69,7 +69,11 @@ func (f *DeviceCodeFlow) RequestDeviceCode(ctx context.Context) (*DeviceCodeResp
 	if err != nil {
 		return nil, fmt.Errorf("failed to request device code: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -148,7 +152,11 @@ func (f *DeviceCodeFlow) pollOnce(ctx context.Context, client *http.Client) (*ty
 	if err != nil {
 		return nil, fmt.Errorf("failed to poll for token: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	var tokenResp TokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/ai"
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/ai"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/option"
 )
 
@@ -57,7 +57,7 @@ func (cmd *AIModelsListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.models.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
@@ -81,7 +81,7 @@ func (cmd *AIModelsGetCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.models.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeGetByID
 
@@ -102,7 +102,7 @@ func (cmd *AIGenerateTextCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.generate.text", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 
@@ -123,7 +123,7 @@ func (cmd *AIGenerateStreamCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("ai.generate.stream", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 

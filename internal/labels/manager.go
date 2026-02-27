@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/drivelabels/v2"
 	"google.golang.org/api/googleapi"
@@ -298,4 +298,3 @@ func (m *Manager) DisableLabel(ctx context.Context, reqCtx *types.RequestContext
 
 	return convertLabel(result), nil
 }
-

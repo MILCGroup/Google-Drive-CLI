@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	iamadminmgr "github.com/dl-alexandre/gdrv/internal/iamadmin"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	iamadminmgr "github.com/milcgroup/gdrv/internal/iamadmin"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/option"
 )
 
@@ -66,7 +66,7 @@ func (cmd *IAMAdminServiceAccountsListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("iamadmin.service-accounts.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
@@ -90,7 +90,7 @@ func (cmd *IAMAdminServiceAccountsCreateCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("iamadmin.service-accounts.create", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeMutation
 
@@ -111,7 +111,7 @@ func (cmd *IAMAdminRolesListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("iamadmin.roles.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 

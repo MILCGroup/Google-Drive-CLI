@@ -2,19 +2,20 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	"github.com/dl-alexandre/gdrv/internal/logging"
-	syncengine "github.com/dl-alexandre/gdrv/internal/sync"
-	"github.com/dl-alexandre/gdrv/internal/sync/conflict"
-	"github.com/dl-alexandre/gdrv/internal/sync/diff"
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	"github.com/milcgroup/gdrv/internal/logging"
+	syncengine "github.com/milcgroup/gdrv/internal/sync"
+	"github.com/milcgroup/gdrv/internal/sync/conflict"
+	"github.com/milcgroup/gdrv/internal/sync/diff"
+	"github.com/milcgroup/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"github.com/google/uuid"
 )
 
@@ -91,7 +92,8 @@ func (cmd *SyncInitCmd) Run(globals *Globals) error {
 
 	remoteID, err := ResolveFileID(ctx, client, flags, remotePath)
 	if err != nil {
-		if appErr, ok := err.(*utils.AppError); ok {
+		var appErr *utils.AppError
+		if errors.As(err, &appErr) {
 			return out.WriteError("sync.init", appErr.CLIError)
 		}
 		return out.WriteError("sync.init", utils.NewCLIError(utils.ErrCodeInvalidPath, err.Error()).Build())

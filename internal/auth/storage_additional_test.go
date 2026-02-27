@@ -149,10 +149,10 @@ func TestEncryptedFileStorage_CorruptedData(t *testing.T) {
 	}
 
 	credDir := filepath.Join(tmpDir, "credentials")
-	os.MkdirAll(credDir, 0700)
+	_ = os.MkdirAll(credDir, 0700)
 
 	credFile := filepath.Join(credDir, "corrupted.enc")
-	os.WriteFile(credFile, []byte("corrupted-data"), 0600)
+	_ = os.WriteFile(credFile, []byte("corrupted-data"), 0600)
 
 	_, err = storage.Load("corrupted")
 	if err == nil {

@@ -3,7 +3,7 @@ package calendar
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	calendarapi "google.golang.org/api/calendar/v3"
 )
 
@@ -318,10 +318,10 @@ func TestConvertAttendees(t *testing.T) {
 
 func TestDetectConflicts(t *testing.T) {
 	tests := []struct {
-		name       string
-		events     []types.CalendarEvent
-		wantCount  int
-		wantFirst  string
+		name        string
+		events      []types.CalendarEvent
+		wantCount   int
+		wantFirst   string
 		wantOverlap int
 	}{
 		{

@@ -36,9 +36,9 @@ func TestConvertSpreadsheet(t *testing.T) {
 			Properties:    &sheetsapi.SpreadsheetProperties{Title: "Title", Locale: "en", TimeZone: "UTC"},
 			Sheets: []*sheetsapi.Sheet{{
 				Properties: &sheetsapi.SheetProperties{
-					SheetId: 1,
-					Title:   "Sheet1",
-					Index:   0,
+					SheetId:   1,
+					Title:     "Sheet1",
+					Index:     0,
 					SheetType: "GRID",
 				},
 			}},

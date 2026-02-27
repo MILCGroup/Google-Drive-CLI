@@ -1,13 +1,13 @@
 package errors
 
 import (
-	"errors"
+	stderrors "errors"
 	"net/http"
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/logging"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/logging"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/googleapi"
 )
 
@@ -58,8 +58,8 @@ func TestClassifyGoogleAPIError_400Errors(t *testing.T) {
 
 			err := ClassifyGoogleAPIError("drive", tt.apiErr, reqCtx, logger)
 
-			appErr, ok := err.(*utils.AppError)
-			if !ok {
+			var appErr *utils.AppError
+			if !stderrors.As(err, &appErr) {
 				t.Fatalf("expected *utils.AppError, got %T", err)
 			}
 
@@ -89,8 +89,8 @@ func TestClassifyGoogleAPIError_401(t *testing.T) {
 
 	err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -162,8 +162,8 @@ func TestClassifyGoogleAPIError_403Errors(t *testing.T) {
 
 			err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-			appErr, ok := err.(*utils.AppError)
-			if !ok {
+			var appErr *utils.AppError
+			if !stderrors.As(err, &appErr) {
 				t.Fatalf("expected *utils.AppError, got %T", err)
 			}
 
@@ -206,8 +206,8 @@ func TestClassifyGoogleAPIError_404(t *testing.T) {
 
 			err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-			appErr, ok := err.(*utils.AppError)
-			if !ok {
+			var appErr *utils.AppError
+			if !stderrors.As(err, &appErr) {
 				t.Fatalf("expected *utils.AppError, got %T", err)
 			}
 
@@ -239,8 +239,8 @@ func TestClassifyGoogleAPIError_409(t *testing.T) {
 
 	err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -264,8 +264,8 @@ func TestClassifyGoogleAPIError_429(t *testing.T) {
 
 	err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -301,8 +301,8 @@ func TestClassifyGoogleAPIError_5xxErrors(t *testing.T) {
 
 			err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-			appErr, ok := err.(*utils.AppError)
-			if !ok {
+			var appErr *utils.AppError
+			if !stderrors.As(err, &appErr) {
 				t.Fatalf("expected *utils.AppError, got %T", err)
 			}
 
@@ -322,15 +322,15 @@ func TestClassifyGoogleAPIError_5xxErrors(t *testing.T) {
 }
 
 func TestClassifyGoogleAPIError_NonAPIError(t *testing.T) {
-	plainErr := errors.New("network connection failed")
+	plainErr := stderrors.New("network connection failed")
 
 	reqCtx := &types.RequestContext{TraceID: "test-trace"}
 	logger := logging.NewNoOpLogger()
 
 	err := ClassifyGoogleAPIError("drive", plainErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -358,8 +358,8 @@ func TestClassifyGoogleAPIError_ContextPropagation(t *testing.T) {
 
 	err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -378,11 +378,11 @@ func TestClassifyGoogleAPIError_ContextPropagation(t *testing.T) {
 
 func TestClassifyGoogleAPIError_SuggestedActions(t *testing.T) {
 	tests := []struct {
-		name        string
-		apiErr      *googleapi.Error
-		wantHint    bool
-		contextKey  string
-		contextVal  string
+		name       string
+		apiErr     *googleapi.Error
+		wantHint   bool
+		contextKey string
+		contextVal string
 	}{
 		{
 			name: "storage quota exceeded",
@@ -424,8 +424,8 @@ func TestClassifyGoogleAPIError_SuggestedActions(t *testing.T) {
 
 			err := ClassifyGoogleAPIError("drive", tt.apiErr, reqCtx, logger)
 
-			appErr, ok := err.(*utils.AppError)
-			if !ok {
+			var appErr *utils.AppError
+			if !stderrors.As(err, &appErr) {
 				t.Fatalf("expected *utils.AppError, got %T", err)
 			}
 
@@ -452,8 +452,8 @@ func TestClassifyGoogleAPIError_UnknownStatusCode(t *testing.T) {
 
 	err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -481,8 +481,8 @@ func TestClassifyGoogleAPIError_MultipleErrorReasons(t *testing.T) {
 
 	err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -509,8 +509,8 @@ func TestClassifyGoogleAPIError_NonDriveService(t *testing.T) {
 	// Test with "sheets" service
 	err := ClassifyGoogleAPIError("sheets", apiErr, reqCtx, logger)
 
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !stderrors.As(err, &appErr) {
 		t.Fatalf("expected *utils.AppError, got %T", err)
 	}
 
@@ -539,8 +539,8 @@ func TestClassifyGoogleAPIError_HTTPStatusPropagation(t *testing.T) {
 
 			err := ClassifyGoogleAPIError("drive", apiErr, reqCtx, logger)
 
-			appErr, ok := err.(*utils.AppError)
-			if !ok {
+			var appErr *utils.AppError
+			if !stderrors.As(err, &appErr) {
 				t.Fatalf("expected *utils.AppError, got %T", err)
 			}
 

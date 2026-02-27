@@ -91,7 +91,7 @@ const file_google_chat_v1_slash_command_proto_rawDesc = "" +
 	"\fSlashCommand\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\x03R\tcommandIdB\xbd\x01\n" +
-	"\x12com.google.chat.v1B\x11SlashCommandProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\x11SlashCommandProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_slash_command_proto_rawDescOnce sync.Once

@@ -15,6 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
     strategy:
       fail-fast: false
       matrix:
@@ -23,13 +24,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
-          cache: true
 
       - name: Download dependencies
         run: go mod download
@@ -61,14 +61,14 @@ jobs:
 
       - name: Upload test diagnostics
         if: failure() && matrix.os != 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gdrv-test-diagnostics-${{ matrix.os }}
           path: .artifacts/test/
           retention-days: 7
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: matrix.os == 'ubuntu-latest'
         with:
           files: coverage.out
@@ -80,16 +80,16 @@ jobs:
     needs: test
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24.13'
-          cache: true
 
       - name: Build for all platforms
         run: make build-all
@@ -97,16 +97,17 @@ jobs:
       - name: Verify version metadata
         run: |
           make build
-          VERSION="$(./bin/gdrv version)"
-          test -n "$VERSION"
-          test "$VERSION" != "dev"
-          echo "$VERSION"
+          VERSION_OUT="$(./bin/gdrv version)"
+          echo "$VERSION_OUT"
+          # Ensure ldflags were applied and version output is not the default placeholder.
+          test -n "$VERSION_OUT"
+          echo "$VERSION_OUT" | grep -qvE "^(gdrv )?dev( |$)"
 
       - name: Generate checksums
         run: make checksums
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: binaries
           path: |
@@ -119,16 +120,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24.13'
-          cache: true
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9.2.0
@@ -142,16 +143,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+      GOTOOLCHAIN: auto
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24.13'
-          cache: true
 
       - name: Run govulncheck
         run: |

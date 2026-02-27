@@ -5,14 +5,14 @@ type MemberRole struct {
 }
 
 type CloudIdentityGroup struct {
-	Name             string            `json:"name"`
-	GroupKeyID       string            `json:"groupKeyId"`
-	GroupKeyNamespace string           `json:"groupKeyNamespace,omitempty"`
-	DisplayName      string            `json:"displayName"`
-	Description      string            `json:"description,omitempty"`
-	CreateTime       string            `json:"createTime,omitempty"`
-	UpdateTime       string            `json:"updateTime,omitempty"`
-	Labels           map[string]string `json:"labels,omitempty"`
+	Name              string            `json:"name"`
+	GroupKeyID        string            `json:"groupKeyId"`
+	GroupKeyNamespace string            `json:"groupKeyNamespace,omitempty"`
+	DisplayName       string            `json:"displayName"`
+	Description       string            `json:"description,omitempty"`
+	CreateTime        string            `json:"createTime,omitempty"`
+	UpdateTime        string            `json:"updateTime,omitempty"`
+	Labels            map[string]string `json:"labels,omitempty"`
 }
 
 func (g *CloudIdentityGroup) Headers() []string {
@@ -58,11 +58,11 @@ func (l *CloudIdentityGroupList) EmptyMessage() string {
 }
 
 type CloudIdentityMember struct {
-	Name                      string       `json:"name"`
-	PreferredMemberKeyID      string       `json:"preferredMemberKeyId"`
-	PreferredMemberKeyNamespace string     `json:"preferredMemberKeyNamespace,omitempty"`
-	Roles                     []MemberRole `json:"roles,omitempty"`
-	CreateTime                string       `json:"createTime,omitempty"`
+	Name                        string       `json:"name"`
+	PreferredMemberKeyID        string       `json:"preferredMemberKeyId"`
+	PreferredMemberKeyNamespace string       `json:"preferredMemberKeyNamespace,omitempty"`
+	Roles                       []MemberRole `json:"roles,omitempty"`
+	CreateTime                  string       `json:"createTime,omitempty"`
 }
 
 func (m *CloudIdentityMember) Headers() []string {

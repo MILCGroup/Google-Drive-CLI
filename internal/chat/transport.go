@@ -3,7 +3,7 @@ package chat
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // ChatTransport defines the interface for Chat API operations

@@ -2,13 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 // OperationStatus represents the status of a long-running operation
@@ -99,7 +100,8 @@ func (p *OperationPoller) checkOperation(ctx context.Context, name string) (*Ope
 
 func isOperationExpired(err error) bool {
 	// Check for 404 Not Found or specific expired indicators
-	if appErr, ok := err.(*utils.AppError); ok {
+	var appErr *utils.AppError
+	if errors.As(err, &appErr) {
 		return appErr.CLIError.Code == utils.ErrCodeFileNotFound
 	}
 	return false
@@ -107,7 +109,8 @@ func isOperationExpired(err error) bool {
 
 // ClassifyOperationError classifies operation errors
 func ClassifyOperationError(err error) string {
-	if appErr, ok := err.(*utils.AppError); ok {
+	var appErr *utils.AppError
+	if errors.As(err, &appErr) {
 		switch appErr.CLIError.Code {
 		case utils.ErrCodeFileNotFound:
 			return "expired"
@@ -121,7 +124,7 @@ func ClassifyOperationError(err error) string {
 }
 
 // DownloadFromURI downloads content from a URI
-func DownloadFromURI(ctx context.Context, client *http.Client, uri string, writer io.Writer) error {
+func DownloadFromURI(ctx context.Context, client *http.Client, uri string, writer io.Writer) (err error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
 	if err != nil {
 		return err
@@ -131,7 +134,11 @@ func DownloadFromURI(ctx context.Context, client *http.Client, uri string, write
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed with status %d", resp.StatusCode)

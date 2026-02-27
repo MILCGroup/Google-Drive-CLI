@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // TestIntegration_ErrorScenarios_NetworkFailures tests network failure handling

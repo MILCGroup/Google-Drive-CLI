@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/logging"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/logging"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/googleapi"
 )
 
@@ -75,8 +75,8 @@ func TestExecuteWithRetry_NonRetryableError(t *testing.T) {
 	}
 
 	// Verify error is classified correctly
-	appErr, ok := err.(*utils.AppError)
-	if !ok {
+	var appErr *utils.AppError
+	if !errors.As(err, &appErr) {
 		t.Fatalf("Expected *utils.AppError, got %T", err)
 	}
 	if appErr.CLIError.Code != utils.ErrCodeFileNotFound {
@@ -116,7 +116,7 @@ func TestExecuteWithRetry_ContextCanceled(t *testing.T) {
 		return "", &googleapi.Error{Code: 503, Message: "Service Unavailable"}
 	})
 
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Errorf("Expected context.Canceled, got %v", err)
 	}
 	if callCount != 1 {
@@ -247,7 +247,10 @@ func TestClassifyError_NetworkError(t *testing.T) {
 	reqCtx := NewRequestContext("default", "", types.RequestTypeGetByID)
 	err := errors.New("network timeout")
 
-	appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+	var appErr *utils.AppError
+	if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+		t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+	}
 
 	if appErr.CLIError.Code != utils.ErrCodeNetworkError {
 		t.Errorf("Expected NETWORK_ERROR, got %s", appErr.CLIError.Code)
@@ -272,7 +275,10 @@ func TestClassifyError_Auth(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := &googleapi.Error{Code: tt.httpCode, Message: "Auth error"}
-			appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+			var appErr *utils.AppError
+			if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+				t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+			}
 
 			if appErr.CLIError.Code != tt.wantCode {
 				t.Errorf("Expected %s, got %s", tt.wantCode, appErr.CLIError.Code)
@@ -292,7 +298,10 @@ func TestClassifyError_QuotaExceeded(t *testing.T) {
 		},
 	}
 
-	appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+	var appErr *utils.AppError
+	if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+		t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+	}
 
 	if appErr.CLIError.Code != utils.ErrCodeQuotaExceeded {
 		t.Errorf("Expected QUOTA_EXCEEDED, got %s", appErr.CLIError.Code)
@@ -326,7 +335,10 @@ func TestClassifyError_RateLimited(t *testing.T) {
 				err.Errors = []googleapi.ErrorItem{{Reason: tt.reason}}
 			}
 
-			appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+			var appErr *utils.AppError
+			if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+				t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+			}
 
 			if appErr.CLIError.Code != utils.ErrCodeRateLimited {
 				t.Errorf("Expected RATE_LIMITED, got %s", appErr.CLIError.Code)
@@ -349,7 +361,10 @@ func TestClassifyError_PolicyViolation(t *testing.T) {
 		},
 	}
 
-	appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+	var appErr *utils.AppError
+	if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+		t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+	}
 
 	if appErr.CLIError.Code != utils.ErrCodePolicyViolation {
 		t.Errorf("Expected POLICY_VIOLATION, got %s", appErr.CLIError.Code)
@@ -362,7 +377,10 @@ func TestClassifyError_ContextInclusion(t *testing.T) {
 
 	err := &googleapi.Error{Code: 404, Message: "Not found"}
 
-	appErr := classifyError(err, reqCtx, logging.NewNoOpLogger()).(*utils.AppError)
+	var appErr *utils.AppError
+	if !errors.As(classifyError(err, reqCtx, logging.NewNoOpLogger()), &appErr) {
+		t.Fatalf("Expected *utils.AppError, got %T", classifyError(err, reqCtx, logging.NewNoOpLogger()))
+	}
 
 	// Verify trace ID is included
 	if traceID, ok := appErr.CLIError.Context["traceId"].(string); !ok || traceID != "trace-456" {

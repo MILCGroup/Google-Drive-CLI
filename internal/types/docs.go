@@ -89,4 +89,3 @@ func truncateDocText(s string, max int) string {
 	}
 	return s[:max-3] + "..."
 }
-

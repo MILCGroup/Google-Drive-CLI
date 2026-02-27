@@ -2,11 +2,12 @@ package monitoring
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
@@ -27,7 +28,7 @@ func NewManager(ctx context.Context, opts ...option.ClientOption) (*Manager, err
 
 	alertClient, err := monitoring.NewAlertPolicyClient(ctx, opts...)
 	if err != nil {
-		metricClient.Close()
+		_ = metricClient.Close()
 		return nil, fmt.Errorf("failed to create alert client: %w", err)
 	}
 
@@ -62,7 +63,7 @@ func (m *Manager) ListMetricDescriptors(ctx context.Context, reqCtx *types.Reque
 	var descriptors []types.MetricDescriptor
 	for {
 		desc, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -103,7 +104,7 @@ func (m *Manager) ListTimeSeries(ctx context.Context, reqCtx *types.RequestConte
 	var series []types.TimeSeriesData
 	for {
 		ts, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -126,7 +127,7 @@ func (m *Manager) ListAlertPolicies(ctx context.Context, reqCtx *types.RequestCo
 	var policies []types.AlertPolicy
 	for {
 		policy, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

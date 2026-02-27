@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/types"
 )
 
 // TestPathNormalization tests that paths are properly normalized

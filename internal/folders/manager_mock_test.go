@@ -4,17 +4,17 @@ import (
 	"errors"
 	"testing"
 
-	testhelpers "github.com/dl-alexandre/gdrv/internal/testing"
-	"github.com/dl-alexandre/gdrv/internal/testing/mocks"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	testhelpers "github.com/milcgroup/gdrv/internal/testing"
+	"github.com/milcgroup/gdrv/internal/testing/mocks"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 )
 
 // TestCreate tests folder creation with mocks
 func TestCreate(t *testing.T) {
 	tests := []struct {
-		name      string
+		name       string
 		folderName string
 		parentID   string
 		setupMock  func(*mocks.MockFilesService)

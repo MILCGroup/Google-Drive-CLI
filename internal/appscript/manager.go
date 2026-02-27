@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/types"
 	script "google.golang.org/api/script/v1"
 )
 
@@ -201,4 +201,3 @@ func convertRunResponse(op *script.Operation) *types.ScriptRunResult {
 
 	return result
 }
-

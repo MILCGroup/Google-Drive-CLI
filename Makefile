@@ -2,10 +2,6 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME ?= $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 
-# Load bundled OAuth credentials from .env if present (for development builds)
--include .env
-export
-
 GOCMD = go
 GOBUILD = $(GOCMD) build
 GOCLEAN = $(GOCMD) clean
@@ -16,30 +12,45 @@ BINARY_NAME = gdrv
 BINARY_DIR = bin
 COVERAGE_DIR = .artifacts/coverage
 
-# Inject OAuth credentials if available (from .env or environment)
-OAUTH_LDFLAGS =
-ifdef GDRV_CLIENT_ID
-	OAUTH_LDFLAGS += -X github.com/dl-alexandre/gdrv/internal/auth.BundledOAuthClientID=$(GDRV_CLIENT_ID)
-endif
-ifdef GDRV_CLIENT_SECRET
-	OAUTH_LDFLAGS += -X github.com/dl-alexandre/gdrv/internal/auth.BundledOAuthClientSecret=$(GDRV_CLIENT_SECRET)
+OFFICIAL_BUILD ?= false
+
+BUILD_SOURCE_LDFLAGS = -X github.com/milcgroup/gdrv/internal/auth.BundledBuildSource=source
+ifeq ($(OFFICIAL_BUILD),true)
+	BUILD_SOURCE_LDFLAGS = -X github.com/milcgroup/gdrv/internal/auth.BundledBuildSource=official
 endif
 
-LDFLAGS = -ldflags "-X github.com/dl-alexandre/gdrv/pkg/version.Version=$(VERSION) \
-	-X github.com/dl-alexandre/gdrv/pkg/version.GitCommit=$(GIT_COMMIT) \
-	-X github.com/dl-alexandre/gdrv/pkg/version.BuildTime=$(BUILD_TIME) \
+OAUTH_LDFLAGS =
+ifdef GDRV_CLIENT_ID
+	OAUTH_LDFLAGS += -X github.com/milcgroup/gdrv/internal/auth.BundledOAuthClientID=$(GDRV_CLIENT_ID)
+endif
+ifdef GDRV_CLIENT_SECRET
+	OAUTH_LDFLAGS += -X github.com/milcgroup/gdrv/internal/auth.BundledOAuthClientSecret=$(GDRV_CLIENT_SECRET)
+endif
+
+LDFLAGS = -ldflags "-X github.com/milcgroup/gdrv/pkg/version.Version=$(VERSION) \
+	-X github.com/milcgroup/gdrv/pkg/version.GitCommit=$(GIT_COMMIT) \
+	-X github.com/milcgroup/gdrv/pkg/version.BuildTime=$(BUILD_TIME) \
+	$(BUILD_SOURCE_LDFLAGS) \
 	$(OAUTH_LDFLAGS)"
 
 PLATFORMS = linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
-.PHONY: all build clean test deps tidy lint security checksums version install help format install-hooks
+.PHONY: all build build-official build-all clean test deps tidy lint security checksums version install help format install-hooks
 
 all: deps build
 
 build:
-	@echo "Building $(BINARY_NAME)..."
+	@echo "Building $(BINARY_NAME) from source..."
+	@echo "Note: Source builds require GDRV_CLIENT_ID and GDRV_CLIENT_SECRET env vars."
 	@mkdir -p $(BINARY_DIR)
 	$(GOBUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd/gdrv
+
+build-official: export OFFICIAL_BUILD = true
+build-official:
+	@echo "Building official $(BINARY_NAME) with bundled OAuth credentials..."
+	@mkdir -p $(BINARY_DIR)
+	$(GOBUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd/gdrv
+	@echo "Built official $(BINARY_DIR)/$(BINARY_NAME) - OAuth credentials bundled"
 
 build-all:
 	@echo "Building for all platforms..."
@@ -109,6 +120,12 @@ version:
 	@echo "Version: $(VERSION)"
 	@echo "Git Commit: $(GIT_COMMIT)"
 	@echo "Build Time: $(BUILD_TIME)"
+	@echo "Build Type: $(if $(OFFICIAL_BUILD),official,source)"
+	@if [ "$(OFFICIAL_BUILD)" = "true" ]; then \
+		echo "OAuth: Bundled company credentials"; \
+	else \
+		echo "OAuth: Requires GDRV_CLIENT_ID/GDRV_CLIENT_SECRET env vars"; \
+	fi
 
 run:
 	@$(GOBUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd/gdrv
@@ -129,26 +146,34 @@ install-hooks:
 	@echo "Hooks installed from .githooks/"
 
 help:
-	@echo "Google Drive CLI (gdrv) Makefile"
+	@echo "Company Google Drive CLI (gdrv) Makefile"
+	@echo ""
+	@echo "This is a company fork. Two build modes:"
+	@echo "  - Source build: requires GDRV_CLIENT_ID/GDRV_CLIENT_SECRET env vars"
+	@echo "  - Official build (make build-official): bundles OAuth credentials"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all          - Build the binary (default)"
-	@echo "  build        - Build for current platform"
-	@echo "  build-all    - Build for all platforms"
-	@echo "  deps         - Download dependencies"
-	@echo "  tidy         - Tidy go modules"
-	@echo "  test         - Run tests"
+	@echo "  all           - Build the binary (default, requires env vars)"
+	@echo "  build         - Build for current platform (requires env vars)"
+	@echo "  build-official - Build with bundled OAuth credentials"
+	@echo "  build-all     - Build for all platforms"
+	@echo "  deps          - Download dependencies"
+	@echo "  tidy          - Tidy go modules"
+	@echo "  test          - Run tests"
 	@echo "  test-coverage - Run tests with coverage report"
-	@echo "  lint         - Run linter"
-	@echo "  clean        - Clean build artifacts"
-	@echo "  install      - Install binary to GOPATH/bin"
-	@echo "  checksums    - Generate SHA256 checksums"
-	@echo "  version      - Show version info"
-	@echo "  run          - Build and run (use ARGS=... for arguments)"
-	@echo "  help         - Show this help"
+	@echo "  lint          - Run linter"
+	@echo "  clean         - Clean build artifacts"
+	@echo "  install       - Install binary to GOPATH/bin"
+	@echo "  checksums     - Generate SHA256 checksums"
+	@echo "  version       - Show version info"
+	@echo "  run           - Build and run (use ARGS=... for arguments)"
+	@echo "  help          - Show this help"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make build"
-	@echo "  make test"
-	@echo "  make run ARGS='version'"
-	@echo "  make build-all"
+	@echo "  make build                    # Build (requires env vars)"
+	@echo "  make build-official           # Build with bundled OAuth (CI use)"
+	@echo "  make build-all                # Build for all platforms"
+	@echo "  make test                     # Run tests"
+	@echo "  make run ARGS='auth login'    # Build and run auth command"
+	@echo ""
+	@echo "Official builds are for CI/CD only - download from GitHub Releases."

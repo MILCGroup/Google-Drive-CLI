@@ -12,15 +12,14 @@ jobs:
   dependency-drift:
     name: Dependency Drift
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: OAuth credentials are pre-bundled - no env vars needed
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.24.x"
           cache: true
@@ -31,7 +30,7 @@ jobs:
           go list -u -m all > .artifacts/maintenance/dependency-updates.txt
 
       - name: Upload dependency report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gdrv-dependency-updates
           path: .artifacts/maintenance/dependency-updates.txt
@@ -40,15 +39,14 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: OAuth credentials are pre-bundled - no env vars needed
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.24.x"
           cache: true
@@ -60,7 +58,7 @@ jobs:
           govulncheck -json ./... > .artifacts/maintenance/govulncheck.json || true
 
       - name: Upload vulnerability summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gdrv-vuln-summary
           path: .artifacts/maintenance/govulncheck.json
@@ -69,15 +67,14 @@ jobs:
   coverage-trend:
     name: Coverage Trend
     runs-on: ubuntu-latest
-    env:
-      GDRV_REQUIRE_CUSTOM_OAUTH: "1"
+    # Note: OAuth credentials are pre-bundled - no env vars needed
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: "1.24.x"
           cache: true
@@ -89,7 +86,7 @@ jobs:
           go tool cover -func=.artifacts/coverage/coverage.out > .artifacts/coverage/coverage-summary.txt
 
       - name: Upload coverage snapshot
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gdrv-coverage-snapshot
           path: .artifacts/coverage/

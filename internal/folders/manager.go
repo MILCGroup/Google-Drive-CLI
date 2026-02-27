@@ -3,26 +3,54 @@ package folders
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/safety"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/cache"
+	"github.com/milcgroup/gdrv/internal/safety"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
 )
 
 // Manager handles folder operations
 type Manager struct {
-	client *api.Client
-	shaper *api.RequestShaper
+	client     *api.Client
+	shaper     *api.RequestShaper
+	cacheMgr   *cache.Manager
+	defaultTTL time.Duration
+}
+
+// ManagerOptions contains configuration options for the folder manager
+type ManagerOptions struct {
+	CacheMgr   *cache.Manager
+	DefaultTTL time.Duration
 }
 
 // NewManager creates a new folder manager
-func NewManager(client *api.Client) *Manager {
-	return &Manager{
-		client: client,
-		shaper: api.NewRequestShaper(client),
+func NewManager(client *api.Client, opts ...ManagerOptions) *Manager {
+	m := &Manager{
+		client:     client,
+		shaper:     api.NewRequestShaper(client),
+		defaultTTL: 5 * time.Minute,
+	}
+
+	if len(opts) > 0 && opts[0].CacheMgr != nil {
+		m.cacheMgr = opts[0].CacheMgr
+		if opts[0].DefaultTTL > 0 {
+			m.defaultTTL = opts[0].DefaultTTL
+		}
+	}
+
+	return m
+}
+
+// SetCacheManager sets the cache manager for this instance
+func (m *Manager) SetCacheManager(cacheMgr *cache.Manager, ttl time.Duration) {
+	m.cacheMgr = cacheMgr
+	if ttl > 0 {
+		m.defaultTTL = ttl
 	}
 }
 
@@ -51,12 +79,26 @@ func (m *Manager) Create(ctx context.Context, reqCtx *types.RequestContext, name
 		return nil, err
 	}
 
-	return convertDriveFile(result), nil
+	folder := convertDriveFile(result)
+
+	// Invalidate parent folder listing cache
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() && parentID != "" {
+		m.cacheMgr.InvalidateOnWrite(folder.ID, parentID)
+	}
+
+	return folder, nil
 }
 
 // List lists folder contents
 func (m *Manager) List(ctx context.Context, reqCtx *types.RequestContext, folderID string, pageSize int, pageToken string) (*types.FileListResult, error) {
 	reqCtx.InvolvedParentIDs = append(reqCtx.InvolvedParentIDs, folderID)
+
+	// Check cache first
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() {
+		if cached, found := m.cacheMgr.GetFolderList(folderID, reqCtx.DriveID, pageToken); found {
+			return cached, nil
+		}
+	}
 
 	query := fmt.Sprintf("'%s' in parents and trashed = false", folderID)
 
@@ -83,11 +125,18 @@ func (m *Manager) List(ctx context.Context, reqCtx *types.RequestContext, folder
 		files[i] = convertDriveFile(f)
 	}
 
-	return &types.FileListResult{
+	listResult := &types.FileListResult{
 		Files:            files,
 		NextPageToken:    result.NextPageToken,
 		IncompleteSearch: result.IncompleteSearch,
-	}, nil
+	}
+
+	// Cache the result
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() {
+		_ = m.cacheMgr.SetFolderList(folderID, reqCtx.DriveID, pageToken, listResult, m.defaultTTL)
+	}
+
+	return listResult, nil
 }
 
 // Delete deletes a folder
@@ -172,6 +221,17 @@ func (m *Manager) DeleteWithSafety(ctx context.Context, reqCtx *types.RequestCon
 	_, err = api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (interface{}, error) {
 		return nil, call.Do()
 	})
+
+	// Invalidate cache on successful deletion
+	if err == nil && m.cacheMgr != nil && m.cacheMgr.IsEnabled() {
+		// Try to get parent ID from the folder we fetched earlier
+		parentID := ""
+		if len(folder.Parents) > 0 {
+			parentID = folder.Parents[0]
+		}
+		m.cacheMgr.InvalidateOnDelete(folderID, parentID)
+	}
+
 	return err
 }
 
@@ -291,12 +351,30 @@ func (m *Manager) Move(ctx context.Context, reqCtx *types.RequestContext, folder
 		return nil, err
 	}
 
-	return convertDriveFile(result), nil
+	folder := convertDriveFile(result)
+
+	// Invalidate cache for old and new parent folders
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() {
+		oldParentID := ""
+		if len(current.Parents) > 0 {
+			oldParentID = current.Parents[0]
+		}
+		m.cacheMgr.InvalidateOnMove(folderID, oldParentID, newParentID)
+	}
+
+	return folder, nil
 }
 
 // Get retrieves folder metadata
 func (m *Manager) Get(ctx context.Context, reqCtx *types.RequestContext, folderID string, fields string) (*types.DriveFile, error) {
 	reqCtx.InvolvedFileIDs = append(reqCtx.InvolvedFileIDs, folderID)
+
+	// Check cache first (only if not requesting specific fields different from default)
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() && fields == "" {
+		if cached, found := m.cacheMgr.GetFolder(folderID); found {
+			return cached, nil
+		}
+	}
 
 	call := m.client.Service().Files.Get(folderID)
 	call = m.shaper.ShapeFilesGet(call, reqCtx)
@@ -313,7 +391,14 @@ func (m *Manager) Get(ctx context.Context, reqCtx *types.RequestContext, folderI
 		return nil, err
 	}
 
-	return convertDriveFile(result), nil
+	folder := convertDriveFile(result)
+
+	// Cache the result (only if using default fields)
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() && fields == "" {
+		_ = m.cacheMgr.SetFolder(folderID, folder, m.defaultTTL)
+	}
+
+	return folder, nil
 }
 
 // Rename renames a folder
@@ -331,7 +416,20 @@ func (m *Manager) Rename(ctx context.Context, reqCtx *types.RequestContext, fold
 		return nil, err
 	}
 
-	return convertDriveFile(result), nil
+	folder := convertDriveFile(result)
+
+	// Invalidate cache - need to get parent ID for folder listing cache
+	if m.cacheMgr != nil && m.cacheMgr.IsEnabled() {
+		parentID := ""
+		if len(result.Parents) > 0 {
+			parentID = result.Parents[0]
+		}
+		m.cacheMgr.InvalidateOnRename(folderID, parentID)
+		// Also update the cached folder entry with new name
+		_ = m.cacheMgr.SetFolder(folderID, folder, m.defaultTTL)
+	}
+
+	return folder, nil
 }
 
 func convertDriveFile(f *drive.File) *types.DriveFile {

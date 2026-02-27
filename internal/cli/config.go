@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dl-alexandre/gdrv/internal/config"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/config"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 type ConfigCmd struct {
@@ -72,6 +72,21 @@ func (cmd *ConfigSetCmd) Run(globals *Globals) error {
 				"Cache TTL must be a non-negative integer").Build())
 		}
 		cfg.CacheTTL = ttl
+	case "cacheenabled":
+		cfg.CacheEnabled = parseBool(cmd.Value)
+	case "cachetype":
+		if cmd.Value != "memory" && cmd.Value != "sqlite" {
+			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
+				"Cache type must be 'memory' or 'sqlite'").Build())
+		}
+		cfg.CacheType = cmd.Value
+	case "maxcachesize":
+		size, err := strconv.Atoi(cmd.Value)
+		if err != nil || size < 0 || size > 1000000 {
+			return out.WriteError("config.set", utils.NewCLIError(utils.ErrCodeInvalidArgument,
+				"Max cache size must be between 0 and 1000000").Build())
+		}
+		cfg.MaxCacheSize = size
 	case "includeexportlinks":
 		cfg.IncludeExportLinks = parseBool(cmd.Value)
 	case "maxretries":

@@ -9,13 +9,13 @@ import (
 
 func TestConvertProject(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    *script.Project
-		wantID   string
-		wantT    string
-		wantP    string
-		wantCT   string
-		wantUT   string
+		name   string
+		input  *script.Project
+		wantID string
+		wantT  string
+		wantP  string
+		wantCT string
+		wantUT string
 	}{
 		{
 			name:   "nil project",
@@ -207,13 +207,13 @@ func TestConvertFile(t *testing.T) {
 
 func TestConvertRunResponse(t *testing.T) {
 	tests := []struct {
-		name      string
-		input     *script.Operation
-		wantDone  bool
-		wantErr   bool
-		wantCode  int
-		wantMsg   string
-		wantResp  bool
+		name     string
+		input    *script.Operation
+		wantDone bool
+		wantErr  bool
+		wantCode int
+		wantMsg  string
+		wantResp bool
 	}{
 		{
 			name:     "nil operation",

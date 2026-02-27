@@ -1,22 +1,22 @@
 package diff
 
 import (
-	"github.com/dl-alexandre/gdrv/internal/sync/index"
-	"github.com/dl-alexandre/gdrv/internal/sync/scanner"
+	"github.com/milcgroup/gdrv/internal/sync/index"
+	"github.com/milcgroup/gdrv/internal/sync/scanner"
 )
 
 type ActionType string
 
 const (
-	ActionUpload      ActionType = "upload"
-	ActionUpdate      ActionType = "update"
-	ActionDownload    ActionType = "download"
-	ActionDeleteLocal ActionType = "delete_local"
+	ActionUpload       ActionType = "upload"
+	ActionUpdate       ActionType = "update"
+	ActionDownload     ActionType = "download"
+	ActionDeleteLocal  ActionType = "delete_local"
 	ActionDeleteRemote ActionType = "delete_remote"
-	ActionMoveLocal   ActionType = "move_local"
-	ActionMoveRemote  ActionType = "move_remote"
-	ActionMkdirLocal  ActionType = "mkdir_local"
-	ActionMkdirRemote ActionType = "mkdir_remote"
+	ActionMoveLocal    ActionType = "move_local"
+	ActionMoveRemote   ActionType = "move_remote"
+	ActionMkdirLocal   ActionType = "mkdir_local"
+	ActionMkdirRemote  ActionType = "mkdir_remote"
 )
 
 type Action struct {
@@ -33,10 +33,10 @@ type Action struct {
 type ConflictKind string
 
 const (
-	ConflictBothModified           ConflictKind = "both_modified"
+	ConflictBothModified               ConflictKind = "both_modified"
 	ConflictLocalDeletedRemoteModified ConflictKind = "local_deleted_remote_modified"
 	ConflictRemoteDeletedLocalModified ConflictKind = "remote_deleted_local_modified"
-	ConflictTypeMismatch            ConflictKind = "type_mismatch"
+	ConflictTypeMismatch               ConflictKind = "type_mismatch"
 )
 
 type Conflict struct {
@@ -50,7 +50,7 @@ type Conflict struct {
 type Mode string
 
 const (
-	ModePush         Mode = "push"
-	ModePull         Mode = "pull"
+	ModePush          Mode = "push"
+	ModePull          Mode = "pull"
 	ModeBidirectional Mode = "bidirectional"
 )

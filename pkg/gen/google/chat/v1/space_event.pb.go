@@ -21,7 +21,7 @@
 package chatv1
 
 import (
-	_ "github.com/dl-alexandre/gdrv/pkg/gen/google/api"
+	_ "github.com/milcgroup/gdrv/pkg/gen/google/api"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -793,7 +793,7 @@ const file_google_chat_v1_space_event_proto_rawDesc = "" +
 	"\x17ListSpaceEventsResponse\x12=\n" +
 	"\fspace_events\x18\x01 \x03(\v2\x1a.google.chat.v1.SpaceEventR\vspaceEvents\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xbb\x01\n" +
-	"\x12com.google.chat.v1B\x0fSpaceEventProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\x0fSpaceEventProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_space_event_proto_rawDescOnce sync.Once

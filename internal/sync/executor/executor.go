@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/files"
-	"github.com/dl-alexandre/gdrv/internal/folders"
-	"github.com/dl-alexandre/gdrv/internal/safety"
-	"github.com/dl-alexandre/gdrv/internal/sync/diff"
-	"github.com/dl-alexandre/gdrv/internal/sync/scanner"
-	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/files"
+	"github.com/milcgroup/gdrv/internal/folders"
+	"github.com/milcgroup/gdrv/internal/safety"
+	"github.com/milcgroup/gdrv/internal/sync/diff"
+	"github.com/milcgroup/gdrv/internal/sync/scanner"
+	"github.com/milcgroup/gdrv/internal/types"
 	"google.golang.org/api/drive/v3"
 )
 
@@ -33,9 +33,9 @@ type Options struct {
 }
 
 type State struct {
-	LocalRoot    string
-	RemoteRootID string
-	LocalEntries map[string]scanner.LocalEntry
+	LocalRoot     string
+	RemoteRootID  string
+	LocalEntries  map[string]scanner.LocalEntry
 	RemoteEntries map[string]scanner.RemoteEntry
 }
 

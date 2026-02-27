@@ -195,7 +195,7 @@ const file_google_api_field_behavior_proto_rawDesc = "" +
 	"\n" +
 	"IDENTIFIER\x10\b:d\n" +
 	"\x0efield_behavior\x12\x1d.google.protobuf.FieldOptions\x18\x9c\b \x03(\x0e2\x19.google.api.FieldBehaviorB\x02\x10\x00R\rfieldBehaviorB\x9e\x01\n" +
-	"\x0ecom.google.apiB\x12FieldBehaviorProtoP\x01Z/github.com/dl-alexandre/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
+	"\x0ecom.google.apiB\x12FieldBehaviorProtoP\x01Z/github.com/milcgroup/gdrv/pkg/gen/google/api\xa2\x02\x03GAX\xaa\x02\n" +
 	"Google.Api\xca\x02\n" +
 	"Google\\Api\xe2\x02\x16Google\\Api\\GPBMetadata\xea\x02\vGoogle::Apib\x06proto3"
 

@@ -2,14 +2,15 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 )
 
@@ -504,7 +505,8 @@ func (r *PathResolver) getFileByID(ctx context.Context, reqCtx *types.RequestCon
 
 // isPermissionError checks if an error is a permission-related error
 func isPermissionError(err error) bool {
-	if appErr, ok := err.(*utils.AppError); ok {
+	var appErr *utils.AppError
+	if errors.As(err, &appErr) {
 		return appErr.CLIError.Code == utils.ErrCodePermissionDenied
 	}
 	return false
@@ -685,4 +687,3 @@ func (r *PathResolver) getDomainPriority(domain SearchDomain) int {
 		return 4
 	}
 }
-

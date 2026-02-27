@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 type testError struct {

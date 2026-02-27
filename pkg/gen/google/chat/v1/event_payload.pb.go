@@ -21,7 +21,7 @@
 package chatv1
 
 import (
-	_ "github.com/dl-alexandre/gdrv/pkg/gen/google/api"
+	_ "github.com/milcgroup/gdrv/pkg/gen/google/api"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -948,7 +948,7 @@ const file_google_chat_v1_event_payload_proto_rawDesc = "" +
 	"\treactions\x18\x01 \x03(\v2(.google.chat.v1.ReactionCreatedEventDataR\treactions\"g\n" +
 	"\x1dReactionBatchDeletedEventData\x12F\n" +
 	"\treactions\x18\x01 \x03(\v2(.google.chat.v1.ReactionDeletedEventDataR\treactionsB\xbd\x01\n" +
-	"\x12com.google.chat.v1B\x11EventPayloadProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\x11EventPayloadProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_event_payload_proto_rawDescOnce sync.Once

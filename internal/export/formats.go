@@ -4,23 +4,23 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 // Google Workspace MIME types
 const (
-	MimeTypeGoogleDocs         = "application/vnd.google-apps.document"
-	MimeTypeGoogleSheets       = "application/vnd.google-apps.spreadsheet"
-	MimeTypeGoogleSlides       = "application/vnd.google-apps.presentation"
-	MimeTypeGoogleDrawing      = "application/vnd.google-apps.drawing"
-	MimeTypeGoogleForm         = "application/vnd.google-apps.form"
-	MimeTypeGoogleSite         = "application/vnd.google-apps.site"
-	MimeTypeGoogleScript       = "application/vnd.google-apps.script"
-	MimeTypeGoogleJamboard     = "application/vnd.google-apps.jam"
-	MimeTypeGoogleShortcut     = "application/vnd.google-apps.shortcut"
-	MimeTypeGoogleFolder       = "application/vnd.google-apps.folder"
-	MimeTypeGoogleMap          = "application/vnd.google-apps.map"
-	MimeTypeGoogleFusiontable  = "application/vnd.google-apps.fusiontable"
+	MimeTypeGoogleDocs        = "application/vnd.google-apps.document"
+	MimeTypeGoogleSheets      = "application/vnd.google-apps.spreadsheet"
+	MimeTypeGoogleSlides      = "application/vnd.google-apps.presentation"
+	MimeTypeGoogleDrawing     = "application/vnd.google-apps.drawing"
+	MimeTypeGoogleForm        = "application/vnd.google-apps.form"
+	MimeTypeGoogleSite        = "application/vnd.google-apps.site"
+	MimeTypeGoogleScript      = "application/vnd.google-apps.script"
+	MimeTypeGoogleJamboard    = "application/vnd.google-apps.jam"
+	MimeTypeGoogleShortcut    = "application/vnd.google-apps.shortcut"
+	MimeTypeGoogleFolder      = "application/vnd.google-apps.folder"
+	MimeTypeGoogleMap         = "application/vnd.google-apps.map"
+	MimeTypeGoogleFusiontable = "application/vnd.google-apps.fusiontable"
 )
 
 // Export MIME types as per Google's reference
@@ -63,25 +63,25 @@ var exportFormats = map[string][]string{
 
 // Convenience format mapping
 var convenienceFormats = map[string]string{
-	"pdf":   "application/pdf",
-	"docx":  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	"xlsx":  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-	"pptx":  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-	"txt":   "text/plain",
-	"html":  "text/html",
-	"rtf":   "application/rtf",
-	"odt":   "application/vnd.oasis.opendocument.text",
-	"ods":   "application/x-vnd.oasis.opendocument.spreadsheet",
-	"odp":   "application/vnd.oasis.opendocument.presentation",
-	"csv":   "text/csv",
-	"tsv":   "text/tab-separated-values",
-	"zip":   "application/zip",
-	"epub":  "application/epub+zip",
-	"svg":   "image/svg+xml",
-	"png":   "image/png",
-	"jpeg":  "image/jpeg",
-	"jpg":   "image/jpeg",
-	"json":  "application/vnd.google-apps.script+json",
+	"pdf":  "application/pdf",
+	"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	"xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	"pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	"txt":  "text/plain",
+	"html": "text/html",
+	"rtf":  "application/rtf",
+	"odt":  "application/vnd.oasis.opendocument.text",
+	"ods":  "application/x-vnd.oasis.opendocument.spreadsheet",
+	"odp":  "application/vnd.oasis.opendocument.presentation",
+	"csv":  "text/csv",
+	"tsv":  "text/tab-separated-values",
+	"zip":  "application/zip",
+	"epub": "application/epub+zip",
+	"svg":  "image/svg+xml",
+	"png":  "image/png",
+	"jpeg": "image/jpeg",
+	"jpg":  "image/jpeg",
+	"json": "application/vnd.google-apps.script+json",
 }
 
 // IsGoogleWorkspaceFile checks if a MIME type is a Google Workspace file
@@ -92,12 +92,12 @@ func IsGoogleWorkspaceFile(mimeType string) bool {
 // GetConvenienceFormat maps a format shorthand to a MIME type
 func GetConvenienceFormat(formatShorthand string) (string, error) {
 	shorthand := strings.ToLower(formatShorthand)
-	
+
 	// Check if it's already a MIME type
 	if strings.Contains(shorthand, "/") {
 		return formatShorthand, nil
 	}
-	
+
 	// Look up convenience mapping
 	mimeType, ok := convenienceFormats[shorthand]
 	if !ok {
@@ -107,7 +107,7 @@ func GetConvenienceFormat(formatShorthand string) (string, error) {
 			WithContext("supportedFormats", getSupportedShorthands()).
 			Build())
 	}
-	
+
 	return mimeType, nil
 }
 
@@ -119,7 +119,7 @@ func GetAvailableFormats(sourceMimeType string) ([]string, error) {
 			WithContext("sourceMimeType", sourceMimeType).
 			Build())
 	}
-	
+
 	formats, ok := exportFormats[sourceMimeType]
 	if !ok {
 		return nil, utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
@@ -127,7 +127,7 @@ func GetAvailableFormats(sourceMimeType string) ([]string, error) {
 			WithContext("sourceMimeType", sourceMimeType).
 			Build())
 	}
-	
+
 	return formats, nil
 }
 
@@ -139,7 +139,7 @@ func ValidateExportFormat(sourceMimeType, targetMimeType string) error {
 			WithContext("sourceMimeType", sourceMimeType).
 			Build())
 	}
-	
+
 	availableFormats, ok := exportFormats[sourceMimeType]
 	if !ok {
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
@@ -147,14 +147,14 @@ func ValidateExportFormat(sourceMimeType, targetMimeType string) error {
 			WithContext("sourceMimeType", sourceMimeType).
 			Build())
 	}
-	
+
 	// Check if target MIME type is supported
 	for _, format := range availableFormats {
 		if format == targetMimeType {
 			return nil
 		}
 	}
-	
+
 	return utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
 		fmt.Sprintf("Export format '%s' is not supported for source type '%s'", targetMimeType, sourceMimeType)).
 		WithContext("sourceMimeType", sourceMimeType).

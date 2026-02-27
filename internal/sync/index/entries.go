@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-func (d *DB) ListEntries(ctx context.Context, configID string) ([]SyncEntry, error) {
+func (d *DB) ListEntries(ctx context.Context, configID string) (entries []SyncEntry, err error) {
 	rows, err := d.db.QueryContext(ctx, `
 		SELECT config_id, relative_path, drive_file_id, drive_parent_id, is_dir, local_mtime, local_size, content_hash,
 		       remote_mtime, remote_size, remote_md5, remote_mime_type, sync_state, last_sync
@@ -13,9 +13,12 @@ func (d *DB) ListEntries(ctx context.Context, configID string) ([]SyncEntry, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if cerr := rows.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
-	var entries []SyncEntry
 	for rows.Next() {
 		entry, err := scanEntry(rows)
 		if err != nil {
@@ -55,7 +58,7 @@ func (d *DB) GetEntryByFileID(ctx context.Context, configID, fileID string) (*Sy
 	return &entry, nil
 }
 
-func (d *DB) ListEntriesByHash(ctx context.Context, configID, hash string) ([]SyncEntry, error) {
+func (d *DB) ListEntriesByHash(ctx context.Context, configID, hash string) (entries []SyncEntry, err error) {
 	rows, err := d.db.QueryContext(ctx, `
 		SELECT config_id, relative_path, drive_file_id, drive_parent_id, is_dir, local_mtime, local_size, content_hash,
 		       remote_mtime, remote_size, remote_md5, remote_mime_type, sync_state, last_sync
@@ -64,9 +67,12 @@ func (d *DB) ListEntriesByHash(ctx context.Context, configID, hash string) ([]Sy
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if cerr := rows.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
-	var entries []SyncEntry
 	for rows.Next() {
 		entry, err := scanEntry(rows)
 		if err != nil {
@@ -101,7 +107,11 @@ func (d *DB) ReplaceEntries(ctx context.Context, configID string, entries []Sync
 		_ = tx.Rollback()
 		return err
 	}
-	defer stmt.Close()
+	defer func() {
+		if cerr := stmt.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	for _, entry := range entries {
 		_, err := stmt.ExecContext(ctx, entry.ConfigID, entry.RelativePath, entry.DriveFileID, entry.DriveParentID, boolToInt(entry.IsDir),

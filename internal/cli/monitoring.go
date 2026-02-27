@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/auth"
-	monitoringmgr "github.com/dl-alexandre/gdrv/internal/monitoring"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/auth"
+	monitoringmgr "github.com/milcgroup/gdrv/internal/monitoring"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/option"
 )
 
@@ -63,7 +63,7 @@ func (cmd *MonitoringMetricsListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("monitoring.metrics.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 
@@ -87,7 +87,7 @@ func (cmd *MonitoringAlertPoliciesListCmd) Run(globals *Globals) error {
 	if err != nil {
 		return out.WriteError("monitoring.alert-policies.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
 	}
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	reqCtx.RequestType = types.RequestTypeListOrSearch
 

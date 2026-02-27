@@ -200,11 +200,11 @@ func TestStoredCredentials_DifferentProfiles(t *testing.T) {
 	for _, profile := range profiles {
 		t.Run(profile, func(t *testing.T) {
 			stored := StoredCredentials{
-				Profile:      profile,
-				AccessToken:  "token",
-				ExpiryDate:   "2024-12-31T23:59:59Z",
-				Scopes:       []string{"drive"},
-				Type:         AuthTypeOAuth,
+				Profile:     profile,
+				AccessToken: "token",
+				ExpiryDate:  "2024-12-31T23:59:59Z",
+				Scopes:      []string{"drive"},
+				Type:        AuthTypeOAuth,
 			}
 
 			if stored.Profile != profile {

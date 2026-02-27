@@ -1,11 +1,11 @@
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates
 
 WORKDIR /app
 
-# Copy go mod files first for caching
+# Copy go mod files first for layer caching
 COPY go.mod go.sum ./
 RUN go mod download
 
@@ -14,14 +14,19 @@ COPY . .
 
 # Build the binary
 ARG VERSION=dev
+ARG GIT_COMMIT=unknown
+ARG BUILD_TIME=unknown
 
 RUN CGO_ENABLED=0 go build \
     -ldflags "-s -w \
-        -X github.com/dl-alexandre/gdrv/internal/cli.version=${VERSION}" \
+        -X github.com/milcgroup/gdrv/pkg/version.Version=${VERSION} \
+        -X github.com/milcgroup/gdrv/pkg/version.GitCommit=${GIT_COMMIT} \
+        -X github.com/milcgroup/gdrv/pkg/version.BuildTime=${BUILD_TIME} \
+        -X github.com/milcgroup/gdrv/internal/auth.BundledBuildSource=source" \
     -o gdrv ./cmd/gdrv
 
 # Final stage
-FROM alpine:3.19
+FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates tzdata
 

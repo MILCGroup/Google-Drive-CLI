@@ -38,11 +38,11 @@ func TestSheetValuesHeadersAndRows(t *testing.T) {
 
 func TestUpdateValuesResponseRowsTruncate(t *testing.T) {
 	resp := &UpdateValuesResponse{
-		SpreadsheetID: "abcdefghijklmnopqrstuvwxyz",
-		UpdatedRange:  "Sheet1!A1",
-		UpdatedRows:   1,
+		SpreadsheetID:  "abcdefghijklmnopqrstuvwxyz",
+		UpdatedRange:   "Sheet1!A1",
+		UpdatedRows:    1,
 		UpdatedColumns: 1,
-		UpdatedCells:  1,
+		UpdatedCells:   1,
 	}
 	rows := resp.Rows()
 	if len(rows) != 1 {

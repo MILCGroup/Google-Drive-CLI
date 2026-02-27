@@ -8,15 +8,15 @@ import (
 )
 
 type AuthMetadata struct {
-	Profile           string   `json:"profile"`
-	ClientIDHash      string   `json:"clientIdHash"`
-	ClientIDLast4     string   `json:"clientIdLast4,omitempty"`
-	Scopes            []string `json:"scopes,omitempty"`
-	ExpiryDate        string   `json:"expiryDate,omitempty"`
-	RefreshToken      bool     `json:"refreshToken"`
-	CredentialType    string   `json:"credentialType,omitempty"`
-	StorageBackend    string   `json:"storageBackend,omitempty"`
-	UpdatedAt         string   `json:"updatedAt"`
+	Profile        string   `json:"profile"`
+	ClientIDHash   string   `json:"clientIdHash"`
+	ClientIDLast4  string   `json:"clientIdLast4,omitempty"`
+	Scopes         []string `json:"scopes,omitempty"`
+	ExpiryDate     string   `json:"expiryDate,omitempty"`
+	RefreshToken   bool     `json:"refreshToken"`
+	CredentialType string   `json:"credentialType,omitempty"`
+	StorageBackend string   `json:"storageBackend,omitempty"`
+	UpdatedAt      string   `json:"updatedAt"`
 }
 
 func metadataFilePath(configDir, key string) string {

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 )
 
 func TestServiceFactory_CreateService_Drive(t *testing.T) {
@@ -14,10 +14,10 @@ func TestServiceFactory_CreateService_Drive(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeFile},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeFile},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -35,10 +35,10 @@ func TestServiceFactory_CreateService_Sheets(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeSheets},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeSheets},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -56,10 +56,10 @@ func TestServiceFactory_CreateService_Docs(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeDocs},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeDocs},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -77,10 +77,10 @@ func TestServiceFactory_CreateService_Slides(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeSlides},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeSlides},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -98,10 +98,10 @@ func TestServiceFactory_CreateService_AdminDir(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeAdminDirectoryUser},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeAdminDirectoryUser},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -119,10 +119,10 @@ func TestServiceFactory_CreateService_Unknown(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeFile},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeFile},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -137,10 +137,10 @@ func TestServiceFactory_CreateDriveService(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeFile},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeFile},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -158,10 +158,10 @@ func TestServiceFactory_CreateSheetsService(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeSheets},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeSheets},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -179,10 +179,10 @@ func TestServiceFactory_CreateDocsService(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeDocs},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeDocs},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -200,10 +200,10 @@ func TestServiceFactory_CreateSlidesService(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeSlides},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeSlides},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()
@@ -221,10 +221,10 @@ func TestServiceFactory_CreateAdminService(t *testing.T) {
 	factory := NewServiceFactory(mgr)
 
 	creds := &types.Credentials{
-		AccessToken:  "test_token",
-		ExpiryDate:   time.Now().Add(1 * time.Hour),
-		Scopes:       []string{utils.ScopeAdminDirectoryUser},
-		Type:         types.AuthTypeOAuth,
+		AccessToken: "test_token",
+		ExpiryDate:  time.Now().Add(1 * time.Hour),
+		Scopes:      []string{utils.ScopeAdminDirectoryUser},
+		Type:        types.AuthTypeOAuth,
 	}
 
 	ctx := context.Background()

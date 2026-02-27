@@ -21,7 +21,7 @@
 package chatv1
 
 import (
-	_ "github.com/dl-alexandre/gdrv/pkg/gen/google/api"
+	_ "github.com/milcgroup/gdrv/pkg/gen/google/api"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -528,7 +528,7 @@ const file_google_chat_v1_attachment_proto_rawDesc = "" +
 	"\bfilename\x18\x04 \x01(\tB\x03\xe0A\x02R\bfilename\"m\n" +
 	"\x18UploadAttachmentResponse\x12Q\n" +
 	"\x13attachment_data_ref\x18\x01 \x01(\v2!.google.chat.v1.AttachmentDataRefR\x11attachmentDataRefB\xbb\x01\n" +
-	"\x12com.google.chat.v1B\x0fAttachmentProtoP\x01Z:github.com/dl-alexandre/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
+	"\x12com.google.chat.v1B\x0fAttachmentProtoP\x01Z:github.com/milcgroup/gdrv/pkg/gen/google/chat/v1;chatv1\xa2\x02\x03GCX\xaa\x02\x0eGoogle.Chat.V1\xca\x02\x0eGoogle\\Chat\\V1\xe2\x02\x1aGoogle\\Chat\\V1\\GPBMetadata\xea\x02\x10Google::Chat::V1b\x06proto3"
 
 var (
 	file_google_chat_v1_attachment_proto_rawDescOnce sync.Once

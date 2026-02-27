@@ -1,0 +1,40 @@
+name: Notify Forks on Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Dispatch to forks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get forks and dispatch
+        env:
+          GH_TOKEN: ${{ secrets.FORKS_DISPATCH_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          PAGE=1
+          while true; do
+            FORKS=$(gh api "repos/$REPO/forks?per_page=100&page=$PAGE" --jq '.[].full_name')
+            [ -z "$FORKS" ] && break
+
+            for FORK in $FORKS; do
+              echo "Dispatching to $FORK"
+              gh api "repos/$FORK/dispatches" \
+                --method POST \
+                --field event_type=upstream-release \
+                --field "client_payload[tag]=$RELEASE_TAG" \
+                --field "client_payload[url]=$RELEASE_URL" \
+                --field "client_payload[upstream]=$REPO" \
+                2>&1 || echo "  Skipped $FORK (no permission or workflow not present)"
+            done
+
+            PAGE=$((PAGE + 1))
+          done

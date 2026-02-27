@@ -2,13 +2,14 @@ package revisions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/dl-alexandre/gdrv/internal/api"
-	"github.com/dl-alexandre/gdrv/internal/types"
-	"github.com/dl-alexandre/gdrv/internal/utils"
+	"github.com/milcgroup/gdrv/internal/api"
+	"github.com/milcgroup/gdrv/internal/types"
+	"github.com/milcgroup/gdrv/internal/utils"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
 )
@@ -155,7 +156,11 @@ func (m *Manager) Download(ctx context.Context, reqCtx *types.RequestContext, fi
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeInvalidArgument,
 			fmt.Sprintf("Failed to create output file: %s", err)).Build())
 	}
-	defer outFile.Close()
+	defer func() {
+		if cerr := outFile.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	// Download revision content
 	call := m.client.Service().Revisions.Get(fileID, revisionID)
@@ -166,7 +171,8 @@ func (m *Manager) Download(ctx context.Context, reqCtx *types.RequestContext, fi
 
 	resp, err := call.Download()
 	if err != nil {
-		if apiErr, ok := err.(*googleapi.Error); ok {
+		var apiErr *googleapi.Error
+		if errors.As(err, &apiErr) {
 			return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
 				fmt.Sprintf("Download failed: %s", apiErr.Message)).
 				WithHTTPStatus(apiErr.Code).
@@ -175,7 +181,11 @@ func (m *Manager) Download(ctx context.Context, reqCtx *types.RequestContext, fi
 		return utils.NewAppError(utils.NewCLIError(utils.ErrCodeNetworkError,
 			fmt.Sprintf("Download failed: %s", err)).Build())
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	_, err = io.Copy(outFile, resp.Body)
 	return err
@@ -202,7 +212,8 @@ func (m *Manager) Update(ctx context.Context, reqCtx *types.RequestContext, file
 	})
 	if err != nil {
 		// Check for keepForever limit error
-		if apiErr, ok := err.(*googleapi.Error); ok {
+		var apiErr *googleapi.Error
+		if errors.As(err, &apiErr) {
 			if apiErr.Code == 403 {
 				for _, e := range apiErr.Errors {
 					if e.Reason == "revisionLimitExceeded" {
@@ -251,8 +262,13 @@ func (m *Manager) Restore(ctx context.Context, reqCtx *types.RequestContext, fil
 			fmt.Sprintf("Failed to create temporary file: %s", err)).Build())
 	}
 	tmpPath := tmpFile.Name()
-	tmpFile.Close()
-	defer os.Remove(tmpPath)
+	if cerr := tmpFile.Close(); cerr != nil {
+		_ = os.Remove(tmpPath)
+		return nil, fmt.Errorf("failed to close temporary file: %w", cerr)
+	}
+	defer func() {
+		_ = os.Remove(tmpPath)
+	}()
 
 	// Download revision
 	err = m.Download(ctx, reqCtx, fileID, revisionID, DownloadOptions{
@@ -267,13 +283,18 @@ func (m *Manager) Restore(ctx context.Context, reqCtx *types.RequestContext, fil
 	if err != nil {
 		return nil, err
 	}
-	defer contentFile.Close()
+	defer func() {
+		if cerr := contentFile.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	metadata := &drive.File{}
 	call := m.client.Service().Files.Update(fileID, metadata).Media(contentFile)
 	call = m.shaper.ShapeFilesUpdate(call, reqCtx)
 
-	result, err := api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) {
+	var result *drive.File
+	result, err = api.ExecuteWithRetry(ctx, m.client, reqCtx, func() (*drive.File, error) {
 		return call.Do()
 	})
 	if err != nil {
