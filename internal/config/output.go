@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/google/uuid"
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
 )

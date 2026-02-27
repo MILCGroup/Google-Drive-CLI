@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/milcgroup/gdrv/internal/api"
 	"github.com/milcgroup/gdrv/internal/auth"
 	"github.com/milcgroup/gdrv/internal/logging"
@@ -16,7 +17,6 @@ import (
 	"github.com/milcgroup/gdrv/internal/sync/index"
 	"github.com/milcgroup/gdrv/internal/types"
 	"github.com/milcgroup/gdrv/internal/utils"
-	"github.com/google/uuid"
 )
 
 // SyncCmd is the parent for all sync subcommands.
