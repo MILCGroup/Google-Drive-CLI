@@ -66,6 +66,25 @@ jobs:
             git merge --abort
             git reset --hard upstream/master
           }
+
+          if [ "$CONFLICT" = "true" ]; then
+            NOTE_DIR=".github/upstream-sync"
+            NOTE_FILE="$NOTE_DIR/conflict-${RELEASE_TAG:-$(date +%Y-%m-%d)}.md"
+            mkdir -p "$NOTE_DIR"
+            {
+              echo "# Upstream Sync Conflict"
+              echo ""
+              echo "Branch: $BRANCH"
+              echo "Triggered by release tag: ${RELEASE_TAG:-manual}"
+              echo ""
+              echo "Automatic merge from upstream/master had conflicts."
+              echo "This marker commit forces a PR so conflicts can be resolved manually"
+              echo "or with OpenCode automation."
+            } > "$NOTE_FILE"
+            git add "$NOTE_FILE"
+            git commit -m "chore(sync): record merge conflicts for ${RELEASE_TAG:-manual}"
+          fi
+
           git push origin "$BRANCH"
 
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
@@ -91,7 +110,14 @@ jobs:
             if [ "$CONFLICT" = "true" ]; then
               echo ""
               echo "> [!WARNING]"
-              echo "> Automatic merge failed. This branch is reset to upstream — resolve conflicts before merging."
+              echo "> Automatic merge failed. Resolve conflicts manually or use OpenCode automation."
+              echo ""
+              echo "### Optional OpenCode prompt"
+              echo ""
+              echo "Use this prompt with OPENCODE_ZEN_API_KEY in org secrets:"
+              echo '```'
+              echo "Resolve merge conflicts for this upstream sync PR while preserving fork purpose: keep MILC-specific customizations and configuration while staying aligned with dl-alexandre/Google-Drive-CLI upstream behavior."
+              echo '```'
             fi
             echo ""
             echo "### Commits included"
