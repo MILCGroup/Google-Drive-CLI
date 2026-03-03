@@ -32,7 +32,7 @@ LDFLAGS = -ldflags "-X github.com/dl-alexandre/gdrv/pkg/version.Version=$(VERSIO
 
 PLATFORMS = linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
-.PHONY: all build clean test deps tidy lint security checksums version install help format install-hooks
+.PHONY: all build clean test deps tidy lint security checksums version install help format install-hooks check vet
 
 all: deps build
 
@@ -53,10 +53,21 @@ build-all:
 deps:
 	@echo "Installing dependencies..."
 	$(GOMOD) download
+	$(GOMOD) verify
 
 tidy:
 	@echo "Tidying go modules..."
 	$(GOMOD) tidy
+
+# Run all checks (format, vet, lint, test)
+.PHONY: check
+check: format vet lint test
+
+# Run go vet
+.PHONY: vet
+vet:
+	@echo "Running go vet..."
+	$(GOCMD) vet ./...
 
 test:
 	@echo "Running tests..."

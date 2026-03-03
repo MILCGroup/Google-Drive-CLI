@@ -1,5 +1,7 @@
 # Google Drive CLI
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/dl-alexandre/gdrv)](https://goreportcard.com/report/github.com/dl-alexandre/gdrv)
+
 A **fast**, **lightweight**, and **AI-agent friendly** CLI for Google Drive. Manage files with zero friction.
 
 ## Why gdrv?
