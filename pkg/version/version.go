@@ -6,9 +6,11 @@ import (
 )
 
 var (
-	Version   = "dev"
-	GitCommit = "unknown"
-	BuildTime = "unknown"
+	Version    = "dev"
+	GitCommit  = "unknown"
+	BuildTime  = "unknown"
+	BinaryName = "gdrv"
+	GitHubRepo = "Google-Drive-CLI"
 )
 
 type Info struct {

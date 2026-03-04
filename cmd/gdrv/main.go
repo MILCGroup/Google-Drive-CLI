@@ -2,8 +2,10 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/dl-alexandre/gdrv/internal/cache"
 	"github.com/dl-alexandre/gdrv/internal/cli"
 	"github.com/dl-alexandre/gdrv/pkg/version"
 )
@@ -24,6 +26,13 @@ All commands support JSON output for automation and scripting.`),
 		kong.Vars{"version": version.Version},
 		kong.UsageOnError(),
 	)
+
+	// Perform automatic update check in background (non-blocking)
+	// This will only run once per day and only notify if an update is available
+	updateCache := cache.NewMemoryCache(cache.MemoryCacheOptions{
+		DefaultTTL: 24 * time.Hour,
+	})
+	cli.AutoUpdateCheck(updateCache)
 
 	err := ctx.Run(&c.Globals)
 	if err != nil {
