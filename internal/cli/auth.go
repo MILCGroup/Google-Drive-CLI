@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/dl-alexandre/gdrv/internal/auth"
 	"github.com/dl-alexandre/gdrv/internal/config"
 	"github.com/dl-alexandre/gdrv/internal/types"
@@ -175,35 +176,197 @@ func (cmd *AuthStatusCmd) Run(globals *Globals) error {
 	configDir := getConfigDir()
 	mgr := auth.NewManager(configDir)
 
-	// Show storage backend info
-	if warning := mgr.GetStorageWarning(); warning != "" && flags.Verbose {
-		out.Log("%s", warning)
-	}
-
 	creds, err := mgr.LoadCredentials(flags.Profile)
 	if err != nil {
+		if flags.OutputFormat == types.OutputFormatJSON {
+			return out.WriteSuccess("auth.status", map[string]interface{}{
+				"profile":        flags.Profile,
+				"authenticated":  false,
+				"storageBackend": mgr.GetStorageBackend(),
+			})
+		}
+		// Pretty printed error for terminal
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color("#ef4444"))
+		fmt.Println(style.Render("✗ Not authenticated"))
+		fmt.Printf("Profile: %s\n", flags.Profile)
+		fmt.Printf("Storage: %s\n", mgr.GetStorageBackend())
+		return nil
+	}
+
+	expired := time.Now().After(creds.ExpiryDate)
+	authenticated := !expired || (creds.Type != types.AuthTypeOAuth)
+
+	if flags.OutputFormat == types.OutputFormatJSON {
 		return out.WriteSuccess("auth.status", map[string]interface{}{
 			"profile":        flags.Profile,
-			"authenticated":  false,
+			"authenticated":  authenticated,
+			"scopes":         creds.Scopes,
+			"expiry":         creds.ExpiryDate.Format("2006-01-02T15:04:05Z07:00"),
+			"type":           creds.Type,
+			"needsRefresh":   mgr.NeedsRefresh(creds),
+			"expired":        expired,
+			"serviceAccount": creds.ServiceAccountEmail,
+			"impersonated":   creds.ImpersonatedUser,
 			"storageBackend": mgr.GetStorageBackend(),
 		})
 	}
 
-	expired := time.Now().After(creds.ExpiryDate)
-	authenticated := !expired || (creds.Type != types.AuthTypeServiceAccount && creds.Type != types.AuthTypeImpersonated)
+	// Styled terminal output
+	renderStyledAuthStatus(flags.Profile, creds, authenticated, expired, mgr.NeedsRefresh(creds), mgr.GetStorageBackend())
+	return nil
+}
 
-	return out.WriteSuccess("auth.status", map[string]interface{}{
-		"profile":        flags.Profile,
-		"authenticated":  authenticated,
-		"scopes":         creds.Scopes,
-		"expiry":         creds.ExpiryDate.Format("2006-01-02T15:04:05Z07:00"),
-		"type":           creds.Type,
-		"needsRefresh":   mgr.NeedsRefresh(creds),
-		"expired":        expired,
-		"serviceAccount": creds.ServiceAccountEmail,
-		"impersonated":   creds.ImpersonatedUser,
-		"storageBackend": mgr.GetStorageBackend(),
-	})
+func renderStyledAuthStatus(profile string, creds *types.Credentials, authenticated, expired, needsRefresh bool, storageBackend string) {
+	// Styles
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#f8fafc")).
+		Background(lipgloss.Color("#3b82f6")).
+		Padding(0, 1).
+		Width(60)
+
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#94a3b8")).
+		Width(15)
+
+	valueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#e2e8f0"))
+
+	statusStyle := lipgloss.NewStyle().
+		Bold(true)
+
+	if authenticated {
+		statusStyle = statusStyle.Foreground(lipgloss.Color("#22c55e"))
+	} else {
+		statusStyle = statusStyle.Foreground(lipgloss.Color("#ef4444"))
+	}
+
+	// Status indicator
+	statusIcon := "✓"
+	statusText := "Active"
+	if expired {
+		statusIcon = "✗"
+		statusText = "Expired"
+	} else if needsRefresh {
+		statusIcon = "◐"
+		statusText = "Needs Refresh"
+	}
+
+	// Build type display
+	typeDisplay := string(creds.Type)
+	if creds.ServiceAccountEmail != "" {
+		typeDisplay = fmt.Sprintf("%s (%s)", creds.Type, creds.ServiceAccountEmail)
+	} else if creds.ImpersonatedUser != "" {
+		typeDisplay = fmt.Sprintf("%s → %s", creds.Type, creds.ImpersonatedUser)
+	}
+
+	// Format expiry
+	expiryDisplay := creds.ExpiryDate.Format("Jan 2, 2006 15:04")
+	if creds.Type == types.AuthTypeServiceAccount || creds.Type == types.AuthTypeImpersonated {
+		expiryDisplay = "Never (Service Account)"
+	}
+
+	// Build scopes summary
+	scopeSummary := summarizeScopes(creds.Scopes)
+
+	// Render
+	fmt.Println()
+	fmt.Println(headerStyle.Render(fmt.Sprintf(" 🔐  Authentication Status: %s", profile)))
+	fmt.Println()
+
+	// Status row
+	fmt.Printf("%s %s\n",
+		labelStyle.Render("Status:"),
+		statusStyle.Render(fmt.Sprintf("%s %s", statusIcon, statusText)))
+
+	// Type row
+	fmt.Printf("%s %s\n",
+		labelStyle.Render("Type:"),
+		valueStyle.Render(typeDisplay))
+
+	// Scopes row
+	fmt.Printf("%s %s\n",
+		labelStyle.Render("Scopes:"),
+		valueStyle.Render(scopeSummary))
+
+	// Expiry row
+	expiryColor := lipgloss.Color("#e2e8f0")
+	if expired {
+		expiryColor = lipgloss.Color("#ef4444")
+	} else if needsRefresh {
+		expiryColor = lipgloss.Color("#f59e0b")
+	}
+	fmt.Printf("%s %s\n",
+		labelStyle.Render("Expires:"),
+		lipgloss.NewStyle().Foreground(expiryColor).Render(expiryDisplay))
+
+	// Storage row
+	fmt.Printf("%s %s\n",
+		labelStyle.Render("Storage:"),
+		valueStyle.Render(storageBackend))
+
+	fmt.Println()
+}
+
+func summarizeScopes(scopes []string) string {
+	if len(scopes) == 0 {
+		return "None"
+	}
+
+	// Count by category
+	hasDrive := false
+	hasAdmin := false
+	hasGmail := false
+	hasCalendar := false
+	hasSheets := false
+	hasDocs := false
+
+	for _, scope := range scopes {
+		if strings.Contains(scope, "drive") {
+			hasDrive = true
+		}
+		if strings.Contains(scope, "admin") {
+			hasAdmin = true
+		}
+		if strings.Contains(scope, "gmail") {
+			hasGmail = true
+		}
+		if strings.Contains(scope, "calendar") {
+			hasCalendar = true
+		}
+		if strings.Contains(scope, "spreadsheets") {
+			hasSheets = true
+		}
+		if strings.Contains(scope, "documents") {
+			hasDocs = true
+		}
+	}
+
+	parts := []string{}
+	if hasDrive {
+		parts = append(parts, "Drive")
+	}
+	if hasAdmin {
+		parts = append(parts, "Admin")
+	}
+	if hasGmail {
+		parts = append(parts, "Gmail")
+	}
+	if hasCalendar {
+		parts = append(parts, "Calendar")
+	}
+	if hasSheets {
+		parts = append(parts, "Sheets")
+	}
+	if hasDocs {
+		parts = append(parts, "Docs")
+	}
+
+	if len(parts) == 0 {
+		return fmt.Sprintf("%d scope(s)", len(scopes))
+	}
+
+	return fmt.Sprintf("%s (%d total)", strings.Join(parts, ", "), len(scopes))
 }
 
 func getConfigDir() string {
@@ -230,6 +393,8 @@ func (cmd *AuthProfilesCmd) Run(globals *Globals) error {
 
 	// Get detailed info for each profile
 	var profileDetails []map[string]interface{}
+	styledProfiles := []styledProfile{}
+
 	for _, profile := range profiles {
 		detail := map[string]interface{}{
 			"profile": profile,
@@ -242,19 +407,145 @@ func (cmd *AuthProfilesCmd) Run(globals *Globals) error {
 			detail["expiry"] = creds.ExpiryDate.Format("2006-01-02T15:04:05Z07:00")
 			detail["needsRefresh"] = mgr.NeedsRefresh(creds)
 			detail["scopes"] = creds.Scopes
+
+			expired := time.Now().After(creds.ExpiryDate)
+			authenticated := !expired || creds.Type != types.AuthTypeOAuth
+			styledProfiles = append(styledProfiles, styledProfile{
+				name:         profile,
+				profileType:  string(creds.Type),
+				scopes:       summarizeScopes(creds.Scopes),
+				status:       authenticated,
+				expired:      expired,
+				needsRefresh: mgr.NeedsRefresh(creds),
+				expiry:       creds.ExpiryDate,
+				serviceAcct:  creds.ServiceAccountEmail,
+				impersonated: creds.ImpersonatedUser,
+			})
 		} else {
 			detail["authenticated"] = false
 			detail["error"] = err.Error()
+			styledProfiles = append(styledProfiles, styledProfile{
+				name:        profile,
+				profileType: "unknown",
+				scopes:      "-",
+				status:      false,
+				expired:     true,
+			})
 		}
 
 		profileDetails = append(profileDetails, detail)
 	}
 
-	return out.WriteSuccess("auth.profiles", map[string]interface{}{
-		"profiles":       profileDetails,
-		"count":          len(profiles),
-		"storageBackend": mgr.GetStorageBackend(),
-	})
+	if flags.OutputFormat == types.OutputFormatJSON {
+		return out.WriteSuccess("auth.profiles", map[string]interface{}{
+			"profiles":       profileDetails,
+			"count":          len(profiles),
+			"storageBackend": mgr.GetStorageBackend(),
+		})
+	}
+
+	// Styled terminal output
+	renderStyledProfilesTable(styledProfiles, mgr.GetStorageBackend())
+	return nil
+}
+
+type styledProfile struct {
+	name         string
+	profileType  string
+	scopes       string
+	status       bool
+	expired      bool
+	needsRefresh bool
+	expiry       time.Time
+	serviceAcct  string
+	impersonated string
+}
+
+func renderStyledProfilesTable(profiles []styledProfile, storageBackend string) {
+	// Header
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#f8fafc")).
+		Background(lipgloss.Color("#3b82f6")).
+		Padding(0, 1).
+		Width(80)
+
+	fmt.Println()
+	fmt.Println(headerStyle.Render(fmt.Sprintf(" 🔐  Authentication Profiles (%d)", len(profiles))))
+	fmt.Println()
+
+	if len(profiles) == 0 {
+		emptyStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#94a3b8")).
+			Italic(true)
+		fmt.Println(emptyStyle.Render("No profiles found. Run 'gdrv auth login' to create one."))
+		fmt.Println()
+		return
+	}
+
+	// Table header
+	tblHeaderStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#64748b"))
+
+	fmt.Printf("%-12s %-12s %-25s %-12s %-15s\n",
+		tblHeaderStyle.Render("Profile"),
+		tblHeaderStyle.Render("Type"),
+		tblHeaderStyle.Render("Scopes"),
+		tblHeaderStyle.Render("Status"),
+		tblHeaderStyle.Render("Expires"))
+	fmt.Println(strings.Repeat("─", 80))
+
+	// Table rows
+	for _, p := range profiles {
+		statusIcon := "✓"
+		statusText := "Active"
+		statusColor := lipgloss.Color("#22c55e")
+
+		if p.expired {
+			statusIcon = "✗"
+			statusText = "Expired"
+			statusColor = lipgloss.Color("#ef4444")
+		} else if !p.status {
+			statusIcon = "✗"
+			statusText = "Invalid"
+			statusColor = lipgloss.Color("#ef4444")
+		} else if p.needsRefresh {
+			statusIcon = "◐"
+			statusText = "Refresh"
+			statusColor = lipgloss.Color("#f59e0b")
+		}
+
+		// Type display
+		typeDisplay := p.profileType
+		if p.serviceAcct != "" {
+			typeDisplay = fmt.Sprintf("svc:%s", truncate(p.serviceAcct, 12))
+		} else if p.impersonated != "" {
+			typeDisplay = fmt.Sprintf("imp:%s", truncate(p.impersonated, 8))
+		}
+
+		// Expiry display
+		expiryDisplay := p.expiry.Format("Jan 02")
+		if p.profileType == "service_account" || p.profileType == "impersonated" {
+			expiryDisplay = "Never"
+		} else if p.expired {
+			expiryDisplay = "Expired"
+		}
+
+		statusStyle := lipgloss.NewStyle().Foreground(statusColor)
+		scopesStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#94a3b8"))
+
+		fmt.Printf("%-12s %-12s %-25s %-12s %-15s\n",
+			lipgloss.NewStyle().Bold(true).Render(truncate(p.name, 11)),
+			truncate(typeDisplay, 11),
+			scopesStyle.Render(truncate(p.scopes, 24)),
+			statusStyle.Render(fmt.Sprintf("%s %s", statusIcon, statusText)),
+			expiryDisplay)
+	}
+
+	fmt.Println()
+	fmt.Printf("Storage: %s\n", storageBackend)
+	fmt.Println()
 }
 
 func (cmd *AuthServiceAccountCmd) Run(globals *Globals) error {
@@ -310,8 +601,8 @@ func resolveAuthScopes(out *OutputWriter, preset string, wide bool, commandScope
 		return []string{utils.ScopeFull}, nil
 	}
 	if len(commandScopes) == 0 {
-		out.Log("Using default scope preset: workspace-basic")
-		return utils.ScopesWorkspaceBasic, nil
+		out.Log("Using default scope preset: workspace-full")
+		return utils.ScopesWorkspaceFull, nil
 	}
 	return commandScopes, nil
 }

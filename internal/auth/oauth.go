@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/dl-alexandre/gdrv/internal/types"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/oauth2"
 )
 
@@ -321,8 +322,18 @@ func (m *Manager) Authenticate(ctx context.Context, profile string, openBrowser 
 	done := make(chan struct{})
 	noBrowser := opts.NoBrowser || isHeadlessEnv()
 	if noBrowser {
-		fmt.Printf("Manual authentication required.\n")
-		fmt.Printf("Open this URL in a browser and approve access:\n%s\n", authURL)
+		fmt.Printf("\n📱  Manual Authentication Required\n")
+		fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
+
+		// Try to display QR code
+		qrCode, err := generateTerminalQR(authURL)
+		if err == nil {
+			fmt.Printf("Scan this QR code with your phone:\n")
+			fmt.Println(qrCode)
+			fmt.Println()
+		}
+
+		fmt.Printf("Or manually open this URL:\n%s\n", authURL)
 		fmt.Printf("\nPaste the authorization code here: ")
 		go readCodeFromStdin(os.Stdin, flow.codeChan, done)
 	} else {
@@ -412,4 +423,42 @@ func isHeadlessEnv() bool {
 		return true
 	}
 	return false
+}
+
+// generateTerminalQR creates a terminal-friendly QR code using half-block characters
+func generateTerminalQR(text string) (string, error) {
+	qr, err := qrcode.New(text, qrcode.Medium)
+	if err != nil {
+		return "", err
+	}
+
+	bitmap := qr.Bitmap()
+	if len(bitmap) == 0 {
+		return "", fmt.Errorf("empty QR bitmap")
+	}
+
+	var result strings.Builder
+
+	for y := 0; y < len(bitmap); y += 2 {
+		for x := 0; x < len(bitmap[y]); x++ {
+			upper := bitmap[y][x]
+			lower := false
+			if y+1 < len(bitmap) {
+				lower = bitmap[y+1][x]
+			}
+
+			if upper && lower {
+				result.WriteString("██")
+			} else if upper && !lower {
+				result.WriteString("▀▀")
+			} else if !upper && lower {
+				result.WriteString("▄▄")
+			} else {
+				result.WriteString("  ")
+			}
+		}
+		result.WriteString("\n")
+	}
+
+	return result.String(), nil
 }

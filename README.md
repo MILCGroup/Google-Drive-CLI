@@ -106,8 +106,9 @@ gdrv completion powershell > $PROFILE.CurrentUserCurrentHost
 
 1. **Authenticate**:
    ```bash
-   gdrv auth login --preset workspace-basic
+   gdrv auth login
    ```
+   Default is full read/write access. Use `--preset workspace-basic` for read-only.
 
 2. **List files**:
    ```bash
@@ -139,7 +140,7 @@ gdrv auth login
 gdrv auth device
 
 # Service account
-gdrv auth service-account --key-file ./service-account.json --preset workspace-basic
+gdrv auth service-account --key-file ./service-account.json
 
 # Multiple profiles
 gdrv auth login --profile work
@@ -147,8 +148,8 @@ gdrv --profile work files list
 ```
 
 **Scope Presets:**
-- `workspace-basic` - Read-only access (recommended)
-- `workspace-full` - Full read/write access
+- `workspace-full` - Full read/write access (default)
+- `workspace-basic` - Read-only access
 - `admin` - Admin SDK for user/group management
 - `workspace-complete` - All APIs including Activity, Labels, and Changes
 

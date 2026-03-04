@@ -71,7 +71,7 @@ func (c *UpdateCheckCmd) Run(globals *Globals) error {
 	// Cache the result
 	if globals.Cache != nil {
 		data, _ := json.Marshal(info)
-		globals.Cache.Set(cacheKey, data, cacheTTL)
+		_ = globals.Cache.Set(cacheKey, data, cacheTTL)
 	}
 
 	return c.displayUpdateInfo(info)
@@ -99,7 +99,7 @@ func (c *UpdateCheckCmd) fetchLatestRelease(currentVersion string) (UpdateInfo, 
 	if err != nil {
 		return UpdateInfo{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -206,7 +206,7 @@ func compareVersions(v1, v2 string) int {
 			if idx := strings.IndexAny(part, "-"); idx != -1 {
 				part = part[:idx]
 			}
-			fmt.Sscanf(part, "%d", &num1)
+			_, _ = fmt.Sscanf(part, "%d", &num1)
 		}
 
 		if i < len(parts2) {
@@ -214,7 +214,7 @@ func compareVersions(v1, v2 string) int {
 			if idx := strings.IndexAny(part, "-"); idx != -1 {
 				part = part[:idx]
 			}
-			fmt.Sscanf(part, "%d", &num2)
+			_, _ = fmt.Sscanf(part, "%d", &num2)
 		}
 
 		if num1 < num2 {
@@ -263,7 +263,7 @@ func AutoUpdateCheck(cacheImpl cache.Cache) {
 		// Cache the result
 		if cacheImpl != nil {
 			data, _ := json.Marshal(info)
-			cacheImpl.Set(cacheKey, data, cacheTTL)
+			_ = cacheImpl.Set(cacheKey, data, cacheTTL)
 		}
 
 		// Only print if update is available

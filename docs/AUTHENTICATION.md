@@ -35,39 +35,76 @@ Default public client IDs may rotate between releases. If you see `invalid_clien
 - Plain file storage is development-only and must be explicitly forced.
 - `gdrv auth logout` removes local credentials only (does not revoke remote consent).
 
-## Authentication Methods
+## Remote/SSH Authentication
 
-### OAuth2 Flow (Recommended)
+When using gdrv on remote servers or headless environments, use one of these methods:
 
-```bash
-gdrv auth login
-```
+### 1. Device Code Flow (Recommended for SSH)
 
-Opens a browser for authentication using a loopback redirect on `127.0.0.1` with an ephemeral port.
-If the browser cannot be opened, gdrv will fall back to manual code entry.
-
-**Manual fallback (headless):**
-```bash
-gdrv auth login --no-browser
-```
-
-Prompts for a manual code paste after you approve access in a browser. This fallback is used for headless environments, browser launch failures, or loopback binding issues. You can force it with `--no-browser` or `GDRV_NO_BROWSER=1`.
-
-### Device Code Flow (Headless)
+Best for interactive SSH sessions where you can access a browser on your local machine.
 
 ```bash
 gdrv auth device
 ```
 
-Displays a code to enter at https://www.google.com/device.
+1. Run the command on the remote server
+2. Visit **google.com/device** on your local machine
+3. Enter the code displayed in your SSH session
+4. No browser needed on the remote server
 
-### Service Account Authentication
+### 2. Service Account (Best for Automation)
+
+Ideal for CI/CD, scripts, and automated workflows.
 
 ```bash
-gdrv auth service-account --key-file ./service-account-key.json --preset workspace-basic
+gdrv auth service-account --key-file /path/to/service-account.json
 ```
 
-Loads credentials from a service account JSON key file. Use `--impersonate-user` for Admin SDK scopes.
+- Non-interactive, works headlessly
+- Copy the JSON key to the remote machine first
+- No browser or manual steps required
+
+### 3. Manual OAuth with Code Copy-Paste
+
+When you need OAuth but can't use device flow.
+
+```bash
+# Option A: Use the --no-browser flag
+gdrv auth login --no-browser
+
+# Option B: Set the environment variable
+GDRV_NO_BROWSER=1 gdrv auth login
+```
+
+1. Run the command on the remote server
+2. Shows a URL - open it in your local browser
+3. Complete the OAuth flow locally
+4. Copy the authorization code from the browser
+5. Paste it back into your SSH session
+
+### 4. Pre-Authenticate Locally, Transfer Credentials
+
+Authenticate on your local machine, then securely copy credentials to the remote server.
+
+**On your local machine:**
+```bash
+gdrv auth login
+scp ~/.config/gdrv/credentials/* remote:~/.config/gdrv/credentials/
+```
+
+### 5. Environment Variables
+
+For custom OAuth clients, set credentials via environment:
+
+```bash
+export GDRV_CLIENT_ID="your-client-id"
+export GDRV_CLIENT_SECRET="your-client-secret"
+gdrv auth login
+```
+
+**Note:** Credentials are resolved in this order: CLI flags → Environment variables → Config file → Default client.
+
+**Default Scope Preset:** `workspace-full` (full read/write access) is the default when no preset is specified. Use `--preset workspace-basic` for read-only access.
 
 ## Scope Presets
 

@@ -210,19 +210,26 @@ func (m *Manager) AuthenticateWithDeviceCode(ctx context.Context, profile string
 		return nil, err
 	}
 
-	// Display instructions to user
-	fmt.Printf("\nDevice Code Authentication\n")
-	fmt.Printf("==========================\n\n")
-	fmt.Printf("Please visit the following URL and enter the code:\n\n")
-	fmt.Printf("URL:  %s\n", deviceResp.VerificationURL)
-	fmt.Printf("Code: %s\n\n", deviceResp.UserCode)
+	// Display instructions to user with QR code
+	fmt.Printf("\n📱  Device Code Authentication\n")
+	fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
 
-	if deviceResp.VerificationURLComplete != "" {
-		fmt.Printf("Or visit this URL to auto-fill the code:\n")
-		fmt.Printf("%s\n\n", deviceResp.VerificationURLComplete)
+	// Generate and display QR code for the URL
+	qrCode, err := generateTerminalQR(deviceResp.VerificationURL)
+	if err == nil {
+		fmt.Printf("Scan this QR code with your phone:\n")
+		fmt.Println(qrCode)
+		fmt.Println()
 	}
 
-	fmt.Printf("Waiting for authorization (expires in %d seconds)...\n", deviceResp.ExpiresIn)
+	fmt.Printf("Or manually visit: %s\n", deviceResp.VerificationURL)
+	fmt.Printf("Enter code: %s\n\n", deviceResp.UserCode)
+
+	if deviceResp.VerificationURLComplete != "" {
+		fmt.Printf("Direct link (auto-fills code):\n%s\n\n", deviceResp.VerificationURLComplete)
+	}
+
+	fmt.Printf("⏳  Waiting for authorization (expires in %d seconds)...\n", deviceResp.ExpiresIn)
 
 	// Poll for token
 	creds, err := flow.PollForToken(ctx)
