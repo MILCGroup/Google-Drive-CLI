@@ -66,7 +66,7 @@ build-optimized:
 	@mkdir -p $(BINARY_DIR)
 	$(GOBUILD) -trimpath $(OPTIMIZED_LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) ./cmd/gdrv
 	@echo "Built optimized binary: $(BINARY_DIR)/$(BINARY_NAME)"
-	@echo "Size: $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME) | awk '{print \"\$$5\"}')"
+	@echo "Size: $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME) | awk '{print $$5}')"
 
 # Build optimized for all platforms
 build-all-optimized:
@@ -75,7 +75,7 @@ build-all-optimized:
 	@for platform in $(PLATFORMS); do \
 		GOOS=$${platform%/*} GOARCH=$${platform#*/} \
 		$(GOBUILD) -trimpath $(OPTIMIZED_LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-$${platform%/*}-$${platform#*/}$(if $(findstring windows,$${platform}),.exe,) ./cmd/gdrv; \
-		echo "Built optimized $(BINARY_DIR)/$(BINARY_NAME)-$${platform%/*}-$${platform#*/} $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME)-$${platform%/*}-$${platform#*/}$(if $(findstring windows,$${platform}),.exe,) 2>/dev/null | awk '{print \"\$$5\"}')"; \
+		echo "Built optimized $(BINARY_DIR)/$(BINARY_NAME)-$${platform%/*}-$${platform#*/} $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME)-$${platform%/*}-$${platform#*/}$(if $(findstring windows,$${platform}),.exe,) 2>/dev/null | awk '{print $$5}')"; \
 	done
 
 # Compare binary sizes
@@ -86,9 +86,9 @@ size-compare:
 	$(GOBUILD) -trimpath $(OPTIMIZED_LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-optimized ./cmd/gdrv
 	@echo ""
 	@echo "Binary Size Comparison:"
-	@echo "  Debug:     $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME)-debug | awk '{print \"\$$5\"}')"
-	@echo "  Optimized: $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME)-optimized | awk '{print \"\$$5\"}')"
-	@echo "  Gzipped:   $$(gzip -c $(BINARY_DIR)/$(BINARY_NAME)-optimized | wc -c | awk '{printf \"%.1f MB\", \$$1/1024/1024}')"
+	@echo "  Debug:     $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME)-debug | awk '{print $$5}')"
+	@echo "  Optimized: $$(ls -lh $(BINARY_DIR)/$(BINARY_NAME)-optimized | awk '{print $$5}')"
+	@echo "  Gzipped:   $$(gzip -c $(BINARY_DIR)/$(BINARY_NAME)-optimized | wc -c | awk '{printf "%.1f MB", $$1/1024/1024}')"
 	@rm -f $(BINARY_DIR)/$(BINARY_NAME)-debug $(BINARY_DIR)/$(BINARY_NAME)-optimized
 
 deps:
