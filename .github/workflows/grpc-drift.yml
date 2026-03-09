@@ -120,12 +120,12 @@ jobs:
           # Use buf to check for breaking changes
           if [ -f "googleapis/$service/*.proto" ]; then
             # Create temporary buf.yaml for comparison
-            cat > /tmp/buf-check.yaml <<EOF
-            version: v1
-            breaking:
-              use:
-                - FILE
-            EOF
+            cat > /tmp/buf-check.yaml <<'EOF'
+version: v1
+breaking:
+  use:
+    - FILE
+EOF
             
             # Check for breaking changes
             if buf breaking --config /tmp/buf-check.yaml "googleapis/$service" --against "$SNAPSHOT_DIR" 2>/dev/null; then
