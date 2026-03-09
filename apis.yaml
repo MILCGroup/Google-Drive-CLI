@@ -1,0 +1,89 @@
+# Google API Drift Detection Allowlist
+# Phase 1: Drive, Gmail, Calendar
+#
+# This file controls which APIs are monitored for drift and code generation.
+# Each entry specifies the service name, version, and ownership for review routing.
+
+apis:
+  - service: drive
+    version: v3
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/drive/v3/rest
+    owner: "@drive-team"
+    priority: 1
+    description: "Google Drive API - File storage and management"
+    
+  - service: gmail
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest
+    owner: "@gmail-team"
+    priority: 1
+    description: "Gmail API - Email operations"
+    
+  - service: calendar
+    version: v3
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest
+    owner: "@calendar-team"
+    priority: 1
+    description: "Google Calendar API - Calendar and event management"
+
+# Risk classification thresholds for drift detection
+# These rules determine how changes are classified and routed
+risk_rules:
+  # Additive changes - auto-PR allowed
+  additive:
+    - new_optional_fields
+    - new_methods
+    - new_optional_parameters
+    - new_scopes
+    
+  # Risky changes - requires owner approval
+  risky:
+    - new_required_parameters
+    - changed_path_templates
+    - removed_scopes
+    - type_changes_in_request
+    - type_changes_in_response
+    
+  # Breaking changes - blocks pipeline
+  breaking:
+    - removed_methods
+    - removed_required_fields
+    - new_required_fields_in_request
+    - changed_auth_requirements
+    - incompatible_type_changes
+
+# Generation settings
+generation:
+  # Output directories (relative to repo root)
+  snapshot_dir: "third_party/google/discovery"
+  generated_types_dir: "internal/google/generated"
+  generated_descriptors_dir: "internal/google/generated/descriptors"
+  
+  # What to generate
+  generate_types: true
+  generate_descriptors: true
+  generate_methods: false  # Phase 2: generate full method stubs
+  generate_cli: false      # Phase 2: generate CLI commands
+  
+  # Template settings
+  template_dir: "cmd/discovery-checker/templates"
+  go_package_prefix: "github.com/dl-alexandre/gdrv/internal/google/generated"
+
+# CI behavior
+ci:
+  # Schedule: weekly on Sundays at 2 AM UTC
+  schedule: "0 2 * * 0"
+  
+  # PR settings
+  auto_merge_additive: true
+  require_owner_approval_risky: true
+  block_on_breaking: true
+  
+  # Notification settings
+  create_issues_for_breaking: true
+  slack_channel: "#api-drift-alerts"
+  
+  # Test requirements
+  run_tests_after_generation: true
+  require_gofmt: true
+  require_goimports: true

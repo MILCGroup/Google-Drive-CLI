@@ -70,6 +70,9 @@ const (
 	// Cloud Identity Groups scopes
 	ScopeCloudIdentityGroups         = "https://www.googleapis.com/auth/cloud-identity.groups"
 	ScopeCloudIdentityGroupsReadonly = "https://www.googleapis.com/auth/cloud-identity.groups.readonly"
+
+	// Discovery API scope
+	ScopeDiscoveryReadonly = "https://www.googleapis.com/auth/discovery.readonly"
 )
 
 var (
