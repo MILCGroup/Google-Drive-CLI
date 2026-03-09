@@ -318,13 +318,6 @@ func saveSnapshot(path string, doc *discovery.DiscoveryDocument) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func typeName(s discovery.Schema) string {
-	if s.Ref != "" {
-		return s.Ref
-	}
-	return s.Type
-}
-
 func generateTypes(doc *discovery.DiscoveryDocument, outputPath, packageName string) error {
 	// TODO: Implement Go type generation from discovery schemas
 	return nil

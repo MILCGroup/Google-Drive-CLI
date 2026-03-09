@@ -25,9 +25,9 @@ func withEnv(t *testing.T, vars map[string]string, fn func()) {
 	// Set new values
 	for key, value := range vars {
 		if value == "" {
-			os.Unsetenv(key)
+			_ = os.Unsetenv(key)
 		} else {
-			os.Setenv(key, value)
+			_ = os.Setenv(key, value)
 		}
 	}
 
@@ -35,9 +35,9 @@ func withEnv(t *testing.T, vars map[string]string, fn func()) {
 	t.Cleanup(func() {
 		for key, oldValue := range oldValues {
 			if oldValue == "" {
-				os.Unsetenv(key)
+				_ = os.Unsetenv(key)
 			} else {
-				os.Setenv(key, oldValue)
+				_ = os.Setenv(key, oldValue)
 			}
 		}
 	})
@@ -197,7 +197,7 @@ func TestResolver_FileBeatsProfile_Phase3(t *testing.T) {
 	}, func() {
 		// Create a stored profile to verify it doesn't get used
 		mgr := NewManager(configDir)
-		mgr.SaveCredentials("default", &types.Credentials{
+		_ = mgr.SaveCredentials("default", &types.Credentials{
 			AccessToken: "stored-token",
 			ExpiryDate:  time.Now().Add(1 * time.Hour),
 			Scopes:      []string{"drive"},
@@ -376,7 +376,7 @@ func TestResolver_Profile_SpecificProfile(t *testing.T) {
 
 	// Save credentials for a named profile
 	mgr := NewManager(configDir)
-	mgr.SaveCredentials("work", &types.Credentials{
+	_ = mgr.SaveCredentials("work", &types.Credentials{
 		AccessToken:  "work-token",
 		ExpiryDate:   time.Now().Add(1 * time.Hour),
 		Scopes:       []string{"drive", "admin"},
@@ -622,7 +622,7 @@ func TestResolver_ServiceAccount_FileBeatsProfile_Phase2(t *testing.T) {
 
 	// Create a stored profile to verify it doesn't get used
 	mgr := NewManager(configDir)
-	mgr.SaveCredentials("default", &types.Credentials{
+	_ = mgr.SaveCredentials("default", &types.Credentials{
 		AccessToken: "stored-token",
 		ExpiryDate:  time.Now().Add(1 * time.Hour),
 		Scopes:      []string{"drive"},

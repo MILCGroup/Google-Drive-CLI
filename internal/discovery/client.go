@@ -119,7 +119,7 @@ func (c *Client) ListAPIs(ctx context.Context) (*APIDirectoryList, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch API directory: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -192,7 +192,7 @@ func (c *Client) GetDiscoveryDocument(ctx context.Context, serviceName, version 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch discovery document: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -299,7 +299,7 @@ func (c *Client) doWithRetry(req *http.Request) (*http.Response, error) {
 		// Check for retryable status codes
 		if resp.StatusCode >= 500 || resp.StatusCode == 429 {
 			c.logDebug("Retryable status code %d (attempt %d)", resp.StatusCode, attempt+1)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			continue
 		}
 
@@ -353,7 +353,7 @@ func (c *Client) GetDiscoveryDocumentFromURL(ctx context.Context, url string) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch discovery document: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/dl-alexandre/gdrv/internal/discovery"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -369,7 +371,7 @@ func toGoName(name string) string {
 	// Simple conversion - production would need more logic
 	parts := strings.Split(name, "_")
 	for i, part := range parts {
-		parts[i] = strings.Title(part)
+		parts[i] = cases.Title(language.English).String(part)
 	}
 	return strings.Join(parts, "")
 }
