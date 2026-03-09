@@ -56,7 +56,7 @@ type MeetConferenceRecordsGetCmd struct {
 }
 
 type MeetConferenceRecordsParticipantsCmd struct {
-	Parent   string `arg:"" name:"parent" help:"Parent resource name"`
+	Parent   string `arg:"" name:"parent" help:"Parent resource name (conference record name)"`
 	PageSize int32  `help:"Page size" default:"100" name:"page-size"`
 }
 
@@ -147,6 +147,72 @@ func (cmd *MeetConferenceRecordsListCmd) Run(globals *Globals) error {
 		return out.WriteSuccess("meet.conference-records.list", result.ConferenceRecords)
 	}
 	return out.WriteSuccess("meet.conference-records.list", result)
+}
+
+func (cmd *MeetSpacesUpdateCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getMeetManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("meet.spaces.update", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeMutation
+
+	result, err := mgr.UpdateSpace(ctx, reqCtx, cmd.Name, cmd.AccessType)
+	if err != nil {
+		return handleCLIError(out, "meet.spaces.update", err)
+	}
+
+	return out.WriteSuccess("meet.spaces.update", result)
+}
+
+func (cmd *MeetConferenceRecordsGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getMeetManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("meet.conference-records.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeGetByID
+
+	result, err := mgr.GetConferenceRecord(ctx, reqCtx, cmd.Name)
+	if err != nil {
+		return handleCLIError(out, "meet.conference-records.get", err)
+	}
+
+	return out.WriteSuccess("meet.conference-records.get", result)
+}
+
+func (cmd *MeetConferenceRecordsParticipantsCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getMeetManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("meet.conference-records.participants", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeListOrSearch
+
+	result, err := mgr.ListParticipants(ctx, reqCtx, cmd.Parent, cmd.PageSize, "")
+	if err != nil {
+		return handleCLIError(out, "meet.conference-records.participants", err)
+	}
+
+	if flags.OutputFormat == types.OutputFormatTable {
+		return out.WriteSuccess("meet.conference-records.participants", result.Participants)
+	}
+	return out.WriteSuccess("meet.conference-records.participants", result)
 }
 
 func getMeetManager(ctx context.Context, flags types.GlobalFlags) (*meetmgr.Manager, *types.RequestContext, error) {
