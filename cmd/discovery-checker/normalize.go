@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"sort"
 
 	"github.com/dl-alexandre/gdrv/internal/discovery"
@@ -25,40 +24,6 @@ var VolatileFields = []string{
 func NormalizeSnapshot(doc *discovery.DiscoveryDocument) ([]byte, error) {
 	// Use StableMarshal which already handles sorting
 	return StableMarshal(doc)
-}
-
-// normalizeValue recursively normalizes JSON values for stable comparison
-func normalizeValue(v interface{}) interface{} {
-	switch val := v.(type) {
-	case map[string]interface{}:
-		// Remove volatile fields at any level
-		for _, field := range VolatileFields {
-			delete(val, field)
-		}
-
-		// Recursively normalize values
-		result := make(map[string]interface{}, len(val))
-		for k, v := range val {
-			result[k] = normalizeValue(v)
-		}
-		return result
-
-	case []interface{}:
-		result := make([]interface{}, len(val))
-		for i, v := range val {
-			result[i] = normalizeValue(v)
-		}
-		return result
-
-	default:
-		return val
-	}
-}
-
-// encodeSorted encodes a map with sorted keys for deterministic output
-func encodeSorted(encoder *json.Encoder, v interface{}) error {
-	// Simply use the stable marshal approach instead
-	return fmt.Errorf("use StableMarshal instead")
 }
 
 // StableMarshal marshals a discovery document with stable key ordering

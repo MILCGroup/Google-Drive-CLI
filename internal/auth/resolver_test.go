@@ -804,7 +804,3 @@ func createMockJWTWithScopes(expiry time.Time, scopes []string) string {
 func stringsContains(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
-
-func stringsHasPrefix(s, prefix string) bool {
-	return strings.HasPrefix(s, prefix)
-}

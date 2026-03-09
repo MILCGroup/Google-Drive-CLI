@@ -26,7 +26,6 @@ type APIDirectoryEntry struct {
 type APIDirectoryList struct {
 	Kind string              `json:"kind"`
 	APIs []APIDirectoryEntry `json:"items"`
-	etag string
 }
 
 // DiscoveryDocument represents the full discovery document for an API
