@@ -59,13 +59,13 @@ jobs:
         # Install protoc
         PROTOC_VERSION=24.4
         curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
-        unzip -o "protoc-${PROTOC_VERSION}-linux-x86_64.zip" -d /usr/local
+        sudo unzip -o "protoc-${PROTOC_VERSION}-linux-x86_64.zip" -d /usr/local
         rm "protoc-${PROTOC_VERSION}-linux-x86_64.zip"
         
         # Install buf for proto linting and breaking change detection
         BUF_VERSION=1.31.0
-        curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
-        chmod +x /usr/local/bin/buf
+        sudo curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
+        sudo chmod +x /usr/local/bin/buf
         
         echo "✓ Installed protoc ${PROTOC_VERSION} and buf ${BUF_VERSION}"
     
