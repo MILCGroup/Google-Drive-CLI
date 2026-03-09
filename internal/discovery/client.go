@@ -27,7 +27,7 @@ const (
 	DefaultRetryBackoff = 2.0
 
 	// AllowedHosts restricts discovery fetches to trusted domains
-	AllowedHosts = "www.googleapis.com,discovery.googleapis.com"
+	AllowedHosts = "www.googleapis.com,discovery.googleapis.com,drivelabels.googleapis.com"
 )
 
 // Client provides access to the Google Discovery Service

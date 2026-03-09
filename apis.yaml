@@ -25,6 +25,86 @@ apis:
     owner: "@calendar-team"
     priority: 1
     description: "Google Calendar API - Calendar and event management"
+    
+  - service: people
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/people/v1/rest
+    owner: "@people-team"
+    priority: 2
+    description: "People API - Contact and profile management"
+    
+  - service: slides
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/slides/v1/rest
+    owner: "@workspace-team"
+    priority: 2
+    description: "Google Slides API - Presentation management"
+    
+  - service: docs
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/docs/v1/rest
+    owner: "@workspace-team"
+    priority: 2
+    description: "Google Docs API - Document management"
+    
+  - service: sheets
+    version: v4
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/sheets/v4/rest
+    owner: "@workspace-team"
+    priority: 2
+    description: "Google Sheets API - Spreadsheet management"
+    
+  - service: chat
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/chat/v1/rest
+    owner: "@chat-team"
+    priority: 2
+    description: "Google Chat API - Chat and messaging"
+    
+  - service: admin
+    version: directory_v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/admin/directory_v1/rest
+    owner: "@admin-team"
+    priority: 2
+    description: "Admin SDK - Directory API - User and group management"
+    
+  - service: cloudidentity
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/cloudidentity/v1/rest
+    owner: "@identity-team"
+    priority: 2
+    description: "Cloud Identity API - Group management"
+    
+  # Note: drivelabels uses service-specific discovery (https://drivelabels.googleapis.com/$discovery/rest)
+  # which requires custom handling - skipping for now
+  # - service: drivelabels
+  #   version: v2
+  #   discovery_url: https://drivelabels.googleapis.com/$discovery/rest?version=v2
+  #   owner: "@drive-team"
+  #   priority: 2
+  #   description: "Drive Labels API - Label management for Drive items"
+    
+  - service: script
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/script/v1/rest
+    owner: "@apps-script-team"
+    priority: 3
+    description: "Apps Script API - Script project management"
+    
+  - service: tasks
+    version: v1
+    discovery_url: https://www.googleapis.com/discovery/v1/apis/tasks/v1/rest
+    owner: "@tasks-team"
+    priority: 3
+    description: "Tasks API - Task list management"
+    
+  # Note: forms uses service-specific discovery (https://forms.googleapis.com/$discovery/rest)
+  # - service: forms
+  #   version: v1
+  #   discovery_url: https://forms.googleapis.com/$discovery/rest?version=v1
+  #   owner: "@forms-team"
+  #   priority: 3
+  #   description: "Google Forms API - Form management"
 
 # Risk classification thresholds for drift detection
 # These rules determine how changes are classified and routed
