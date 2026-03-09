@@ -36,6 +36,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     
+    outputs:
+      drift_detected: ${{ steps.check.outputs.drift_detected }}
+      check_passed: ${{ steps.check.outputs.check_passed }}
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -158,19 +162,18 @@ jobs:
   drift-summary:
     name: Drift Summary
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && needs.drift-detection.outputs.drift_detected == 'true'
     needs: drift-detection
     
     steps:
     - name: Download drift report
-      if: needs.drift-detection.result == 'success'
       uses: actions/download-artifact@v4
       with:
         name: drift-report
         path: ./
         
     - name: Create issue for drift
-      if: needs.drift-detection.result == 'success' && github.event_name == 'schedule'
+      if: github.event_name == 'schedule'
       uses: actions/github-script@v7
       with:
         script: |
