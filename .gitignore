@@ -24,6 +24,9 @@ bin/
 
 # Coverage reports
 coverage*.out
+*_coverage.out
+cover.out
+coverage.html
 *.bak
 
 # Test artifacts
