@@ -71,8 +71,14 @@ jobs:
     - name: Check for drift
       id: check
       run: |
+        # Disable errexit to handle exit codes manually
+        set +e
+        
         ./discovery-checker -config apis.yaml -check -service "${{ github.event.inputs.service }}" > drift_report.txt 2>&1
         exit_code=$?
+        
+        # Re-enable errexit
+        set -e
         
         # Show the output
         cat drift_report.txt
@@ -93,9 +99,6 @@ jobs:
           echo "✗ Discovery checker failed with exit code $exit_code"
           exit 1
         fi
-        
-        # Script completed successfully - discovery checker exit code was handled
-        exit 0
         
     - name: Generate code (if drift detected and not dry run)
       if: steps.check.outputs.check_passed == 'true' && steps.check.outputs.drift_detected == 'true' && !github.event.inputs.dry_run
