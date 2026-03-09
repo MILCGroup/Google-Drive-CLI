@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dl-alexandre/gdrv/internal/discovery"
@@ -147,7 +148,16 @@ func checkDrift(ctx context.Context, client *discovery.Client, config *Config, s
 		fmt.Printf("  Checking %s %s...\n", api.Service, api.Version)
 
 		// Fetch current discovery document
-		doc, err := client.GetDiscoveryDocument(ctx, api.Service, api.Version)
+		var doc *discovery.DiscoveryDocument
+		var err error
+
+		// Check if a custom discovery URL is provided (not the standard www.googleapis.com)
+		if api.DiscoveryURL != "" && !strings.Contains(api.DiscoveryURL, "www.googleapis.com") {
+			doc, err = client.GetDiscoveryDocumentFromURL(ctx, api.DiscoveryURL)
+		} else {
+			doc, err = client.GetDiscoveryDocument(ctx, api.Service, api.Version)
+		}
+
 		if err != nil {
 			return false, fmt.Errorf("fetching discovery for %s: %w", api.Service, err)
 		}
@@ -241,7 +251,16 @@ func generateCode(ctx context.Context, client *discovery.Client, config *Config,
 		fmt.Printf("  Processing %s %s...\n", api.Service, api.Version)
 
 		// Fetch discovery document
-		doc, err := client.GetDiscoveryDocument(ctx, api.Service, api.Version)
+		var doc *discovery.DiscoveryDocument
+		var err error
+
+		// Check if a custom discovery URL is provided (not the standard www.googleapis.com)
+		if api.DiscoveryURL != "" && !strings.Contains(api.DiscoveryURL, "www.googleapis.com") {
+			doc, err = client.GetDiscoveryDocumentFromURL(ctx, api.DiscoveryURL)
+		} else {
+			doc, err = client.GetDiscoveryDocument(ctx, api.Service, api.Version)
+		}
+
 		if err != nil {
 			return fmt.Errorf("fetching discovery for %s: %w", api.Service, err)
 		}

@@ -75,14 +75,12 @@ apis:
     priority: 2
     description: "Cloud Identity API - Group management"
     
-  # Note: drivelabels uses service-specific discovery (https://drivelabels.googleapis.com/$discovery/rest)
-  # which requires custom handling - skipping for now
-  # - service: drivelabels
-  #   version: v2
-  #   discovery_url: https://drivelabels.googleapis.com/$discovery/rest?version=v2
-  #   owner: "@drive-team"
-  #   priority: 2
-  #   description: "Drive Labels API - Label management for Drive items"
+  - service: drivelabels
+    version: v2
+    discovery_url: https://drivelabels.googleapis.com/$discovery/rest?version=v2
+    owner: "@drive-team"
+    priority: 2
+    description: "Drive Labels API - Label management for Drive items"
     
   - service: script
     version: v1
@@ -98,13 +96,12 @@ apis:
     priority: 3
     description: "Tasks API - Task list management"
     
-  # Note: forms uses service-specific discovery (https://forms.googleapis.com/$discovery/rest)
-  # - service: forms
-  #   version: v1
-  #   discovery_url: https://forms.googleapis.com/$discovery/rest?version=v1
-  #   owner: "@forms-team"
-  #   priority: 3
-  #   description: "Google Forms API - Form management"
+  - service: forms
+    version: v1
+    discovery_url: https://forms.googleapis.com/$discovery/rest?version=v1
+    owner: "@forms-team"
+    priority: 3
+    description: "Google Forms API - Form management"
 
 # Risk classification thresholds for drift detection
 # These rules determine how changes are classified and routed

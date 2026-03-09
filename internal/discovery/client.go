@@ -27,7 +27,7 @@ const (
 	DefaultRetryBackoff = 2.0
 
 	// AllowedHosts restricts discovery fetches to trusted domains
-	AllowedHosts = "www.googleapis.com,discovery.googleapis.com,drivelabels.googleapis.com"
+	AllowedHosts = "www.googleapis.com,discovery.googleapis.com,drivelabels.googleapis.com,forms.googleapis.com"
 )
 
 // Client provides access to the Google Discovery Service
@@ -334,7 +334,39 @@ func (c *Client) validateHost(urlStr string) error {
 	return fmt.Errorf("host %s is not in allowed list: %s", u.Host, AllowedHosts)
 }
 
-// BuildRequestURL constructs the full request URL with path parameters substituted
+// GetDiscoveryDocumentFromURL fetches a discovery document from a custom URL
+// This is used for APIs that have service-specific discovery endpoints (e.g., forms.googleapis.com)
+func (c *Client) GetDiscoveryDocumentFromURL(ctx context.Context, url string) (*DiscoveryDocument, error) {
+	c.logDebug("Fetching discovery document from custom URL: %s", url)
+
+	// Validate host
+	if err := c.validateHost(url); err != nil {
+		return nil, fmt.Errorf("host validation failed: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.doWithRetry(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch discovery document: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("discovery document request failed: %s (status %d)", string(body), resp.StatusCode)
+	}
+
+	var doc DiscoveryDocument
+	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		return nil, fmt.Errorf("failed to decode discovery document: %w", err)
+	}
+
+	return &doc, nil
+}
 func (c *Client) BuildRequestURL(doc *DiscoveryDocument, resolved *ResolvedMethod, pathParams map[string]string) (string, error) {
 	baseURL := doc.BaseURL
 	if baseURL == "" {
