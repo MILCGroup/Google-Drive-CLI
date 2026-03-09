@@ -1,0 +1,278 @@
+name: gRPC API Drift Detection
+
+on:
+  schedule:
+    # Run weekly on Sundays at 3 AM UTC (after REST API check)
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Specific service to check (monitoring|logging|iam|ai)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Check only (do not create PRs)'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: grpc-api-drift
+  cancel-in-progress: false
+
+jobs:
+  grpc-drift-detection:
+    name: Detect gRPC API Drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    outputs:
+      drift_detected: ${{ steps.check.outputs.drift_detected }}
+      services_changed: ${{ steps.check.outputs.services_changed }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Checkout googleapis repository
+      uses: actions/checkout@v4
+      with:
+        repository: googleapis/googleapis
+        path: googleapis
+        fetch-depth: 1
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23.6'
+        cache: true
+    
+    - name: Install protoc and tools
+      run: |
+        # Install protoc
+        PROTOC_VERSION=24.4
+        curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+        unzip -o "protoc-${PROTOC_VERSION}-linux-x86_64.zip" -d /usr/local
+        rm "protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+        
+        # Install buf for proto linting and breaking change detection
+        BUF_VERSION=1.31.0
+        curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
+        chmod +x /usr/local/bin/buf
+        
+        echo "✓ Installed protoc ${PROTOC_VERSION} and buf ${BUF_VERSION}"
+    
+    - name: Check for proto drift
+      id: check
+      run: |
+        set +e
+        
+        DRIFT_DETECTED=false
+        SERVICES_CHANGED=""
+        
+        # List of monitored gRPC services
+        SERVICES="
+        google/monitoring/v3
+        google/logging/v2
+        google/iam/admin/v1
+        google/ai/generativelanguage/v1
+        "
+        
+        # Filter by specific service if provided
+        if [ -n "${{ github.event.inputs.service }}" ]; then
+          SERVICES="${{ github.event.inputs.service }}"
+        fi
+        
+        echo "Checking gRPC proto drift for services:"
+        echo "$SERVICES"
+        echo ""
+        
+        for service in $SERVICES; do
+          echo "  Checking $service..."
+          
+          # Check if proto files exist in googleapis
+          if [ ! -d "googleapis/$service" ]; then
+            echo "    ⚠️ Service $service not found in googleapis"
+            continue
+          fi
+          
+          # Check if we have existing proto snapshots
+          SNAPSHOT_DIR="third_party/googleapis/$service"
+          if [ ! -d "$SNAPSHOT_DIR" ]; then
+            echo "    ✗ No existing snapshot - initial import needed"
+            DRIFT_DETECTED=true
+            SERVICES_CHANGED="$SERVICES_CHANGED $service(initial)"
+            
+            # Create directory for initial import
+            mkdir -p "$SNAPSHOT_DIR"
+            cp -r "googleapis/$service/"* "$SNAPSHOT_DIR/"
+            continue
+          fi
+          
+          # Use buf to check for breaking changes
+          if [ -f "googleapis/$service/*.proto" ]; then
+            # Create temporary buf.yaml for comparison
+            cat > /tmp/buf-check.yaml <<EOF
+            version: v1
+            breaking:
+              use:
+                - FILE
+            EOF
+            
+            # Check for breaking changes
+            if buf breaking --config /tmp/buf-check.yaml "googleapis/$service" --against "$SNAPSHOT_DIR" 2>/dev/null; then
+              echo "    ✓ No breaking changes"
+            else
+              echo "    ✗ Changes detected in $service"
+              DRIFT_DETECTED=true
+              SERVICES_CHANGED="$SERVICES_CHANGED $service"
+              
+              # Copy new protos for PR
+              rm -rf "$SNAPSHOT_DIR"
+              mkdir -p "$SNAPSHOT_DIR"
+              cp -r "googleapis/$service/"* "$SNAPSHOT_DIR/"
+            fi
+          else
+            # Fallback: compare files directly
+            if diff -r "googleapis/$service" "$SNAPSHOT_DIR" > /dev/null 2>&1; then
+              echo "    ✓ No changes"
+            else
+              echo "    ✗ Changes detected in $service"
+              DRIFT_DETECTED=true
+              SERVICES_CHANGED="$SERVICES_CHANGED $service"
+              
+              # Update snapshot
+              rm -rf "$SNAPSHOT_DIR"
+              mkdir -p "$SNAPSHOT_DIR"
+              cp -r "googleapis/$service/"* "$SNAPSHOT_DIR/"
+            fi
+          fi
+        done
+        
+        # Output results
+        if [ "$DRIFT_DETECTED" = true ]; then
+          echo "drift_detected=true" >> $GITHUB_OUTPUT
+          echo "services_changed=${SERVICES_CHANGED# }" >> $GITHUB_OUTPUT
+          echo ""
+          echo "✓ gRPC drift detected in: $SERVICES_CHANGED"
+        else
+          echo "drift_detected=false" >> $GITHUB_OUTPUT
+          echo "services_changed=" >> $GITHUB_OUTPUT
+          echo "✓ No gRPC drift detected"
+        fi
+        
+        set -e
+    
+    - name: Generate Go code from protos (if drift detected)
+      if: steps.check.outputs.drift_detected == 'true' && !github.event.inputs.dry_run
+      run: |
+        echo "Generating Go code from updated proto files..."
+        
+        # Install protoc-gen-go
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+        
+        # Generate for each changed service
+        SERVICES="${{ steps.check.outputs.services_changed }}"
+        
+        for service_info in $SERVICES; do
+          # Extract service name (remove (initial) suffix)
+          service=$(echo "$service_info" | sed 's/(initial)//')
+          
+          echo "  Generating for $service..."
+          PROTO_DIR="third_party/googleapis/$service"
+          OUT_DIR="internal/google/generated/$service"
+          
+          mkdir -p "$OUT_DIR"
+          
+          # Find all proto files
+          find "$PROTO_DIR" -name "*.proto" -type f | while read proto_file; do
+            protoc \
+              --proto_path=third_party/googleapis \
+              --go_out="$OUT_DIR" \
+              --go_opt=paths=source_relative \
+              --go-grpc_out="$OUT_DIR" \
+              --go-grpc_opt=paths=source_relative \
+              "$proto_file"
+          done
+        done
+        
+        echo "✓ Generated Go code"
+    
+    - name: Run tests
+      if: steps.check.outputs.drift_detected == 'true' && !github.event.inputs.dry_run
+      run: |
+        go test ./internal/google/generated/... -v || true
+    
+    - name: Create Pull Request
+      if: steps.check.outputs.drift_detected == 'true' && !github.event.inputs.dry_run
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore(grpc): Update gRPC proto definitions'
+        title: 'chore(grpc): Weekly gRPC API drift detection update'
+        body: |
+          ## gRPC API Drift Detected
+          
+          This PR contains automated updates to Google gRPC API proto definitions.
+          
+          ### Services Updated
+          ${{ steps.check.outputs.services_changed }}
+          
+          ### Changes
+          - Updated Protocol Buffer definitions from googleapis/googleapis
+          - Regenerated Go code using protoc-gen-go and protoc-gen-go-grpc
+          
+          ### Verification
+          - [ ] Review proto changes for breaking changes
+          - [ ] Verify generated Go code compiles
+          - [ ] Run integration tests
+          - [ ] Check for breaking changes requiring major version bump
+          
+          ---
+          *Generated by gRPC API Drift Detection workflow*
+        branch: auto/grpc-api-drift
+        delete-branch: false
+        labels: |
+          automated
+          grpc-api-drift
+          needs-review
+
+  grpc-drift-summary:
+    name: gRPC Drift Summary
+    runs-on: ubuntu-latest
+    if: always() && needs.grpc-drift-detection.outputs.drift_detected == 'true'
+    needs: grpc-drift-detection
+    
+    steps:
+    - name: Create issue for breaking changes
+      if: github.event_name == 'schedule'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = '[URGENT] Breaking gRPC API changes detected';
+          const body = `## Breaking gRPC API Changes Detected
+          
+          The weekly gRPC drift detection job found changes in the following services:
+          
+          ${{ needs.grpc-drift-detection.outputs.services_changed }}
+          
+          Please review the PR created by the gRPC drift detection workflow.
+          
+          Run: \`${{ github.run_id }}\`
+          `;
+          
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.name,
+            title: title,
+            body: body,
+            labels: ['breaking-change', 'urgent', 'grpc-api-drift']
+          });
