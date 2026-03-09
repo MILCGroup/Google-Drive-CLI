@@ -1,6 +1,6 @@
 module github.com/dl-alexandre/gdrv
 
-go 1.24.2
+go 1.25.0
 
 require (
 	cloud.google.com/go/ai v0.10.0
@@ -16,11 +16,12 @@ require (
 	github.com/schollz/progressbar/v3 v3.19.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/zalando/go-keyring v0.2.6
-	golang.org/x/oauth2 v0.35.0
+	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.214.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260120221211-b8f7ae30c516
 	google.golang.org/grpc v1.81.0-dev
 	google.golang.org/protobuf v1.36.11
+	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.46.1
 )
 
