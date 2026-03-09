@@ -118,6 +118,116 @@ func (cmd *CloudLoggingSinksListCmd) Run(globals *Globals) error {
 	return out.WriteSuccess("logging.sinks.list", result)
 }
 
+func (cmd *CloudLoggingLogsListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getCloudLoggingManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("logging.logs.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeListOrSearch
+
+	result, err := mgr.ListLogs(ctx, reqCtx, cmd.Parent, cmd.PageSize)
+	if err != nil {
+		return handleCLIError(out, "logging.logs.list", err)
+	}
+
+	if flags.OutputFormat == types.OutputFormatTable {
+		return out.WriteSuccess("logging.logs.list", result)
+	}
+	return out.WriteSuccess("logging.logs.list", result)
+}
+
+func (cmd *CloudLoggingLogsDeleteCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getCloudLoggingManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("logging.logs.delete", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeMutation
+
+	if err := mgr.DeleteLog(ctx, reqCtx, cmd.LogName); err != nil {
+		return handleCLIError(out, "logging.logs.delete", err)
+	}
+
+	return out.WriteSuccess("logging.logs.delete", map[string]string{"logName": cmd.LogName, "status": "deleted"})
+}
+
+func (cmd *CloudLoggingSinksGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getCloudLoggingManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("logging.sinks.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeGetByID
+
+	result, err := mgr.GetSink(ctx, reqCtx, cmd.SinkName)
+	if err != nil {
+		return handleCLIError(out, "logging.sinks.get", err)
+	}
+
+	return out.WriteSuccess("logging.sinks.get", result)
+}
+
+func (cmd *CloudLoggingMetricsListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getCloudLoggingManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("logging.metrics.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeListOrSearch
+
+	result, err := mgr.ListMetrics(ctx, reqCtx, cmd.Parent, cmd.PageSize)
+	if err != nil {
+		return handleCLIError(out, "logging.metrics.list", err)
+	}
+
+	if flags.OutputFormat == types.OutputFormatTable {
+		return out.WriteSuccess("logging.metrics.list", result.Metrics)
+	}
+	return out.WriteSuccess("logging.metrics.list", result)
+}
+
+func (cmd *CloudLoggingMetricsGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getCloudLoggingManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("logging.metrics.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeGetByID
+
+	result, err := mgr.GetMetric(ctx, reqCtx, cmd.MetricName)
+	if err != nil {
+		return handleCLIError(out, "logging.metrics.get", err)
+	}
+
+	return out.WriteSuccess("logging.metrics.get", result)
+}
+
 func getCloudLoggingManager(ctx context.Context, flags types.GlobalFlags) (*loggingmgr.Manager, *types.RequestContext, error) {
 	configDir := getConfigDir()
 	authMgr := auth.NewManager(configDir)
