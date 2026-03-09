@@ -16,7 +16,7 @@ import (
 
 const (
 	// DiscoveryBaseURL is the base URL for the Google Discovery Service
-	DiscoveryBaseURL = "https://discovery.googleapis.com/discovery/v1"
+	DiscoveryBaseURL = "https://www.googleapis.com/discovery/v1"
 
 	// DiscoveryReadOnlyScope is the OAuth scope for reading discovery docs
 	DiscoveryReadOnlyScope = "https://www.googleapis.com/auth/discovery.readonly"
@@ -27,7 +27,7 @@ const (
 	DefaultRetryBackoff = 2.0
 
 	// AllowedHosts restricts discovery fetches to trusted domains
-	AllowedHosts = "discovery.googleapis.com,www.googleapis.com,drive.googleapis.com,sheets.googleapis.com,docs.googleapis.com,slides.googleapis.com,gmail.googleapis.com,calendar.googleapis.com,people.googleapis.com,tasks.googleapis.com,forms.googleapis.com,script.googleapis.com,chat.googleapis.com,admin.googleapis.com,cloudidentity.googleapis.com,monitoring.googleapis.com,logging.googleapis.com,iam.googleapis.com,cloudresourcemanager.googleapis.com"
+	AllowedHosts = "www.googleapis.com,discovery.googleapis.com"
 )
 
 // Client provides access to the Google Discovery Service
