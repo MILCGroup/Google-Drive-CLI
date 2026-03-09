@@ -174,8 +174,8 @@ func (c *Client) GetDiscoveryDocument(ctx context.Context, serviceName, version 
 		}
 	}
 
-	// Fetch the discovery document
-	url := fmt.Sprintf("https://%s.googleapis.com/$discovery/rest?version=%s", serviceName, version)
+	// Fetch the discovery document using Discovery API
+	url := fmt.Sprintf("%s/apis/%s/%s/rest", c.baseURL, serviceName, version)
 	c.logDebug("Fetching discovery document from %s", url)
 
 	// Validate host
