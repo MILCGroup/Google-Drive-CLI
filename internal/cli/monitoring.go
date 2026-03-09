@@ -78,6 +78,51 @@ func (cmd *MonitoringMetricsListCmd) Run(globals *Globals) error {
 	return out.WriteSuccess("monitoring.metrics.list", result)
 }
 
+func (cmd *MonitoringMetricsGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getMonitoringManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("monitoring.metrics.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeGetByID
+
+	result, err := mgr.GetMetricDescriptor(ctx, reqCtx, cmd.Name)
+	if err != nil {
+		return handleCLIError(out, "monitoring.metrics.get", err)
+	}
+
+	return out.WriteSuccess("monitoring.metrics.get", result)
+}
+
+func (cmd *MonitoringTimeSeriesListCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getMonitoringManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("monitoring.time-series.list", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeListOrSearch
+
+	result, err := mgr.ListTimeSeries(ctx, reqCtx, cmd.Filter, "", cmd.PageSize)
+	if err != nil {
+		return handleCLIError(out, "monitoring.time-series.list", err)
+	}
+
+	if flags.OutputFormat == types.OutputFormatTable {
+		return out.WriteSuccess("monitoring.time-series.list", result)
+	}
+	return out.WriteSuccess("monitoring.time-series.list", result)
+}
+
 func (cmd *MonitoringAlertPoliciesListCmd) Run(globals *Globals) error {
 	flags := globals.ToGlobalFlags()
 	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
@@ -100,6 +145,27 @@ func (cmd *MonitoringAlertPoliciesListCmd) Run(globals *Globals) error {
 		return out.WriteSuccess("monitoring.alert-policies.list", result.Policies)
 	}
 	return out.WriteSuccess("monitoring.alert-policies.list", result)
+}
+
+func (cmd *MonitoringAlertPoliciesGetCmd) Run(globals *Globals) error {
+	flags := globals.ToGlobalFlags()
+	out := NewOutputWriter(flags.OutputFormat, flags.Quiet, flags.Verbose)
+	ctx := context.Background()
+
+	mgr, reqCtx, err := getMonitoringManager(ctx, flags)
+	if err != nil {
+		return out.WriteError("monitoring.alert-policies.get", utils.NewCLIError(utils.ErrCodeAuthRequired, err.Error()).Build())
+	}
+	defer func() { _ = mgr.Close() }()
+
+	reqCtx.RequestType = types.RequestTypeGetByID
+
+	result, err := mgr.GetAlertPolicy(ctx, reqCtx, cmd.Name)
+	if err != nil {
+		return handleCLIError(out, "monitoring.alert-policies.get", err)
+	}
+
+	return out.WriteSuccess("monitoring.alert-policies.get", result)
 }
 
 func getMonitoringManager(ctx context.Context, flags types.GlobalFlags) (*monitoringmgr.Manager, *types.RequestContext, error) {
