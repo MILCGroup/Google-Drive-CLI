@@ -30,3 +30,4 @@ coverage*.out
 *.test
 internal/files/Large Document
 internal/files/auto-name.txt
+discovery-checker
