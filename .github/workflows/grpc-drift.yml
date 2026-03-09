@@ -83,6 +83,7 @@ jobs:
         google/logging/v2
         google/iam/admin/v1
         google/ai/generativelanguage/v1
+        google/apps/meet/v2
         "
         
         # Filter by specific service if provided
