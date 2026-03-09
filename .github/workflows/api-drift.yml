@@ -92,6 +92,9 @@ jobs:
           exit 1
         fi
         
+        # Always exit 0 here - we've handled the exit codes above
+        exit 0
+        
     - name: Generate code (if drift detected and not dry run)
       if: steps.check.outputs.check_passed == 'true' && steps.check.outputs.drift_detected == 'true' && !github.event.inputs.dry_run
       run: |
