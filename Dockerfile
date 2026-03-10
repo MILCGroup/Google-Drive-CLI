@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates
 
@@ -26,7 +26,7 @@ RUN CGO_ENABLED=0 go build \
     -o gdrv ./cmd/gdrv
 
 # Final stage
-FROM alpine:3.21
+FROM alpine:3.23
 
 RUN apk add --no-cache ca-certificates tzdata
 
