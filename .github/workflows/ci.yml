@@ -89,7 +89,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.13'
+          go-version: '1.26.1'
 
       - name: Build for all platforms
         run: make build-all
@@ -129,12 +129,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.13'
+          go-version: '1.26.1'
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9.2.0
         with:
-          version: v2.8.0
+          version: v2.11.3
           skip-cache: true
           args: --timeout=5m
 
@@ -152,7 +152,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.13'
+          go-version: '1.26.1'
 
       - name: Run govulncheck
         run: |
