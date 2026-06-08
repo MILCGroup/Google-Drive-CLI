@@ -1,6 +1,7 @@
 package calendar
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/milcgroup/gdrv/internal/types"
@@ -67,8 +68,10 @@ func TestBuildEventDateTime_EdgeCases(t *testing.T) {
 // TestConvertEvent_EdgeCases tests edge cases for event conversion
 func TestConvertEvent_EdgeCases(t *testing.T) {
 	t.Run("nil event", func(t *testing.T) {
-		// convertEvent doesn't handle nil input, skip this test
-		t.Skip("convertEvent doesn't handle nil input safely")
+		got := convertEvent(nil)
+		if !reflect.DeepEqual(got, types.CalendarEvent{}) {
+			t.Errorf("expected zero-value event, got %#v", got)
+		}
 	})
 
 	t.Run("empty event", func(t *testing.T) {
